@@ -3,13 +3,12 @@ const KPI = require('../models/KPI');
 const TargetAudience = require('../models/TargetAudience');
 const ContentCalendar = require('../models/ContentCalendar');
 const { generateCampaignWithAI } = require('../services/campaignAIService');
-const asyncHandler = require('../utils/asyncHandler');
 const AppError = require('../utils/AppError');
 
 // @desc    Create a new campaign and get AI preview
 // @route   POST /api/campaigns
 // @access  Private
-exports.createCampaign = asyncHandler(async (req, res, next) => {
+exports.createCampaign = async (req, res, next) => {
   const {
     campaignName,
     userDescription,
@@ -84,51 +83,6 @@ exports.createCampaign = asyncHandler(async (req, res, next) => {
       aiPreview: aiGeneratedCampaign
     }
   });
-});
+};
 
-// @desc    Get all campaigns for user
-// @route   GET /api/campaigns
-// @access  Private
-exports.getCampaigns = asyncHandler(async (req, res, next) => {
-  const campaigns = await Campaign.findAll({
-    where: { userId: req.user.id },
-    include: [
-      { model: KPI, as: 'kpis' },
-      { model: TargetAudience, as: 'targetAudience' },
-      { model: ContentCalendar, as: 'contentCalendar' }
-    ],
-    order: [['createdAt', 'DESC']]
-  });
 
-  res.status(200).json({
-    success: true,
-    count: campaigns.length,
-    data: campaigns
-  });
-});
-
-// @desc    Get single campaign
-// @route   GET /api/campaigns/:id
-// @access  Private
-exports.getCampaign = asyncHandler(async (req, res, next) => {
-  const campaign = await Campaign.findOne({
-    where: { 
-      id: req.params.id,
-      userId: req.user.id 
-    },
-    include: [
-      { model: KPI, as: 'kpis' },
-      { model: TargetAudience, as: 'targetAudience' },
-      { model: ContentCalendar, as: 'contentCalendar' }
-    ]
-  });
-
-  if (!campaign) {
-    return next(new AppError('Campaign not found', 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    data: campaign
-  });
-});

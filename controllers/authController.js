@@ -1,65 +1,151 @@
-const User = require('../models/User');
-const asyncHandler = require('../utils/asyncHandler');
+const passport = require('passport');
+const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
-const jwt = require('jsonwebtoken');
 
-// @desc    Register user
-// @route   POST /api/auth/signup
-// @access  Public
-exports.signup = asyncHandler(async (req, res, next) => {
-  const { firstName, lastName, email, password } = req.body;
+// Signup function
+exports.signup = (req, res, next) => {
+  passport.authenticate('local-signup', (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
 
-  // Validate input
-  if (!firstName || !lastName || !email || !password) {
-    return next(new AppError('Please provide all required fields', 400));
+    if (!user) {
+      return next(new AppError('Signup failed', 400));
+    }
+
+    // Send success response
+    sendSuccess(res, 201, 'User registered successfully', {
+      userId: user.id,
+      needsRoleSelection: true
+    });
+  })(req, res, next);
+};
+
+// Select role function
+exports.selectRole = async (req, res, next) => {
+  try {
+    const { userId, roleId } = req.body;
+
+    // Validate required fields
+    if (!userId || !roleId) {
+      return next(new AppError('UserId and roleId are required', 400));
+    }
+
+    const { User, Role, UserRole } = require('../models');
+
+    // Check if user exists
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Check if role exists
+    const role = await Role.findByPk(roleId);
+    if (!role) {
+      return next(new AppError('Role not found', 404));
+    }
+
+    // Check if user already has this role
+    const existingUserRole = await UserRole.findOne({
+      where: { userId, roleId }
+    });
+
+    if (existingUserRole) {
+      return next(new AppError('User already has this role', 400));
+    }
+
+    // Assign role to user
+    await UserRole.create({ userId, roleId });
+
+    sendSuccess(res, 201, 'Role assigned successfully', {
+      userId,
+      roleId,
+      roleName: role.name
+    });
+  } catch (error) {
+    next(error);
   }
+};
 
-  // Check if user already exists
-  const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) {
-    return next(new AppError('Email is already in use', 400));
+// Login function
+exports.login = async (req, res, next) => {
+  passport.authenticate('local-login', async (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+
+    if (!user) {
+      return next(new AppError('Login failed', 401));
+    }
+
+    try {
+      // Generate JWT tokens
+      const { generateToken, generateRefreshToken } = require('../utils/generateToken');
+      const accessToken = generateToken(user.id);
+      const refreshToken = generateRefreshToken(user.id);
+
+      // Save refresh token to database
+      const { User } = require('../models');
+      await User.update(
+        { refreshToken },
+        { where: { id: user.id } }
+      );
+
+      sendSuccess(res, 200, 'Login successful', {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        accessToken,
+        refreshToken
+      });
+    } catch (error) {
+      return next(error);
+    }
+  })(req, res, next);
+};
+
+// Refresh access token function
+exports.refreshAccessToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return next(new AppError('Refresh token is required', 400));
+    }
+
+    const jwt = require('jsonwebtoken');
+    const { User } = require('../models');
+    const { generateToken } = require('../utils/generateToken');
+
+    // Verify refresh token
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret-key'
+    );
+
+    // Find user and check if refresh token matches
+    const user = await User.findOne({
+      where: {
+        id: decoded.id,
+        refreshToken
+      }
+    });
+
+    if (!user) {
+      return next(new AppError('Invalid refresh token', 401));
+    }
+
+    // Generate new access token
+    const accessToken = generateToken(user.id);
+
+    sendSuccess(res, 200, 'Token refreshed successfully', {
+      accessToken
+    });
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return next(new AppError('Invalid or expired refresh token', 401));
+    }
+    next(error);
   }
-
-  // Create user
-  const user = await User.create({ firstName, lastName, email, password });
-
-
-
-  res.status(201).json({
-    success: true,
-    message: 'User registered successfully',
- 
-  });
-});
-
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
-exports.login = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body;
-
-  // Validate input
-  if (!email || !password) {
-    return next(new AppError('Please provide email and password', 400));
-  }
-
-  // Check if user exists
-  const user = await User.findOne({ where: { email } });
-  if (!user) {
-    return next(new AppError('Invalid credentials', 401));
-  }
-
-  // Check password
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    return next(new AppError('Invalid credentials', 401));
-  }
-
-
-
-  res.status(200).json({
-    success: true,
-    message: 'Logged in successfully',
-
-  });
-});
+};

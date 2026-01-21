@@ -18,5 +18,4 @@ const sendSuccess = (res, statusCode = 200, message = 'Success', data = null) =>
 
   return res.status(statusCode).json(response);
 };
-
 module.exports = sendSuccess;

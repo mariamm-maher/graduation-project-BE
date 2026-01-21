@@ -5,102 +5,62 @@ const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  if (process.env.NODE_ENV === 'development') {
-    sendErrorDev(err, res);
-  } else {
-    let error = { ...err };
-    error.message = err.message;
-
-    // Sequelize Validation Error
-    if (err.name === 'SequelizeValidationError') {
-      error = handleSequelizeValidationError(err);
-    }
-
-    // Sequelize Unique Constraint Error
-    if (err.name === 'SequelizeUniqueConstraintError') {
-      error = handleSequelizeUniqueError(err);
-    }
-
-    // Sequelize Database Error
-    if (err.name === 'SequelizeDatabaseError') {
-      error = handleSequelizeDatabaseError(err);
-    }
-
-    // JWT Error
-    if (err.name === 'JsonWebTokenError') {
-      error = handleJWTError();
-    }
-
-    // JWT Expired Error
-    if (err.name === 'TokenExpiredError') {
-      error = handleJWTExpiredError();
-    }
-
-    sendErrorProd(error, res);
-  }
+  // Map known errors to AppError
+  const mappedError = mapKnownError(err);
+  
+  sendError(mappedError, res);
 };
 
-// Send error in development
-const sendErrorDev = (err, res) => {
-  res.status(err.statusCode).json({
+// Unified error sender
+const sendError = (err, res) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Base response
+  const response = {
     success: false,
     status: err.status,
-    error: err,
-    message: err.message,
-    stack: err.stack
-  });
-};
+    message: err.message
+  };
 
-// Send error in production
-const sendErrorProd = (err, res) => {
-  // Operational, trusted error: send message to client
-  if (err.isOperational) {
-    res.status(err.statusCode).json({
-      success: false,
-      status: err.status,
-      message: err.message
-    });
-  } 
-  // Programming or unknown error: don't leak error details
-  else {
-    console.error('ERROR 💥', err);
-
-    res.status(500).json({
-      success: false,
-      status: 'error',
-      message: 'Something went wrong!'
-    });
+  if (isDevelopment) {
+    // Development: send full details
+    response.error = err;
+    response.stack = err.stack;
+  } else {
+    // Production: only send message if operational error
+    if (!err.isOperational) {
+      console.error('ERROR 💥', err);
+      response.message = 'Something went wrong!';
+    }
   }
+
+  res.status(err.statusCode).json(response);
 };
 
-// Handle Sequelize Validation Error
-const handleSequelizeValidationError = (err) => {
-  const errors = err.errors.map(e => e.message);
-  const message = `Invalid input data. ${errors.join('. ')}`;
-  return new AppError(message, 400);
-};
+// Map known errors to AppError
+const mapKnownError = (err) => {
+  const errorMap = {
+    'SequelizeValidationError': () => {
+      const errors = err.errors.map(e => e.message);
+      return new AppError(`Invalid input data. ${errors.join('. ')}`, 400);
+    },
+    'SequelizeUniqueConstraintError': () => {
+      const field = Object.keys(err.fields)[0];
+      return new AppError(`${field} already exists. Please use another value.`, 400);
+    },
+    'SequelizeDatabaseError': () => {
+      return new AppError('Database error occurred', 400);
+    },
+    'JsonWebTokenError': () => {
+      return new AppError('Invalid token. Please log in again.', 401);
+    },
+    'TokenExpiredError': () => {
+      return new AppError('Your token has expired. Please log in again.', 401);
+    }
+  };
 
-// Handle Sequelize Unique Constraint Error
-const handleSequelizeUniqueError = (err) => {
-  const field = Object.keys(err.fields)[0];
-  const message = `${field} already exists. Please use another value.`;
-  return new AppError(message, 400);
-};
-
-// Handle Sequelize Database Error
-const handleSequelizeDatabaseError = (err) => {
-  const message = 'Database error occurred';
-  return new AppError(message, 400);
-};
-
-// Handle JWT Error
-const handleJWTError = () => {
-  return new AppError('Invalid token. Please log in again.', 401);
-};
-
-// Handle JWT Expired Error
-const handleJWTExpiredError = () => {
-  return new AppError('Your token has expired. Please log in again.', 401);
+  // If error type is in map, use it; otherwise return original error
+  return errorMap[err.name] ? errorMap[err.name]() : err;
 };
 
 // Not Found Handler (404)

@@ -1,45 +1,95 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { generateToken } = require('../utils/generateToken');
+const AppError = require('../utils/AppError');
 
-const protect = async (req, res, next) => {
+// Authenticate middleware - checks access token and refresh token
+exports.authenticate = async (req, res, next) => {
   try {
-    let token;
+    let accessToken;
+    let refreshToken;
 
-    // Check for token in Authorization header
+    // Get access token from header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
+      accessToken = req.headers.authorization.split(' ')[1];
     }
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized, no token provided'
-      });
+    // Get refresh token from header or body
+    refreshToken = req.headers['x-refresh-token'] || req.body.refreshToken;
+
+    if (!accessToken) {
+      return next(new AppError('Access token is required', 401));
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    try {
+      // Try to verify access token
+      const decoded = jwt.verify(accessToken, process.env.JWT_SECRET || 'your-secret-key');
+      
+      // Find user
+      const user = await User.findByPk(decoded.id);
+      
+      if (!user) {
+        return next(new AppError('User not found', 401));
+      }
 
-    // Get user from token
-    req.user = await User.findByPk(decoded.id, {
-      attributes: { exclude: ['password'] }
-    });
+      // Attach user to request
+      req.user = user;
+      req.accessToken = accessToken;
+      
+      return next();
+    } catch (error) {
+      // If access token is expired, try to refresh it
+      if (error.name === 'TokenExpiredError') {
+        if (!refreshToken) {
+          return next(new AppError('Access token expired. Refresh token required', 401));
+        }
 
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not found'
-      });
+        try {
+          // Verify refresh token
+          const refreshDecoded = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'your-refresh-secret-key'
+          );
+
+          // Find user and verify refresh token matches database
+          const user = await User.findOne({
+            where: {
+              id: refreshDecoded.id,
+              refreshToken
+            }
+          });
+
+          if (!user) {
+            return next(new AppError('Invalid refresh token', 401));
+          }
+
+          // Generate new access token
+          const newAccessToken = generateToken(user.id);
+
+          // Attach user and new token to request
+          req.user = user;
+          req.accessToken = newAccessToken;
+          req.newAccessToken = newAccessToken; // Signal that a new token was generated
+
+          // Send new access token in response header
+          res.setHeader('X-New-Access-Token', newAccessToken);
+
+          return next();
+        } catch (refreshError) {
+          if (refreshError.name === 'TokenExpiredError') {
+            return next(new AppError('Refresh token expired. Please login again', 401));
+          }
+          return next(new AppError('Invalid refresh token', 401));
+        }
+      }
+
+      // Other JWT errors (invalid signature, malformed token, etc.)
+      return next(new AppError('Invalid access token', 401));
     }
-
-    next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({
-      success: false,
-      message: 'Not authorized, token failed'
-    });
+    return next(error);
   }
 };
 
-module.exports = { protect };
+// Legacy protect middleware for backward compatibility
+exports.protect = exports.authenticate;

@@ -10,10 +10,8 @@ const {
 
 
 router.route('/')
-  .get(getCampaigns)
+
   .post(createCampaign);
 
-router.route('/:id')
-  .get(getCampaign);
 
 module.exports = router;
