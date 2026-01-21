@@ -1,0 +1,114 @@
+{
+  "campaign": {
+    "metadata": {
+      "campaign_id": "string (auto-generated)",
+      "created_at": "timestamp",
+      "campaign_name": "string (AI-generated based on goal)",
+      "status": "draft | active | completed"
+    },
+    "inputs": {
+      "goal": {
+        "raw_input": "string (user's description)",
+        "goal_type": "awareness | consideration | conversion | lead_generation | retention"
+      },
+      "budget": {
+        "total_budget": "number",
+        "currency": "USD | EUR | etc.",
+        "budget_flexibility": "strict | flexible (optional)"
+      },
+      "duration": {
+        "start_date": "date",
+        "end_date": "date"
+      }
+    },
+    "strategy": {
+      "campaign_summary": "string (2-3 paragraphs explaining the approach)",
+      "platform_selection": {
+        "primary_platforms": [
+          {
+            "platform": "TikTok | Instagram | Facebook | LinkedIn | YouTube | Google Ads | Snapchat",
+            "rationale": "string (why this platform for this goal + audience)",
+      
+          }
+        ]
+      },
+
+      "budget_allocation": {
+        "breakdown": [
+          {
+            "category": "paid_ads | content_creation | influencer_marketing | tools_software | contingency",
+            "amount": "number",
+            "platforms": ""
+          }
+        ],
+    
+        "total_allocated": "number"
+      },
+
+      "kpis": {
+        "primary_kpis": [
+          {
+            "metric": "impressions | reach | engagement_rate | conversions | ROAS | CPA | CTR",
+            "target_value": "number or range"
+          }
+        ]
+      },
+        "target_audience": {
+        "age_range": "string (18-24, 25-34, etc.)",
+        "gender": "all | male | female | custom",
+        "interests": ["array of interests"],
+        "platforms_used": ["Instagram", "TikTok", " etc."]
+      }
+    },
+    "execution": {
+      "content_calendar": [
+        {
+          "day": "number (1-14, etc.)",
+          "date": "actual date",
+          "platform": "TikTok | Instagram | etc.",
+          "content_type": "video | carousel | story | reel | post | article",
+          "caption": "string (detailed)",
+       "media_url" :"image/story/video link",
+          "task": "string (what needs to be done)",          
+          "status": "scheduled | posted | failed"
+         
+        }
+      ],
+
+      "ad_strategy": {
+        "campaigns": [
+          {
+            "platform": "TikTok",
+            "campaign_type": "Video Traffic | Reach & Frequency | Conversions | App Installs",
+            "objective": "string (aligned with goal)",
+            "targeting": {
+              "age": "18-35",
+              "location": "Local 25-mile radius | Nationwide",
+              "interests": ["coffee", "food & dining"]
+     
+            }
+          }
+        ]
+      },
+
+      "influencer_strategy": {
+        "budget_allocated": "number",
+        "suggested_influencers": [
+          {
+            "follower_range": "string",
+            "engagement_rate": "number (e.g., 3.5%)",
+            "platform": "Instagram | TikTok",
+            "content_deliverable": "1 post + 2 stories"
+          }
+        ]
+      }
+    },
+  "estimations": {
+    "impressions": "30k - 80k",
+    "engagement_rate": "2% - 5%",
+    "expected_outcome": "Increase local awareness & followers"
+  }
+  }
+}
+
+  
