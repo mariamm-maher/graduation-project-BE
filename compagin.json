@@ -27,7 +27,7 @@
         "primary_platforms": [
           {
             "platform": "TikTok | Instagram | Facebook | LinkedIn | YouTube | Google Ads | Snapchat",
-            "rationale": "string (why this platform for this goal + audience)",
+            "rationale": "string (why this platform for this goal + audience)"
       
           }
         ]

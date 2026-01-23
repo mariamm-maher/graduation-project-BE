@@ -10,7 +10,7 @@ exports.generateCampaignWithAI = async (campaignData) => {
   try {
     // TODO: Integrate with your AI service (OpenAI, Claude, etc.)
     // For now, returning a mock structure based on the campaign schema
-    
+
     const {
       campaignId,
       campaignName,

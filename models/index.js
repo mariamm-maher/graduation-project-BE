@@ -6,6 +6,8 @@ const OwnerProfile = require('./OwnerProfile');
 const InfluencerProfile = require('./InfluencerProfile');
 const Campaign = require('./Campaign');
 const Collaboration = require('./Collaboration');
+const Chat = require('./Chat');
+const Message = require('./Message');
 
 // Define relationships
 
@@ -94,6 +96,66 @@ Collaboration.belongsTo(User, {
   as: 'owner'
 });
 
+// Chat and User (Owner) - One-to-Many
+User.hasMany(Chat, {
+  foreignKey: 'userId',
+  as: 'userChats',
+  onDelete: 'CASCADE'
+});
+
+Chat.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// Chat and User (Other User) - One-to-Many
+User.hasMany(Chat, {
+  foreignKey: 'otherUserId',
+  as: 'otherUserChats',
+  onDelete: 'CASCADE'
+});
+
+Chat.belongsTo(User, {
+  foreignKey: 'otherUserId',
+  as: 'otherUser'
+});
+
+// Campaign and Chat - One-to-Many (optional relationship)
+// Campaign.hasMany(Chat, {
+//   foreignKey: 'campaignId',
+//   as: 'chats',
+//   onDelete: 'SET NULL'
+// });
+
+Chat.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
+});
+
+// Chat and Message - One-to-Many
+Chat.hasMany(Message, {
+  foreignKey: 'chatId',
+  as: 'messages',
+  onDelete: 'CASCADE'
+});
+
+Message.belongsTo(Chat, {
+  foreignKey: 'chatId',
+  as: 'chat'
+});
+
+// User and Message - One-to-Many (sender relationship)
+User.hasMany(Message, {
+  foreignKey: 'senderId',
+  as: 'sentMessages',
+  onDelete: 'CASCADE'
+});
+
+Message.belongsTo(User, {
+  foreignKey: 'senderId',
+  as: 'sender'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -102,5 +164,7 @@ module.exports = {
   OwnerProfile,
   InfluencerProfile,
   Campaign,
-  Collaboration
+  Collaboration,
+  Chat,
+  Message
 };
