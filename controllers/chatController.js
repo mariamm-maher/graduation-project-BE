@@ -1,4 +1,4 @@
-const { Chat, Message, User, InfluencerProfile } = require('../models');
+const { Chat, Message, User } = require('../models');
 const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
 const sendSuccess = require('../utils/sendSuccess');
@@ -257,23 +257,23 @@ exports.getMessages = async (req, res, next) => {
 };
 
 // @desc    Get a chat by influencer name
-// @route   GET /api/chat/influencer/:influencerName
+// @route   GET /api/chat/user/:userName
 // @access  Private
-exports.getChatByInfluencerName = async (req, res, next) => {
+exports.getChatByUserName = async (req, res, next) => {
   try {
-    const { influencerName } = req.params;
+    const { userName } = req.params;
     const userId = req.user.id;
 
-    if (!influencerName) {
-      return next(new AppError('Influencer name is required', 400));
+    if (!userName) {
+      return next(new AppError('User name is required', 400));
     }
 
-    // Split the name to handle both firstName and lastName
-    const nameParts = influencerName.trim().split(/\s+/);
+   
+    const nameParts = userName.trim().split(/\s+/);
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
 
-    // Build search conditions
+   
     const whereConditions = {
       [Op.or]: [
         { firstName: { [Op.iLike]: `%${firstName}%` } }
@@ -282,7 +282,7 @@ exports.getChatByInfluencerName = async (req, res, next) => {
 
     if (lastName) {
       whereConditions[Op.or].push({ lastName: { [Op.iLike]: `%${lastName}%` } });
-      // Also search for full name match
+    
       whereConditions[Op.or].push({
         [Op.and]: [
           { firstName: { [Op.iLike]: `%${firstName}%` } },
@@ -290,28 +290,19 @@ exports.getChatByInfluencerName = async (req, res, next) => {
         ]
       });
     }
-
-    // Find influencer by name
-    const influencer = await User.findOne({
-      where: whereConditions,
-      include: [
-        {
-          model: InfluencerProfile,
-          as: 'influencerProfile',
-          required: true // Only get users who are influencers
-        }
-      ]
+    
+    const otherUser = await User.findOne({
+      where: whereConditions
     });
 
-    if (!influencer) {
-      return next(new AppError('Influencer not found', 404));
+    if (!otherUser) {
+      return next(new AppError('User not found', 404));
     }
 
-    // Find chat between current user and this influencer
     const chat = await Chat.findOne({
       where: {
         userId,
-        otherUserId: influencer.id,
+        otherUserId: otherUser.id,
         isActive: true
       },
       include: [
@@ -343,16 +334,16 @@ exports.getChatByInfluencerName = async (req, res, next) => {
     });
 
     if (!chat) {
-      return next(new AppError('No chat found with this influencer', 404));
+      return next(new AppError('No chat found with this user', 404));
     }
 
     sendSuccess(res, 200, 'Chat retrieved successfully', { 
       chat,
-      influencer: {
-        id: influencer.id,
-        firstName: influencer.firstName,
-        lastName: influencer.lastName,
-        email: influencer.email
+      user: {
+        id: otherUser.id,
+        firstName: otherUser.firstName,
+        lastName: otherUser.lastName,
+        email: otherUser.email
       }
     });
   } catch (error) {

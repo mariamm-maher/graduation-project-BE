@@ -6,7 +6,7 @@ const {
   sendMessage,
   getChats,
   getMessages,
-  getChatByInfluencerName
+  getChatByUserName
 } = require('../controllers/chatController');
 
 // All routes require authentication
@@ -18,8 +18,8 @@ router.post('/start', startChat);
 // Get all chats for the current user
 router.get('/', getChats);
 
-// Get a chat by influencer name
-router.get('/:influencerName', getChatByInfluencerName);
+// Get a chat by user name
+router.get('/user/:userName', getChatByUserName);
 
 // Get messages for a specific chat
 router.get('/:chatId/messages', getMessages);

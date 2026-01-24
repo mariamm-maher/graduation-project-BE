@@ -16,7 +16,15 @@ const Chat = sequelize.define('Chat', {
     },
     comment: 'The user (owner) who initiated the chat'
   },
-
+  otherUserId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Users',
+      key: 'id'
+    },
+    comment: 'The influencer in the chat (userId of user with INFLUENCER role)'
+  },
   campaignId: {
     type: DataTypes.INTEGER,
     allowNull: true,

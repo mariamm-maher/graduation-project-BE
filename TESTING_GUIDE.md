@@ -1047,7 +1047,9 @@ Campaigns are created with the following status:
 - **Problem:** Confusion about whether to include `userId` in the request body for `/api/chat/start`
 - **Solution:** **Do NOT include the authenticated user's `userId` in the request body.** The authenticated user's `userId` is automatically extracted from the JWT token in the `Authorization` header. The authenticated user's ID is used as the chat owner. Only include the other user's `userId` (required - the userId of the user with INFLUENCER role) and `campaignId` (optional) in the request body.
 
-### 2a. "Invalid access token" Error (401 Unauthorized)
+### 2a. "Invalid access token" Error (401 Unauthorized) - COMMON ISSUE
+
+**If you're getting "Invalid access token" even though you're sure the token is correct, try these steps:**
 - **Problem:** Getting `401 Unauthorized` with message "Invalid access token" when calling `/api/chat/start`
 - **Possible Causes:**
   1. Token is missing or not set correctly

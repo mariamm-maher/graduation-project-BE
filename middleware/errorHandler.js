@@ -49,7 +49,11 @@ const mapKnownError = (err) => {
       return new AppError(`${field} already exists. Please use another value.`, 400);
     },
     'SequelizeDatabaseError': () => {
-      return new AppError('Database error occurred', 400);
+      // Show the actual database error message for debugging
+      const errorMessage = err.message || 'Database error occurred';
+      console.error('Database Error:', errorMessage);
+      console.error('SQL:', err.sql);
+      return new AppError(`Database error: ${errorMessage}`, 400);
     },
     'JsonWebTokenError': () => {
       return new AppError('Invalid token. Please log in again.', 401);
