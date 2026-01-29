@@ -5,6 +5,8 @@ const { sequelize } = require('./models');
 const seedRoles = require('./config/seedRoles');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger-bundled.json');
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.use(passport.initialize());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
 
+// Documentation Route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Database connection
 sequelize.authenticate()

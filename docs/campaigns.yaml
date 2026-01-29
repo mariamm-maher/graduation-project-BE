@@ -1,0 +1,87 @@
+paths:
+  /api/campaigns:
+    get:
+      tags:
+        - Campaigns
+      summary: Get All Campaigns
+      description: Retrieves a list of all campaigns for the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: './components.yaml#/components/schemas/Campaign'
+  /api/campaigns/create:
+    post:
+      tags:
+        - Campaigns
+      summary: Create Campaign & Generate AI Preview
+      description: Creates a new campaign draft and triggers AI generation for campaign details.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignName, userDescription, goalType, totalBudget, currency, startDate, endDate]
+              properties:
+                campaignName:
+                  type: string
+                  example: Summer Fashion Launch
+                userDescription:
+                  type: string
+                  example: A marketing campaign for our new summer clothing line focusing on Gen Z.
+                goalType:
+                  type: string
+                  example: Brand Awareness
+                totalBudget:
+                  type: number
+                  example: 5000
+                currency:
+                  type: string
+                  example: USD
+                budgetFlexibility:
+                  type: string
+                  example: flexible
+                startDate:
+                  type: string
+                  format: date
+                  example: '2023-06-01'
+                endDate:
+                  type: string
+                  format: date
+                  example: '2023-08-31'
+      responses:
+        '201':
+          description: Campaign created and AI preview generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      campaign:
+                        $ref: './components.yaml#/components/schemas/Campaign'
+                      aiPreview:
+                        type: object
+                        description: AI generated suggestions
+        '400':
+          description: Validation error

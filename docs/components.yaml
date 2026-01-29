@@ -1,0 +1,133 @@
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Something went wrong
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        campaignName:
+          type: string
+        UserDescription:
+          type: string
+        goalType:
+          type: string
+        totalBudget:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, completed, paused]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Collaboration:
+      type: object
+      properties:
+        id:
+          type: integer
+        campaignId:
+          type: integer
+        influencerId:
+          type: integer
+        ownerId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, active, completed, cancelled]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+    CollaborationRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        senderId:
+          type: integer
+        receiverId:
+          type: integer
+        campaignId:
+          type: integer
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+    ServiceListing:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        category:
+          type: string
+    Offer:
+      type: object
+      properties:
+        id:
+          type: integer
+        serviceRequestId:
+          type: integer
+        influencerId:
+          type: integer
+        price:
+          type: number
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, rejected]

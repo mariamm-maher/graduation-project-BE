@@ -1,0 +1,53 @@
+openapi: 3.0.0
+info:
+  title: Node.js Backend API
+  description: API Documentation for the Campaign Management & Collaboration Platform
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Local Development Server
+tags:
+  - name: Auth
+    description: Authentication and User Management
+  - name: Campaigns
+    description: Campaign Management and AI Generation
+  - name: Collaboration
+    description: Influencer Collaboration
+  - name: Marketplace
+    description: Service Marketplace
+
+# Include schemas and security
+components:
+  $ref: './components.yaml#/components'
+
+# Include paths from other files
+# Note: For simple merging, many tools require paths to be defined here or merged properly.
+# Standard OpenAPI 3.0 allows $ref on Path Item Objects.
+paths:
+  # Auth Paths
+  /api/auth/signup:
+    $ref: './auth.yaml#/paths/~1api~1auth~1signup'
+  /api/auth/login:
+    $ref: './auth.yaml#/paths/~1api~1auth~1login'
+  /api/auth/select-role:
+    $ref: './auth.yaml#/paths/~1api~1auth~1select-role'
+  /api/auth/refresh-token:
+    $ref: './auth.yaml#/paths/~1api~1auth~1refresh-token'
+  /api/auth/google:
+    $ref: './auth.yaml#/paths/~1api~1auth~1google'
+  /api/auth/google/callback:
+    $ref: './auth.yaml#/paths/~1api~1auth~1google~1callback'
+  /api/auth/logout:
+    $ref: './auth.yaml#/paths/~1api~1auth~1logout'
+  /api/auth/logout-all:
+    $ref: './auth.yaml#/paths/~1api~1auth~1logout-all'
+  /api/auth/sessions:
+    $ref: './auth.yaml#/paths/~1api~1auth~1sessions'
+  /api/auth/sessions/{sessionId}:
+    $ref: './auth.yaml#/paths/~1api~1auth~1sessions~1{sessionId}'
+
+  # Campaign Paths
+  /api/campaigns:
+    $ref: './campaigns.yaml#/paths/~1api~1campaigns'
+  /api/campaigns/create:
+    $ref: './campaigns.yaml#/paths/~1api~1campaigns~1create'
