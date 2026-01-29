@@ -67,6 +67,50 @@ async (email, password, done) => {
   }
 }));
 
+// Configure Google OAuth 2.0 strategy
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: "/api/auth/google/callback",
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    // Check if user exists with this Google ID
+    let existingUser = await User.findOne({ where: { googleId: profile.id } });
+
+    if (existingUser) {
+      return done(null, existingUser);
+    }
+
+    // Check if user exists with this email
+    existingUser = await User.findOne({ where: { email: profile.emails[0].value } });
+
+    if (existingUser) {
+      // Link Google account to existing user
+      existingUser.googleId = profile.id;
+      await existingUser.save();
+      return done(null, existingUser);
+    }
+
+    // Extract name from profile
+    const displayName = profile.displayName || '';
+    const nameParts = displayName.split(' ');
+    const firstName = profile.name?.givenName || nameParts[0] || 'User';
+    const lastName = profile.name?.familyName || nameParts.slice(1).join(' ') || 'Google';
+
+    // Create new user
+    const newUser = await User.create({
+      googleId: profile.id,
+      firstName,
+      lastName,
+      email: profile.emails[0].value,
+      password: null // No password for Google users
+    });
+
+    done(null, newUser);
+  } catch (err) {
+    done(err, null);
+  }
+}));
 
 passport.serializeUser((user, done) => {
   done(null, user.id);

@@ -4,9 +4,15 @@ const {
   signup, 
   login,
   selectRole,
-  refreshAccessToken
+  refreshAccessToken,
+  googleAuth,
+  googleAuthCallback,
+  logout,
+  logoutAll,
+  getSessions,
+  revokeSession
 } = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -29,5 +35,35 @@ router.post('/select-role', selectRole);
 // @desc    Refresh access token
 // @access  Public
 router.post('/refresh-token', refreshAccessToken);
+
+// @route   GET /api/auth/google
+// @desc    Initiate Google OAuth
+// @access  Public
+router.get('/google', googleAuth);
+
+// @route   GET /api/auth/google/callback
+// @desc    Google OAuth callback
+// @access  Public
+router.get('/google/callback', googleAuthCallback);
+
+// @route   POST /api/auth/logout
+// @desc    Logout current session
+// @access  Private
+router.post('/logout', authenticate, logout);
+
+// @route   POST /api/auth/logout-all
+// @desc    Logout from all devices
+// @access  Private
+router.post('/logout-all', authenticate, logoutAll);
+
+// @route   GET /api/auth/sessions
+// @desc    Get all active sessions
+// @access  Private
+router.get('/sessions', authenticate, getSessions);
+
+// @route   DELETE /api/auth/sessions/:sessionId
+// @desc    Revoke a specific session
+// @access  Private
+router.delete('/sessions/:sessionId', authenticate, revokeSession);
 
 module.exports = router;  

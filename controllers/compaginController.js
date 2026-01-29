@@ -86,3 +86,24 @@ exports.createCampaign = async (req, res, next) => {
 };
 
 
+// @desc    Get all campaigns for authenticated user
+// @route   GET /api/campaigns
+// @access  Private
+exports.getCampaigns = async (req, res, next) => {
+  try {
+    const compagins= {
+      id: 1,
+      campaignName: "Summer Sale",
+      status: "active",
+      createdAt: new Date()
+    } 
+res.status(200).json({
+      success: true,
+      data: { compagins }
+    });
+
+  }
+  catch (error) {
+    next(error);
+  }
+}

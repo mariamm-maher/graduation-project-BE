@@ -8,6 +8,7 @@ const Campaign = require('./Campaign');
 const Collaboration = require('./Collaboration');
 const Chat = require('./Chat');
 const Message = require('./Message');
+const Session = require('./Session');
 
 // Define relationships
 
@@ -156,6 +157,18 @@ Message.belongsTo(User, {
   as: 'sender'
 });
 
+// User and Session - One-to-Many
+User.hasMany(Session, {
+  foreignKey: 'userId',
+  as: 'sessions',
+  onDelete: 'CASCADE'
+});
+
+Session.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -166,5 +179,6 @@ module.exports = {
   Campaign,
   Collaboration,
   Chat,
-  Message
+  Message,
+  Session
 };
