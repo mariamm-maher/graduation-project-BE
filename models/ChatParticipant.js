@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 
-const Message = sequelize.define('Message', {
+const ChatParticipant = sequelize.define('ChatParticipant', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -16,38 +16,36 @@ const Message = sequelize.define('Message', {
     },
     onDelete: 'CASCADE'
   },
-  senderId: {
+  userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
       key: 'id'
     },
-    comment: 'The user who sent the message'
+    onDelete: 'CASCADE'
   },
-  content: {
-    type: DataTypes.TEXT,
+  role: {
+    type: DataTypes.ENUM('owner', 'influencer', 'admin'),
     allowNull: false,
     validate: {
-      notEmpty: true
+      isIn: [['owner', 'influencer', 'admin']]
     }
   },
-  sentAt: {
+  joinedAt: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
-  },
-  status: {
-    type: DataTypes.ENUM('sent', 'delivered', 'read'),
-    allowNull: false,
-    defaultValue: 'sent',
-    validate: {
-      isIn: [['sent', 'delivered', 'read']]
-    }
   }
 }, {
-  timestamps: false
+  timestamps: false,
+  indexes: [
+    {
+      unique: true,
+      fields: ['chatRoomId', 'userId'],
+      name: 'unique_chat_participant'
+    }
+  ]
 });
 
-module.exports = Message;
-
+module.exports = ChatParticipant;

@@ -20,12 +20,7 @@ app.use(passport.initialize());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
-app.use('/api/chat', require('./routes/chat'));
 
-// Test route
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Server is working!' });
-});
 
 // Database connection
 sequelize.authenticate()

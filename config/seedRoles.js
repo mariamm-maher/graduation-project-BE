@@ -8,7 +8,8 @@ const seedRoles = async () => {
     if (existingRoles === 0) {
       await Role.bulkCreate([
         { name: 'OWNER' },
-        { name: 'INFLUENCER' }
+        { name: 'INFLUENCER' },
+        { name: 'ADMIN' }
       ]);
       console.log('Roles seeded successfully');
     } else {

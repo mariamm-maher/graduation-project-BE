@@ -1,0 +1,300 @@
+erDiagram
+User ||--o{ UserRole : has
+User ||--o{ Session : has
+Role ||--o{ UserRole : has
+User ||--o{ Campaign : owns
+User ||--o| InfluencerProfile : has
+User ||--o| OwnerProfile : has
+User ||--o{ Collaboration : "participates as owner"
+User ||--o{ Collaboration : "participates as influencer"
+User ||--o{ CollaborationRequest : receives
+User ||--o{ CollaborationTask : "assigned to"
+User ||--o{ ChatParticipant : participates
+User ||--o{ Message : sends
+Campaign ||--|| TargetAudience : has
+Campaign ||--o{ KPI : has
+Campaign ||--o{ ContentCalendar : has
+Campaign ||--o{ CampaignAIVersion : has
+Campaign ||--o{ CollaborationRequest : has
+Campaign ||--o{ Collaboration : has
+CollaborationRequest ||--o{ CollaborationContract : has
+CollaborationContract ||--|| Collaboration : has
+Collaboration ||--o{ CollaborationBoard : has
+Collaboration ||--|| ChatRoom : "optionally has"
+CollaborationBoard ||--o{ CollaborationTask : has
+ChatRoom ||--o{ ChatParticipant : has
+ChatRoom ||--o{ Message : contains
+User ||--o{ ServiceListing : posts
+User ||--o{ ServiceRequest : posts
+ServiceListing ||--o{ Offer : receives
+ServiceRequest ||--o{ Proposal : receives
+User ||--o{ Offer : makes
+User ||--o{ Proposal : makes
+
+User {
+    int id PK
+    string firstName
+    string lastName
+    string email UK
+    string password
+    string googleId UK
+    string resetPasswordToken
+    date resetPasswordExpires
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+Session {
+    int id PK
+    int userId FK
+    string refreshTokenHash
+    string device
+    string ip
+    text userAgent
+    date expiresAt
+    date revokedAt
+    timestamp createdAt
+}
+
+Role {
+    int id PK
+    enum name UK "OWNER, INFLUENCER, ADMIN"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+UserRole {
+    int id PK
+    int userId FK
+    int roleId FK
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+Campaign {
+    int id PK
+    int userId FK
+    string campaignName
+    enum lifecycleStage "draft, ai_generated, active, completed"
+    text UserDescription
+    enum goalType "awareness, consideration, conversion, lead_generation, retention"
+    float totalBudget
+    string currency
+    enum budgetFlexibility "strict, flexible"
+    date startDate
+    date endDate
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+ChatRoom {
+    int id PK
+    int collaborationId FK "optional"
+    enum type "one_to_one, group"
+    string name "optional for group"
+    timestamp createdAt
+}
+
+ChatParticipant {
+    int id PK
+    int chatRoomId FK
+    int userId FK
+    enum role "owner, influencer, admin"
+    date joinedAt
+}
+
+CampaignAIVersion {
+    uuid id PK
+    uuid campaignId FK
+    int versionNumber
+    timestamp generatedAt
+    json strategy
+    json execution
+    json estimations
+    boolean isActive
+}
+
+TargetAudience {
+    int id PK
+    int campaignId FK
+    string ageRange
+    enum gender "all, male, female, custom"
+    array interests
+    array platformsUsed
+}
+
+KPI {
+    int id PK
+    int campaignId FK
+    enum metric "impressions, reach, engagement_rate, conversions, ROAS, CPA, CTR"
+    string targetValue
+}
+
+ContentCalendar {
+    int id PK
+    int campaignId FK
+    int day
+    date date
+    string platform
+    enum contentType "video, carousel, story, reel, post, article"
+    text caption
+    string mediaUrl
+    string task
+    enum status "scheduled, posted, failed"
+}
+
+Collaboration {
+    int id PK
+    int campaignId FK
+    int ownerId FK
+    int influencerId FK
+    int contractId FK
+    enum status "pending, active, completed, cancelled"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+CollaborationRequest {
+    int id PK
+    int campaignId FK
+    int influencerId FK
+    enum status "pending, accepted, rejected, cancelled"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+CollaborationContract {
+    int id PK
+    int collaborationRequestId FK
+    decimal budget
+    date startDate
+    date endDate
+    enum status "draft, active, completed, terminated"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+CollaborationBoard {
+    int id PK
+    int collaborationId FK
+    string name
+    text description
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+CollaborationTask {
+    int id PK
+    int boardId FK
+    string taskName
+    enum status "todo, in_progress, review, completed, cancelled"
+    int assignedTo FK
+    date dueDate
+    date completedAt
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+Message {
+    int id PK
+    int chatRoomId FK
+    int senderId FK
+    text content
+    date sentAt
+    enum status "sent, delivered, read"
+}
+
+ServiceListing {
+    int id PK
+    int influencerId FK
+    string title
+    text description
+    array categories
+    array platforms
+    string location
+    decimal price
+    enum status "draft, published, archived"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+ServiceRequest {
+    int id PK
+    int ownerId FK
+    string title
+    text description
+    array requiredCategories
+    array requiredPlatforms
+    string location
+    decimal budget
+    enum status "draft, published, closed, cancelled"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+Offer {
+    int id PK
+    int serviceListingId FK
+    int ownerId FK
+    decimal offerPrice
+    text message
+    enum status "pending, accepted, rejected"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+Proposal {
+    int id PK
+    int serviceRequestId FK
+    int influencerId FK
+    decimal proposedPrice
+    text message
+    enum status "pending, accepted, rejected"
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+InfluencerProfile {
+    int id PK
+    int userId FK "unique"
+    text bio
+    string image
+    string location
+    boolean isCompleted
+    jsonb socialMediaLinks
+    string primaryPlatform
+    int followersCount
+    decimal engagementRate
+    array categories
+    array contentTypes
+    array collaborationTypes
+    string audienceAgeRange
+    string audienceGender
+    string audienceLocation
+    array interests
+    int completionPercentage
+    boolean isOnboarded
+    timestamp createdAt
+    timestamp updatedAt
+}
+
+OwnerProfile {
+    int id PK
+    int userId FK "unique"
+    string businessName
+    string businessType
+    string industry
+    string location
+    text description
+    string image
+    string website
+    string phoneNumber
+    array platformsUsed
+    string primaryMarketingGoal
+    jsonb targetAudience
+    int completionPercentage
+    boolean isOnboarded
+    boolean isCompleted
+    timestamp createdAt
+    timestamp updatedAt
+}

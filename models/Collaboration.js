@@ -31,6 +31,15 @@ const Collaboration = sequelize.define('Collaboration', {
       key: 'id'
     }
   },
+  contractId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'CollaborationContracts',
+      key: 'id'
+    },
+    onDelete: 'SET NULL'
+  },
   budget: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
@@ -39,7 +48,7 @@ const Collaboration = sequelize.define('Collaboration', {
     }
   },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'completed'),
+    type: DataTypes.ENUM('pending', 'active', 'completed', 'cancelled'),
     defaultValue: 'pending'
   }
 }, {
