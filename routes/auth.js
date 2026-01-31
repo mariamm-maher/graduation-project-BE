@@ -10,7 +10,8 @@ const {
   logout,
   logoutAll,
   getSessions,
-  revokeSession
+  revokeSession,
+  getProfile
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
@@ -65,5 +66,10 @@ router.get('/sessions', authenticate, getSessions);
 // @desc    Revoke a specific session
 // @access  Private
 router.delete('/sessions/:sessionId', authenticate, revokeSession);
+
+// @route   GET /api/auth/profile
+// @desc    Get user profile with completion percentage
+// @access  Private
+router.get('/profile', authenticate, getProfile);
 
 module.exports = router;  

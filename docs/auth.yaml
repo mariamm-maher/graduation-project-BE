@@ -231,3 +231,56 @@ paths:
           description: Session revoked
         '404':
           description: Session not found
+  /api/auth/profile:
+    get:
+      tags:
+        - Auth
+      summary: Get User Profile
+      description: Retrieves the complete user profile with role-specific data and completion percentage.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profile retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          firstName:
+                            type: string
+                          lastName:
+                            type: string
+                          email:
+                            type: string
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                          createdAt:
+                            type: string
+                            format: date-time
+                      profile:
+                        type: object
+                        description: Role-specific profile (OwnerProfile or InfluencerProfile)
+                      completionPercentage:
+                        type: integer
+                        example: 75
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found

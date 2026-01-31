@@ -23,11 +23,6 @@ const Session = sequelize.define('Session', {
     allowNull: false,
     comment: 'Hashed refresh token for security'
   },
-  device: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Device type (mobile, desktop, tablet, etc.)'
-  },
   ip: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -39,7 +34,7 @@ const Session = sequelize.define('Session', {
   userAgent: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'User agent string from the browser'
+    comment: 'User agent string from the browser. Acts as device identity.'
   },
   expiresAt: {
     type: DataTypes.DATE,
@@ -49,24 +44,23 @@ const Session = sequelize.define('Session', {
   revokedAt: {
     type: DataTypes.DATE,
     allowNull: true,
-    comment: 'When the session was revoked (for logout)'
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
+    comment: 'When the session was explicitly revoked (e.g. logout). Active means not expired AND not revoked.'
   }
 }, {
-  timestamps: false, // We're managing createdAt manually
+  timestamps: true, // Enable createdAt
+  updatedAt: false, // Disable updatedAt
   tableName: 'Sessions',
   indexes: [
     {
+      name: 'idx_session_user_id',
       fields: ['userId']
     },
     {
+      name: 'idx_session_token_hash',
       fields: ['refreshTokenHash']
     },
     {
+      name: 'idx_session_expires_at',
       fields: ['expiresAt']
     }
   ]

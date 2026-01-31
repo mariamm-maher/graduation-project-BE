@@ -1,0 +1,332 @@
+paths:
+  /api/admin/analytics:
+    get:
+      tags:
+        - Admin
+      summary: Get Dashboard Analytics
+      description: Retrieves comprehensive analytics for admin dashboard including user counts, campaign stats, and collaboration metrics.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Analytics retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      overview:
+                        type: object
+                        properties:
+                          totalUsers:
+                            type: integer
+                          totalCampaigns:
+                            type: integer
+                          totalCollaborations:
+                            type: integer
+                          activeSessions:
+                            type: integer
+                          recentUsers:
+                            type: integer
+                      usersByRole:
+                        type: object
+                        properties:
+                          owners:
+                            type: integer
+                          influencers:
+                            type: integer
+                      campaignStats:
+                        type: object
+                      collaborationStats:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  /api/admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get All Users
+      description: Retrieves a paginated list of all users with optional filters.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [OWNER, INFLUENCER, ADMIN]
+          description: Filter by role
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or email
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          totalPages:
+                            type: integer
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  /api/admin/sessions:
+    get:
+      tags:
+        - Admin
+      summary: Get All Sessions
+      description: Retrieves a paginated list of all user sessions.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter active sessions only
+      responses:
+        '200':
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      sessions:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  /api/admin/collaborations:
+    get:
+      tags:
+        - Admin
+      summary: Get All Collaborations
+      description: Retrieves a paginated list of all collaborations.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Filter by status
+      responses:
+        '200':
+          description: Collaborations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      collaborations:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  /api/admin/campaigns:
+    get:
+      tags:
+        - Admin
+      summary: Get All Campaigns
+      description: Retrieves a paginated list of all campaigns.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - in: query
+          name: lifecycleStage
+          schema:
+            type: string
+            enum: [draft, ai_generated, active, completed]
+          description: Filter by lifecycle stage
+        - in: query
+          name: goalType
+          schema:
+            type: string
+            enum: [awareness, consideration, conversion, lead_generation, retention]
+          description: Filter by goal type
+      responses:
+        '200':
+          description: Campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      campaigns:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  /api/admin/logs:
+    get:
+      tags:
+        - Admin
+      summary: Get Logs
+      description: Retrieves a paginated list of system logs with optional filters (entity, action, actor).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: entity
+          schema:
+            type: string
+          description: Filter by entity name
+        - in: query
+          name: action
+          schema:
+            type: string
+          description: Filter by action
+        - in: query
+          name: actor
+          schema:
+            type: string
+          description: Filter by actor string
+      responses:
+        '200':
+          description: Logs retrieved successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  /api/admin/logs/recent:
+    get:
+      tags:
+        - Admin
+      summary: Get Recent Activity
+      description: Retrieves the newest 10 log entries.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Recent activity retrieved successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied

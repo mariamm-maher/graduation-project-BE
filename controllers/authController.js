@@ -2,11 +2,13 @@ const passport = require('passport');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
+const { calculateOwnerProfileCompletion, calculateInfluencerProfileCompletion } = require('../utils/profileCompletion');
 const { Session, UserRole } = require('../models');
+const { logAction } = require('../services/logServices');
 const e = require('express');
 // Signup function
 exports.signup = (req, res, next) => {
-  passport.authenticate('local-signup', (err, user, info) => {
+  passport.authenticate('local-signup', async (err, user, info) => {
     if (err) {
       return next(err);
     }
@@ -20,9 +22,15 @@ exports.signup = (req, res, next) => {
       userId: user.id,
       needsRoleSelection: true
     });
+
+    // Log the user creation (fire-and-forget)
+    try {
+      await logAction({ req, action: 'CREATE_USER', entity: 'User', entityId: user.id, meta: { email: user.email } });
+    } catch (e) {
+      // non-blocking: swallow logging errors
+    }
   })(req, res, next);
 };
-
 // Select role function
 exports.selectRole = async (req, res, next) => {
   try {
@@ -65,13 +73,16 @@ exports.selectRole = async (req, res, next) => {
       roleName: role.name,
       needsOnBoarding: true
     });
+
+    // Log role change
+    try {
+      await logAction({ req, action: 'CHANGE_ROLE', entity: 'User', entityId: userId, meta: { roleId, roleName: role.name } });
+    } catch (e) {}
   } catch (error) {
     next(error);
   }
 };
-
 // Login function
-
 exports.login = async (req, res, next) => {
   passport.authenticate('local-login', async (err, user, info) => {
     if (err) return next(err);
@@ -88,8 +99,7 @@ exports.login = async (req, res, next) => {
       // 3️ Create new session in DB
       const session = await Session.create({
         userId: user.id,
-        refreshTokenHash,
-        device: req.headers['user-agent'] || null,
+        refreshTokenHash, // Stores hashed token
         ip: req.ip || null,
         userAgent: req.headers['user-agent'] || null,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
@@ -104,26 +114,44 @@ exports.login = async (req, res, next) => {
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
 
-      // 5️ Check if user has role assigned
-      const userRole = await UserRole.findOne({ where: { userId: user.id } });
+      // 5️ Fetch user's roles and check if the user needs role selection
+      const { User, Role } = require('../models');
+      const userWithRoles = await User.findByPk(user.id, {
+        attributes: ['id', 'email', 'firstName', 'lastName'],
+        include: [
+          {
+            model: Role,
+            as: 'roles',
+            attributes: ['name'],
+            through: { attributes: [] }
+          }
+        ]
+      });
 
-      if (!userRole) {
+      const roles = (userWithRoles && userWithRoles.roles) ? userWithRoles.roles.map(r => r.name) : [];
+
+      if (!roles || roles.length === 0) {
+        // Log login attempt (no role yet)
+        try { await logAction({ req, action: 'LOGIN', entity: 'Auth', entityId: user.id, meta: { email: user.email, roles } }); } catch (e) {}
         return sendSuccess(res, 200, 'Login successful, role selection required', {
           userId: user.id,
           email: user.email,
           needsRoleSelection: true,
-          accessToken
+          accessToken,
+          roles
         });
       }
 
-      // 6️ Return success for user with role
+      // 6️ Return success for user with role(s)
+      try { await logAction({ req, action: 'LOGIN', entity: 'Auth', entityId: user.id, meta: { email: user.email, roles } }); } catch (e) {}
       sendSuccess(res, 200, 'Login successful', {
         userId: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         accessToken,
-        needsRoleSelection: false
+        needsRoleSelection: false,
+        roles
       });
 
     } catch (error) {
@@ -198,69 +226,6 @@ exports.refreshAccessToken = async (req, res, next) => {
     return next(error);
   }
 };
-
-
-// Google authentication - initiate
-exports.googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email']
-});
-
-// Google authentication - callback
-exports.googleAuthCallback = (req, res, next) => {
-  passport.authenticate('google', async (err, user, info) => {
-    if (err) {
-      return next(err);
-    }
-
-    if (!user) {
-      return next(new AppError('Google authentication failed', 401));
-    }
-
-    try {
-      // Generate JWT tokens
-      const accessToken = generateToken(user.id);
-      const refreshToken = generateRefreshToken(user.id);
-
-      // Hash refresh token before saving
-      const refreshTokenHash = Session.hashToken(refreshToken);
-
-      // Create new session in DB
-      await Session.create({
-        userId: user.id,
-        refreshTokenHash,
-        device: req.headers['user-agent'] || null,
-        ip: req.ip || null,
-        userAgent: req.headers['user-agent'] || null,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-      });
-
-      // Set refresh token in HttpOnly cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-
-      // Check if user has role assigned
-      const userRole = await UserRole.findOne({ where: { userId: user.id } });
-
-      // You can redirect to frontend with tokens or send JSON response
-      // For now, sending JSON response
-      sendSuccess(res, 200, 'Google authentication successful', {
-        userId: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        accessToken,
-        needsRoleSelection: !userRole
-      });
-    } catch (error) {
-      return next(error);
-    }
-  })(req, res, next);
-};
-
 // Logout function - revoke current session
 exports.logout = async (req, res, next) => {
   try {
@@ -371,4 +336,162 @@ exports.revokeSession = async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+};
+
+// Get user profile with completion percentage
+exports.getProfile = async (req, res, next) => {
+  try {
+    const { User, Role, OwnerProfile, InfluencerProfile } = require('../models');
+    
+    // Get user with roles
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt'],
+      include: [
+        {
+          model: Role,
+          as: 'roles',
+          attributes: ['id', 'name'],
+          through: { attributes: [] }
+        }
+      ]
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Get the role-specific profile(s)
+    let ownerProfile = null;
+    let influencerProfile = null;
+    let ownerCompletionPercentage = 0;
+    let influencerCompletionPercentage = 0;
+    const roles = user.roles.map(r => r.name);
+
+    // Check for OWNER profile
+    if (roles.includes('OWNER')) {
+      ownerProfile = await OwnerProfile.findOne({ where: { userId: user.id } });
+      if (ownerProfile) {
+        ownerCompletionPercentage = calculateOwnerProfileCompletion(ownerProfile);
+        await ownerProfile.update({ completionPercentage: ownerCompletionPercentage });
+      }
+    }
+
+    // Check for INFLUENCER profile
+    if (roles.includes('INFLUENCER')) {
+      influencerProfile = await InfluencerProfile.findOne({ where: { userId: user.id } });
+      if (influencerProfile) {
+        influencerCompletionPercentage = calculateInfluencerProfileCompletion(influencerProfile);
+        await influencerProfile.update({ completionPercentage: influencerCompletionPercentage });
+      }
+    }
+
+    // Build response based on roles
+    const profileData = {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        roles: roles,
+        createdAt: user.createdAt
+      }
+    };
+
+    // Add profile(s) based on what exists
+    if (ownerProfile && influencerProfile) {
+      profileData.ownerProfile = ownerProfile;
+      profileData.influencerProfile = influencerProfile;
+      profileData.ownerCompletionPercentage = ownerCompletionPercentage;
+      profileData.influencerCompletionPercentage = influencerCompletionPercentage;
+    } else if (ownerProfile) {
+      profileData.profile = ownerProfile;
+      profileData.completionPercentage = ownerCompletionPercentage;
+    } else if (influencerProfile) {
+      profileData.profile = influencerProfile;
+      profileData.completionPercentage = influencerCompletionPercentage;
+    } else {
+      profileData.profile = null;
+      profileData.completionPercentage = 0;
+    }
+
+    sendSuccess(res, 200, 'Profile retrieved successfully', profileData);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Google authentication - initiate
+exports.googleAuth = passport.authenticate('google', {
+  scope: ['profile', 'email']
+});
+
+// Google authentication - callback
+exports.googleAuthCallback = (req, res, next) => {
+  passport.authenticate('google', async (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+
+    if (!user) {
+      return next(new AppError('Google authentication failed', 401));
+    }
+
+    try {
+      // Generate JWT tokens
+      const accessToken = generateToken(user.id);
+      const refreshToken = generateRefreshToken(user.id);
+
+      // Hash refresh token before saving
+      const refreshTokenHash = Session.hashToken(refreshToken);
+
+      // Create new session in DB
+      await Session.create({
+        userId: user.id,
+        refreshTokenHash,
+        device: req.headers['user-agent'] || null,
+        ip: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      });
+
+      // Set refresh token in HttpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      // Fetch user's roles to include in the response
+      const { User, Role } = require('../models');
+      const userWithRoles = await User.findByPk(user.id, {
+        attributes: ['id', 'email', 'firstName', 'lastName'],
+        include: [
+          {
+            model: Role,
+            as: 'roles',
+            attributes: ['name'],
+            through: { attributes: [] }
+          }
+        ]
+      });
+
+      const roles = (userWithRoles && userWithRoles.roles) ? userWithRoles.roles.map(r => r.name) : [];
+      const needsRoleSelection = !roles || roles.length === 0;
+
+      // You can redirect to frontend with tokens or send JSON response
+      // For now, sending JSON response
+      sendSuccess(res, 200, 'Google authentication successful', {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        accessToken,
+        needsRoleSelection,
+        roles
+      });
+    } catch (error) {
+      return next(error);
+    }
+  })(req, res, next);
 };

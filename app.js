@@ -22,6 +22,7 @@ app.use(passport.initialize());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

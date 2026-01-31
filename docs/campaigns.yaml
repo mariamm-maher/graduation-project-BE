@@ -85,3 +85,61 @@ paths:
                         description: AI generated suggestions
         '400':
           description: Validation error
+  /api/campaigns/{id}/lifecycle:
+    patch:
+      tags:
+        - Campaigns
+      summary: Change Campaign Lifecycle Stage
+      description: Updates the lifecycle stage of a campaign (OWNER only).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Campaign ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lifecycleStage]
+              properties:
+                lifecycleStage:
+                  type: string
+                  enum: [draft, ai_generated, active, completed]
+                  example: active
+      responses:
+        '200':
+          description: Lifecycle stage updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      campaignName:
+                        type: string
+                        example: Summer Sale
+                      lifecycleStage:
+                        type: string
+                        example: active
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: '2023-06-01T12:00:00Z'
+        '400':
+          description: Invalid lifecycle stage
+        '404':
+          description: Campaign not found

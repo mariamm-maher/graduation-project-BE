@@ -14,6 +14,7 @@ const ChatRoom = require('./ChatRoom');
 const ChatParticipant = require('./ChatParticipant');
 const Message = require('./Message');
 const Session = require('./Session');
+const Log = require('./Log');
 const ServiceListing = require('./ServiceListing');
 const ServiceRequest = require('./ServiceRequest');
 const Offer = require('./Offer');
@@ -262,6 +263,18 @@ Session.belongsTo(User, {
   as: 'user'
 });
 
+// User and Log - One-to-Many (actor relationship)
+User.hasMany(Log, {
+  foreignKey: 'actorId',
+  as: 'logs',
+  onDelete: 'SET NULL'
+});
+
+Log.belongsTo(User, {
+  foreignKey: 'actorId',
+  as: 'actorUser'
+});
+
 // User (Influencer) and ServiceListing - One-to-Many
 User.hasMany(ServiceListing, {
   foreignKey: 'influencerId',
@@ -355,4 +368,6 @@ module.exports = {
   ServiceRequest,
   Offer,
   Proposal
+  ,
+  Log
 };

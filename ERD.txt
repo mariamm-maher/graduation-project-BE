@@ -1,6 +1,7 @@
 erDiagram
 User ||--o{ UserRole : has
 User ||--o{ Session : has
+User ||--o{ Log : "acts"
 Role ||--o{ UserRole : has
 User ||--o{ Campaign : owns
 User ||--o| InfluencerProfile : has
@@ -48,11 +49,21 @@ Session {
     int id PK
     int userId FK
     string refreshTokenHash
-    string device
     string ip
     text userAgent
     date expiresAt
     date revokedAt
+    timestamp createdAt
+}
+
+Log {
+    int id PK
+    int actorId FK
+    string actor
+    string action
+    string entity
+    int entityId
+    json meta
     timestamp createdAt
 }
 

@@ -3,7 +3,7 @@ const { User, Session } = require('../models');
 const { generateToken, generateRefreshToken, verifyAccessToken } = require('../utils/generateToken');
 const AppError = require('../utils/AppError');
 
-// Authenticate middleware - checks access token and refresh token with session management
+// Authenticate middleware - checks access token
 exports.authenticate = async (req, res, next) => {
   try {
     let accessToken;
@@ -32,7 +32,7 @@ exports.authenticate = async (req, res, next) => {
     if (!result.valid) {
       // Handle token errors
       if (result.error.name === 'TokenExpiredError') {
-        return next(new AppError('Access token has expired. Please login again', 401));
+        return next(new AppError('Access token has expired.', 401));
       }
       
       if (result.error.name === 'JsonWebTokenError') {
@@ -61,6 +61,48 @@ exports.authenticate = async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+};
+
+// Authorize middleware - checks user roles
+exports.authorize = (...allowedRoles) => {
+  return async (req, res, next) => {
+    try {
+      // authentication must happen before authorization
+      if (!req.user) {
+        return next(new AppError('Unauthorized', 401));
+      }
+
+      // Get user roles
+      const roles = await req.user.getRoles({
+        attributes: ['name']
+      });
+
+      if (!roles || roles.length === 0) {
+        return next(new AppError('Access denied: no roles assigned', 403));
+      }
+
+      // Check if user has at least one allowed role
+      const hasAccess = roles.some(role =>
+        allowedRoles.includes(role.name)
+      );
+
+      if (!hasAccess) {
+        return next(
+          new AppError(
+            `Access denied. Required role: ${allowedRoles.join(' or ')}`,
+            403
+          )
+        );
+      }
+
+      // Attach roles to request for convenience
+      req.userRoles = roles.map(r => r.name);
+
+      next();
+    } catch (error) {
+      return next(error);
+    }
+  };
 };
 
 
