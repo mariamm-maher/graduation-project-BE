@@ -74,11 +74,13 @@ passport.use(new GoogleStrategy({
   callbackURL: "/api/auth/google/callback",
 }, async (accessToken, refreshToken, profile, done) => {
   try {
+    let isNewUser = false;
+
     // Check if user exists with this Google ID
     let existingUser = await User.findOne({ where: { googleId: profile.id } });
 
     if (existingUser) {
-      return done(null, existingUser);
+      return done(null, { user: existingUser, isNewUser: false });
     }
 
     // Check if user exists with this email
@@ -88,7 +90,7 @@ passport.use(new GoogleStrategy({
       // Link Google account to existing user
       existingUser.googleId = profile.id;
       await existingUser.save();
-      return done(null, existingUser);
+      return done(null, { user: existingUser, isNewUser: false });
     }
 
     // Extract name from profile
@@ -97,7 +99,7 @@ passport.use(new GoogleStrategy({
     const firstName = profile.name?.givenName || nameParts[0] || 'User';
     const lastName = profile.name?.familyName || nameParts.slice(1).join(' ') || 'Google';
 
-    // Create new user
+    // Create new user (Sign-up)
     const newUser = await User.create({
       googleId: profile.id,
       firstName,
@@ -106,7 +108,8 @@ passport.use(new GoogleStrategy({
       password: null // No password for Google users
     });
 
-    done(null, newUser);
+    isNewUser = true;
+    done(null, { user: newUser, isNewUser });
   } catch (err) {
     done(err, null);
   }

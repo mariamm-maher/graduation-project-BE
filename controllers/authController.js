@@ -427,14 +427,16 @@ exports.googleAuth = passport.authenticate('google', {
 
 // Google authentication - callback
 exports.googleAuthCallback = (req, res, next) => {
-  passport.authenticate('google', async (err, user, info) => {
+  passport.authenticate('google', async (err, data, info) => {
     if (err) {
       return next(err);
     }
 
-    if (!user) {
+    if (!data || !data.user) {
       return next(new AppError('Google authentication failed', 401));
     }
+
+    const { user, isNewUser } = data;
 
     try {
       // Generate JWT tokens
@@ -448,10 +450,9 @@ exports.googleAuthCallback = (req, res, next) => {
       await Session.create({
         userId: user.id,
         refreshTokenHash,
-        device: req.headers['user-agent'] || null,
         ip: req.ip || null,
         userAgent: req.headers['user-agent'] || null,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
       });
 
       // Set refresh token in HttpOnly cookie
@@ -459,12 +460,34 @@ exports.googleAuthCallback = (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
 
-      // Fetch user's roles to include in the response
-      const { User, Role } = require('../models');
-      const userWithRoles = await User.findByPk(user.id, {
+      // Handle Sign-Up (new user)
+      if (isNewUser) {
+        // Log user creation (fire-and-forget)
+        try {
+          await logAction({ req, action: 'CREATE_USER', entity: 'User', entityId: user.id, meta: { email: user.email, method: 'Google' } });
+        } catch (e) {
+          // non-blocking: swallow logging errors
+        }
+
+        // Redirect to frontend with user data
+        const redirectUrl = new URL('http://localhost:5173/auth/google/callback');
+        redirectUrl.searchParams.append('userId', user.id);
+        redirectUrl.searchParams.append('email', user.email);
+        redirectUrl.searchParams.append('firstName', user.firstName);
+        redirectUrl.searchParams.append('lastName', user.lastName);
+        redirectUrl.searchParams.append('accessToken', accessToken);
+        redirectUrl.searchParams.append('needsRoleSelection', 'true');
+        redirectUrl.searchParams.append('roles', JSON.stringify([]));
+        
+        return res.redirect(redirectUrl.toString());
+      }
+
+      // Handle Sign-In (existing user) - same logic as regular login
+      const { User: UserModel, Role } = require('../models');
+      const userWithRoles = await UserModel.findByPk(user.id, {
         attributes: ['id', 'email', 'firstName', 'lastName'],
         include: [
           {
@@ -477,19 +500,34 @@ exports.googleAuthCallback = (req, res, next) => {
       });
 
       const roles = (userWithRoles && userWithRoles.roles) ? userWithRoles.roles.map(r => r.name) : [];
-      const needsRoleSelection = !roles || roles.length === 0;
 
-      // You can redirect to frontend with tokens or send JSON response
-      // For now, sending JSON response
-      sendSuccess(res, 200, 'Google authentication successful', {
-        userId: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        accessToken,
-        needsRoleSelection,
-        roles
-      });
+      // Build redirect URL with user data
+      const redirectUrl = new URL('http://localhost:5173/auth/google/callback');
+      redirectUrl.searchParams.append('userId', user.id);
+      redirectUrl.searchParams.append('email', user.email);
+      redirectUrl.searchParams.append('firstName', user.firstName);
+      redirectUrl.searchParams.append('lastName', user.lastName);
+      redirectUrl.searchParams.append('accessToken', accessToken);
+      redirectUrl.searchParams.append('roles', JSON.stringify(roles));
+
+      // If user doesn't have roles yet (edge case)
+      if (!roles || roles.length === 0) {
+        // Log login attempt (no role yet)
+        try { 
+          await logAction({ req, action: 'LOGIN', entity: 'Auth', entityId: user.id, meta: { email: user.email, method: 'Google', roles } }); 
+        } catch (e) {}
+        
+        redirectUrl.searchParams.append('needsRoleSelection', 'true');
+        return res.redirect(redirectUrl.toString());
+      }
+
+      // User has roles - successful sign-in
+      try { 
+        await logAction({ req, action: 'LOGIN', entity: 'Auth', entityId: user.id, meta: { email: user.email, method: 'Google', roles } }); 
+      } catch (e) {}
+
+      redirectUrl.searchParams.append('needsRoleSelection', 'false');
+      res.redirect(redirectUrl.toString());
     } catch (error) {
       return next(error);
     }
