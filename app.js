@@ -26,6 +26,8 @@ app.use(passport.initialize());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
+app.use('/api/collaborations', require('./routes/collaboration'));
+app.use('/api/owner', require('./routes/owner'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Documentation Route

@@ -5,6 +5,7 @@ const ContentCalendar = require('../models/ContentCalendar');
 const { generateCampaignWithAI } = require('../services/campaignAIService');
 const { logAction } = require('../services/logServices');
 const AppError = require('../utils/AppError');
+const sendSuccess = require('../utils/sendSuccess');
 
 // @desc    Create a new campaign and get AI preview
 // @route   POST /api/campaigns
@@ -75,18 +76,14 @@ exports.createCampaign = async (req, res, next) => {
     await logAction({ req, action: 'CREATE_CAMPAIGN', entity: 'Campaign', entityId: campaign.id, meta: { campaignName: campaign.campaignName, userId: campaign.userId } });
   } catch (e) {}
 
-  res.status(201).json({
-    success: true,
-    message: 'Campaign created successfully. AI preview generated.',
-    data: {
-      campaign: {
-        id: campaign.id,
-        campaignName: campaign.campaignName,
-        lifecycleStage: campaign.lifecycleStage,
-        createdAt: campaign.createdAt
-      },
-      aiPreview: aiGeneratedCampaign
-    }
+  sendSuccess(res, 201, 'Campaign created successfully. AI preview generated.', {
+    campaign: {
+      id: campaign.id,
+      campaignName: campaign.campaignName,
+      lifecycleStage: campaign.lifecycleStage,
+      createdAt: campaign.createdAt
+    },
+    aiPreview: aiGeneratedCampaign
   });
 };
 
@@ -96,19 +93,34 @@ exports.createCampaign = async (req, res, next) => {
 // @access  Private
 exports.getCampaigns = async (req, res, next) => {
   try {
-    const compagins= {
-      id: 1,
-      campaignName: "Summer Sale",
-      status: "active",
-      createdAt: new Date()
-    } 
-res.status(200).json({
-      success: true,
-      data: { compagins }
+    const ownerId = req.user && req.user.id;
+    const { page = 1, limit = 10, lifecycleStage, goalType, search } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Build where clause for owner's campaigns
+    const whereClause = { userId: ownerId };
+    if (lifecycleStage) whereClause.lifecycleStage = lifecycleStage;
+    if (goalType) whereClause.goalType = goalType;
+    if (search) whereClause.campaignName = { [Campaign.sequelize.Op.iLike]: `%${search}%` };
+
+    const { count, rows: campaigns } = await Campaign.findAndCountAll({
+      where: whereClause,
+      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'totalBudget', 'currency', 'createdAt', 'updatedAt'],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
     });
 
-  }
-  catch (error) {
+    sendSuccess(res, 200, 'Campaigns retrieved successfully', {
+      campaigns,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -136,15 +148,11 @@ exports.changeLifecycleStage = async (req, res, next) => {
     campaign.lifecycleStage = lifecycleStage;
     await campaign.save();
 
-    res.status(200).json({
-      success: true,
-      message: `Campaign lifecycle stage updated to ${lifecycleStage}`,
-      data: {
-        id: campaign.id,
-        campaignName: campaign.campaignName,
-        lifecycleStage: campaign.lifecycleStage,
-        updatedAt: campaign.updatedAt
-      }
+    sendSuccess(res, 200, `Campaign lifecycle stage updated to ${lifecycleStage}`, {
+      id: campaign.id,
+      campaignName: campaign.campaignName,
+      lifecycleStage: campaign.lifecycleStage,
+      updatedAt: campaign.updatedAt
     });
   } catch (error) {
     next(error);

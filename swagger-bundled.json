@@ -33,6 +33,10 @@
       "description": "Campaign Management and AI Generation"
     },
     {
+      "name": "Owner",
+      "description": "Owner Operations (Browse Influencers, Manage Campaigns)"
+    },
+    {
       "name": "Collaborations",
       "description": "Influencer Collaboration Management"
     },
@@ -1012,6 +1016,759 @@
         }
       }
     },
+    "/api/collaborations": {
+      "post": {
+        "tags": [
+          "Collaborations"
+        ],
+        "summary": "Owner sends a collaboration request to an influencer",
+        "description": "Create a collaboration request for a campaign and an influencer. Only Owners may perform this action.",
+        "operationId": "sendCollaborationRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "campaignId",
+                  "influencerId"
+                ],
+                "properties": {
+                  "campaignId": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "influencerId": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "proposedBudget": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 500
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "I'd like to invite you to this campaign"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Collaboration request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Collaboration request created"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "collaborationRequest": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "campaignId": {
+                              "type": "integer"
+                            },
+                            "influencerId": {
+                              "type": "integer"
+                            },
+                            "proposedBudget": {
+                              "type": "number",
+                              "format": "float",
+                              "nullable": true
+                            },
+                            "message": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Validation failed"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "User does not have permission to access this resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Access denied"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Resource not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - duplicate pending request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "A pending request already exists for this influencer and campaign"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/owner/influencers": {
+      "get": {
+        "tags": [
+          "Owner"
+        ],
+        "summary": "Get All Influencers",
+        "description": "Retrieve a paginated list of all influencer profiles. \nOwners can browse influencers to find potential collaborators.\nSupports filtering by category, platform, followers count, location, and search.\n",
+        "operationId": "getAllInfluencers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by category (e.g., \"Beauty\", \"Fashion\", \"Food\")",
+            "example": "Beauty"
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by primary platform (e.g., \"Instagram\", \"TikTok\", \"YouTube\")",
+            "example": "Instagram"
+          },
+          {
+            "in": "query",
+            "name": "minFollowers",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Minimum followers count",
+            "example": 10000
+          },
+          {
+            "in": "query",
+            "name": "maxFollowers",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Maximum followers count",
+            "example": 500000
+          },
+          {
+            "in": "query",
+            "name": "location",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by location (partial match)",
+            "example": "New York"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by influencer name or email",
+            "example": "john"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencers retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Influencers retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "influencers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "example": 1
+                              },
+                              "userId": {
+                                "type": "integer",
+                                "example": 5
+                              },
+                              "user": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "integer"
+                                  },
+                                  "firstName": {
+                                    "type": "string",
+                                    "example": "John"
+                                  },
+                                  "lastName": {
+                                    "type": "string",
+                                    "example": "Doe"
+                                  },
+                                  "email": {
+                                    "type": "string",
+                                    "example": "john@example.com"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "ACTIVE"
+                                  },
+                                  "createdAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              },
+                              "bio": {
+                                "type": "string",
+                                "example": "Fashion and lifestyle influencer"
+                              },
+                              "image": {
+                                "type": "string",
+                                "example": "https://example.com/profile.jpg"
+                              },
+                              "location": {
+                                "type": "string",
+                                "example": "Los Angeles, CA"
+                              },
+                              "socialMediaLinks": {
+                                "type": "object",
+                                "example": {
+                                  "instagram": "https://instagram.com/johndoe",
+                                  "tiktok": "https://tiktok.com/@johndoe"
+                                }
+                              },
+                              "primaryPlatform": {
+                                "type": "string",
+                                "example": "Instagram"
+                              },
+                              "followersCount": {
+                                "type": "integer",
+                                "example": 150000
+                              },
+                              "engagementRate": {
+                                "type": "number",
+                                "format": "decimal",
+                                "example": 3.5
+                              },
+                              "categories": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "example": [
+                                  "Fashion",
+                                  "Lifestyle",
+                                  "Beauty"
+                                ]
+                              },
+                              "contentTypes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "example": [
+                                  "Post",
+                                  "Story",
+                                  "Reel"
+                                ]
+                              },
+                              "collaborationTypes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "example": [
+                                  "Sponsored Post",
+                                  "Product Review"
+                                ]
+                              },
+                              "audienceAgeRange": {
+                                "type": "string",
+                                "example": "18-24"
+                              },
+                              "audienceGender": {
+                                "type": "string",
+                                "example": "female"
+                              },
+                              "audienceLocation": {
+                                "type": "string",
+                                "example": "United States"
+                              },
+                              "interests": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "example": [
+                                  "Fashion",
+                                  "Travel",
+                                  "Fitness"
+                                ]
+                              },
+                              "completionPercentage": {
+                                "type": "integer",
+                                "example": 95
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "currentPage": {
+                              "type": "integer",
+                              "example": 1
+                            },
+                            "totalPages": {
+                              "type": "integer",
+                              "example": 5
+                            },
+                            "totalItems": {
+                              "type": "integer",
+                              "example": 47
+                            },
+                            "itemsPerPage": {
+                              "type": "integer",
+                              "example": 10
+                            },
+                            "hasNextPage": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "hasPrevPage": {
+                              "type": "boolean",
+                              "example": false
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "User does not have permission to access this resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Access denied"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/owner/influencers/{id}": {
+      "get": {
+        "tags": [
+          "Owner"
+        ],
+        "summary": "Get Influencer Profile by ID",
+        "description": "Retrieve detailed information about a specific influencer profile",
+        "operationId": "getInfluencerById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Influencer profile ID",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencer profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Influencer profile retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "influencer": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "userId": {
+                              "type": "integer"
+                            },
+                            "bio": {
+                              "type": "string"
+                            },
+                            "image": {
+                              "type": "string"
+                            },
+                            "location": {
+                              "type": "string"
+                            },
+                            "socialMediaLinks": {
+                              "type": "object"
+                            },
+                            "primaryPlatform": {
+                              "type": "string"
+                            },
+                            "followersCount": {
+                              "type": "integer"
+                            },
+                            "engagementRate": {
+                              "type": "number"
+                            },
+                            "categories": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "contentTypes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "collaborationTypes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "audienceAgeRange": {
+                              "type": "string"
+                            },
+                            "audienceGender": {
+                              "type": "string"
+                            },
+                            "audienceLocation": {
+                              "type": "string"
+                            },
+                            "interests": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "completionPercentage": {
+                              "type": "integer"
+                            },
+                            "isOnboarded": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "User does not have permission to access this resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Access denied"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Resource not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/analytics": {
       "get": {
         "tags": [
@@ -1645,6 +2402,77 @@
           }
         }
       },
+      "InfluencerProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "socialMediaLinks": {
+            "type": "object"
+          },
+          "primaryPlatform": {
+            "type": "string"
+          },
+          "followersCount": {
+            "type": "integer"
+          },
+          "engagementRate": {
+            "type": "number"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contentTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "collaborationTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "audienceAgeRange": {
+            "type": "string"
+          },
+          "audienceGender": {
+            "type": "string"
+          },
+          "audienceLocation": {
+            "type": "string"
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "completionPercentage": {
+            "type": "integer"
+          },
+          "isOnboarded": {
+            "type": "boolean"
+          }
+        }
+      },
       "User": {
         "type": "object",
         "properties": {
@@ -1748,77 +2576,6 @@
           }
         }
       },
-      "InfluencerProfile": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "userId": {
-            "type": "integer"
-          },
-          "bio": {
-            "type": "string"
-          },
-          "image": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "socialMediaLinks": {
-            "type": "object"
-          },
-          "primaryPlatform": {
-            "type": "string"
-          },
-          "followersCount": {
-            "type": "integer"
-          },
-          "engagementRate": {
-            "type": "number"
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "contentTypes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "collaborationTypes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "audienceAgeRange": {
-            "type": "string"
-          },
-          "audienceGender": {
-            "type": "string"
-          },
-          "audienceLocation": {
-            "type": "string"
-          },
-          "interests": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "completionPercentage": {
-            "type": "integer"
-          },
-          "isOnboarded": {
-            "type": "boolean"
-          }
-        }
-      },
       "OwnerProfile": {
         "type": "object",
         "properties": {
@@ -1874,6 +2631,30 @@
       }
     },
     "responses": {
+      "ValidationError": {
+        "description": "Invalid input data",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Something went wrong"
+                }
+              }
+            },
+            "example": {
+              "status": "error",
+              "message": "Validation failed"
+            }
+          }
+        }
+      },
       "UnauthorizedError": {
         "description": "Access token is missing or invalid",
         "content": {
@@ -1942,30 +2723,6 @@
             "example": {
               "status": "error",
               "message": "Resource not found"
-            }
-          }
-        }
-      },
-      "ValidationError": {
-        "description": "Invalid input data",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "error"
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Something went wrong"
-                }
-              }
-            },
-            "example": {
-              "status": "error",
-              "message": "Validation failed"
             }
           }
         }

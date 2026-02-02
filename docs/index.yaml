@@ -28,6 +28,8 @@ tags:
     description: Authentication and User Management
   - name: Campaigns
     description: Campaign Management and AI Generation
+  - name: Owner
+    description: Owner Operations (Browse Influencers, Manage Campaigns)
   - name: Collaborations
     description: Influencer Collaboration Management
   - name: Admin
@@ -101,6 +103,16 @@ paths:
   
   /api/campaigns/{id}/lifecycle:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1lifecycle'
+
+  /api/collaborations:
+    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations'
+
+  # ==================== OWNER ENDPOINTS ====================
+  /api/owner/influencers:
+    $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers'
+  
+  /api/owner/influencers/{id}:
+    $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers~1{id}'
 
   # ==================== ADMIN ENDPOINTS ====================
   /api/admin/analytics:

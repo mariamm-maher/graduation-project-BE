@@ -1,0 +1,88 @@
+paths:
+  /api/collaborations:
+    post:
+      tags:
+        - Collaborations
+      summary: Owner sends a collaboration request to an influencer
+      description: Create a collaboration request for a campaign and an influencer. Only Owners may perform this action.
+      operationId: sendCollaborationRequest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - campaignId
+                - influencerId
+              properties:
+                campaignId:
+                  type: integer
+                  example: 1
+                influencerId:
+                  type: integer
+                  example: 2
+                proposedBudget:
+                  type: number
+                  format: float
+                  example: 500.00
+                message:
+                  type: string
+                  example: "I'd like to invite you to this campaign"
+      responses:
+        '201':
+          description: Collaboration request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Collaboration request created
+                  data:
+                    type: object
+                    properties:
+                      collaborationRequest:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          campaignId:
+                            type: integer
+                          influencerId:
+                            type: integer
+                          proposedBudget:
+                            type: number
+                            format: float
+                            nullable: true
+                          message:
+                            type: string
+                            nullable: true
+                          status:
+                            type: string
+                          createdAt:
+                            type: string
+                            format: date-time
+        '400':
+          $ref: '../components/responses.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '409':
+          description: Conflict - duplicate pending request
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+              example:
+                status: error
+                message: A pending request already exists for this influencer and campaign
