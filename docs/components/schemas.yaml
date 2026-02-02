@@ -1,0 +1,193 @@
+schemas:
+  Error:
+    type: object
+    properties:
+      status:
+        type: string
+        example: error
+      message:
+        type: string
+        example: Something went wrong
+
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+      firstName:
+        type: string
+      lastName:
+        type: string
+      email:
+        type: string
+        format: email
+      status:
+        type: string
+        enum: [ACTIVE, BLOCKED, SUSPENDED, INCOMPLETE]
+      roles:
+        type: array
+        items:
+          type: string
+      createdAt:
+        type: string
+        format: date-time
+
+  Campaign:
+    type: object
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      campaignName:
+        type: string
+      userDescription:
+        type: string
+      goalType:
+        type: string
+        enum: [awareness, consideration, conversion, lead_generation, retention]
+      totalBudget:
+        type: number
+        format: decimal
+      currency:
+        type: string
+      lifecycleStage:
+        type: string
+        enum: [draft, ai_generated, active, completed]
+      startDate:
+        type: string
+        format: date-time
+      endDate:
+        type: string
+        format: date-time
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  Collaboration:
+    type: object
+    properties:
+      id:
+        type: integer
+      campaignId:
+        type: integer
+      influencerId:
+        type: integer
+      ownerId:
+        type: integer
+      status:
+        type: string
+        enum: [pending, active, completed, cancelled]
+      startDate:
+        type: string
+        format: date-time
+      endDate:
+        type: string
+        format: date-time
+
+  CollaborationRequest:
+    type: object
+    properties:
+      id:
+        type: integer
+      senderId:
+        type: integer
+      receiverId:
+        type: integer
+      campaignId:
+        type: integer
+      proposedBudget:
+        type: number
+        format: decimal
+      message:
+        type: string
+      status:
+        type: string
+        enum: [pending, accepted, rejected]
+
+  InfluencerProfile:
+    type: object
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      bio:
+        type: string
+      image:
+        type: string
+      location:
+        type: string
+      socialMediaLinks:
+        type: object
+      primaryPlatform:
+        type: string
+      followersCount:
+        type: integer
+      engagementRate:
+        type: number
+      categories:
+        type: array
+        items:
+          type: string
+      contentTypes:
+        type: array
+        items:
+          type: string
+      collaborationTypes:
+        type: array
+        items:
+          type: string
+      audienceAgeRange:
+        type: string
+      audienceGender:
+        type: string
+      audienceLocation:
+        type: string
+      interests:
+        type: array
+        items:
+          type: string
+      completionPercentage:
+        type: integer
+      isOnboarded:
+        type: boolean
+
+  OwnerProfile:
+    type: object
+    properties:
+      id:
+        type: integer
+      userId:
+        type: integer
+      businessName:
+        type: string
+      businessType:
+        type: string
+      industry:
+        type: string
+      location:
+        type: string
+      description:
+        type: string
+      image:
+        type: string
+      website:
+        type: string
+      phoneNumber:
+        type: string
+      platformsUsed:
+        type: array
+        items:
+          type: string
+      primaryMarketingGoal:
+        type: string
+      targetAudience:
+        type: object
+      completionPercentage:
+        type: integer
+      isOnboarded:
+        type: boolean

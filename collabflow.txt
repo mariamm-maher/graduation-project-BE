@@ -1,0 +1,37 @@
+flowchart TD
+    Start([Owner Creates Campaign]) --> Campaign[Campaign Created<br/>Goals, Budget, KPIs]
+    
+    Campaign --> Discovery{Discovery Phase}
+    
+    Discovery -->|Path A| BrowseInfluencers[Owner Browses<br/>Influencer Profiles]
+    Discovery -->|Path B| BrowseListings[Owner Browses<br/>Service Listings]
+    Discovery -->|Path C| ServiceRequest[Influencer Browses<br/>Service Requests]
+    
+    BrowseInfluencers --> CollabReq[Send Collaboration Request<br/>Status: pending]
+    
+    BrowseListings --> Offer[Owner Makes Offer<br/>on Service Listing]
+    Offer -->|Accepted| CollabReq
+    
+    ServiceRequest --> Proposal[Influencer Submits Proposal]
+    Proposal -->|Accepted| CollabReq
+    
+    CollabReq -->|Accepted| Contract[Collaboration Contract<br/>Budget & Dates<br/>Status: active]
+    CollabReq -->|Rejected| End1([End])
+    
+    Contract --> Collab[Collaboration Created<br/>Status: active]
+    
+    Collab --> Board[Collaboration Boards]
+    Collab --> Chat[Chat Room Created]
+    
+    Board --> Tasks[Tasks Assigned<br/>todo to completed]
+    
+    Chat --> Messages[Messages Exchanged]
+    
+    Tasks --> Content[Content Execution<br/>Per Calendar]
+    
+    Content --> Complete{All Tasks Done?}
+    Complete -->|Yes| ContractComplete[Contract: completed]
+    Complete -->|No| Tasks
+    
+    ContractComplete --> CollabComplete[Collaboration: completed]
+    CollabComplete --> End2([End])

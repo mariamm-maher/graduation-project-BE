@@ -71,5 +71,14 @@ router.delete('/sessions/:sessionId', authenticate, revokeSession);
 // @desc    Get user profile with completion percentage
 // @access  Private
 router.get('/profile', authenticate, getProfile);
+// @route   PATCH /api/auth/profile/influencer
+// @desc    Update influencer profile
+// @access  Private
+router.patch('/profile/influencer', authenticate, require('../controllers/authController').updateInfluencerProfile);
+
+// @route   PATCH /api/auth/profile/owner
+// @desc    Update owner profile
+// @access  Private
+router.patch('/profile/owner', authenticate, require('../controllers/authController').updateOwnerProfile);
 
 module.exports = router;  

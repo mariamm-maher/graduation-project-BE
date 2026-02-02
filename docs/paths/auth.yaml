@@ -284,3 +284,108 @@ paths:
           description: Unauthorized
         '404':
           description: User not found
+  /api/auth/profile/influencer:
+    patch:
+      tags:
+        - Auth
+      summary: Update Influencer Profile
+      description: Update fields on the influencer profile (partial update). Accepts JSON body with any subset of allowed fields.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio:
+                  type: string
+                image:
+                  type: string
+                location:
+                  type: string
+                socialMediaLinks:
+                  type: object
+                primaryPlatform:
+                  type: string
+                followersCount:
+                  type: integer
+                engagementRate:
+                  type: number
+                categories:
+                  type: array
+                  items:
+                    type: string
+                contentTypes:
+                  type: array
+                  items:
+                    type: string
+                collaborationTypes:
+                  type: array
+                  items:
+                    type: string
+                audienceAgeRange:
+                  type: string
+                audienceGender:
+                  type: string
+                audienceLocation:
+                  type: string
+                interests:
+                  type: array
+                  items:
+                    type: string
+                isOnboarded:
+                  type: boolean
+      responses:
+        '200':
+          description: Influencer profile updated
+        '401':
+          description: Unauthorized
+
+  /api/auth/profile/owner:
+    patch:
+      tags:
+        - Auth
+      summary: Update Owner Profile
+      description: Update fields on the owner profile (partial update). Accepts JSON body with any subset of allowed fields.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                businessName:
+                  type: string
+                businessType:
+                  type: string
+                industry:
+                  type: string
+                location:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: string
+                website:
+                  type: string
+                phoneNumber:
+                  type: string
+                platformsUsed:
+                  type: array
+                  items:
+                    type: string
+                primaryMarketingGoal:
+                  type: string
+                targetAudience:
+                  type: object
+                isOnboarded:
+                  type: boolean
+      responses:
+        '200':
+          description: Owner profile updated
+        '401':
+          description: Unauthorized

@@ -55,6 +55,11 @@ exports.selectRole = async (req, res, next) => {
       return next(new AppError('Role not found', 404));
     }
 
+    // Disallow assigning admin role via this endpoint
+    if (Number(roleId) === 3 || role.name === 'ADMIN') {
+      return next(new AppError('You cannot be admin', 403));
+    }
+
     // Check if user already has this role
     const existingUserRole = await UserRole.findOne({
       where: { userId, roleId }
@@ -66,6 +71,28 @@ exports.selectRole = async (req, res, next) => {
 
     // Assign role to user
     await UserRole.create({ userId, roleId });
+
+    // Create role-specific profile if needed
+    try {
+      const { OwnerProfile, InfluencerProfile } = require('../models');
+      if (role.name === 'OWNER') {
+        // create owner profile if not exists
+        const existing = await OwnerProfile.findOne({ where: { userId } });
+        if (!existing) {
+          await OwnerProfile.create({ userId });
+        }
+      }
+
+      if (role.name === 'INFLUENCER') {
+        // create influencer profile if not exists
+        const existing = await InfluencerProfile.findOne({ where: { userId } });
+        if (!existing) {
+          await InfluencerProfile.create({ userId });
+        }
+      }
+    } catch (e) {
+      // non-blocking: don't fail role assignment if profile creation errors
+    }
 
     sendSuccess(res, 201, 'Role assigned successfully', {
       userId,
@@ -343,7 +370,7 @@ exports.getProfile = async (req, res, next) => {
   try {
     const { User, Role, OwnerProfile, InfluencerProfile } = require('../models');
     
-    // Get user with roles
+    // Fetch user with roles
     const user = await User.findByPk(req.user.id, {
       attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt'],
       include: [
@@ -360,32 +387,9 @@ exports.getProfile = async (req, res, next) => {
       return next(new AppError('User not found', 404));
     }
 
-    // Get the role-specific profile(s)
-    let ownerProfile = null;
-    let influencerProfile = null;
-    let ownerCompletionPercentage = 0;
-    let influencerCompletionPercentage = 0;
-    const roles = user.roles.map(r => r.name);
-
-    // Check for OWNER profile
-    if (roles.includes('OWNER')) {
-      ownerProfile = await OwnerProfile.findOne({ where: { userId: user.id } });
-      if (ownerProfile) {
-        ownerCompletionPercentage = calculateOwnerProfileCompletion(ownerProfile);
-        await ownerProfile.update({ completionPercentage: ownerCompletionPercentage });
-      }
-    }
-
-    // Check for INFLUENCER profile
-    if (roles.includes('INFLUENCER')) {
-      influencerProfile = await InfluencerProfile.findOne({ where: { userId: user.id } });
-      if (influencerProfile) {
-        influencerCompletionPercentage = calculateInfluencerProfileCompletion(influencerProfile);
-        await influencerProfile.update({ completionPercentage: influencerCompletionPercentage });
-      }
-    }
-
-    // Build response based on roles
+    const roles = user.roles ? user.roles.map(r => r.name) : [];
+    
+    // Initialize response structure
     const profileData = {
       user: {
         id: user.id,
@@ -394,22 +398,59 @@ exports.getProfile = async (req, res, next) => {
         email: user.email,
         roles: roles,
         createdAt: user.createdAt
+      },
+      // Role-specific sections (populated only if applicable)
+      ownerProfile: null,
+      influencerProfile: null,
+      // Computed percentages (calculated on-the-fly, no DB mutation)
+      completion: {
+        owner: 0,
+        influencer: 0
       }
     };
 
-    // Add profile(s) based on what exists
-    if (ownerProfile && influencerProfile) {
-      profileData.ownerProfile = ownerProfile;
-      profileData.influencerProfile = influencerProfile;
-      profileData.ownerCompletionPercentage = ownerCompletionPercentage;
-      profileData.influencerCompletionPercentage = influencerCompletionPercentage;
-    } else if (ownerProfile) {
-      profileData.profile = ownerProfile;
-      profileData.completionPercentage = ownerCompletionPercentage;
-    } else if (influencerProfile) {
-      profileData.profile = influencerProfile;
-      profileData.completionPercentage = influencerCompletionPercentage;
+    // Parallel fetch for potential profiles if roles match
+    // Note: A user might have both roles
+    const promises = [];
+    
+    if (roles.includes('OWNER')) {
+      promises.push(
+        OwnerProfile.findOne({ where: { userId: user.id } })
+          .then(profile => {
+            if (profile) {
+              profileData.ownerProfile = profile;
+              profileData.completion.owner = calculateOwnerProfileCompletion(profile);
+            }
+          })
+      );
+    }
+
+    if (roles.includes('INFLUENCER')) {
+      promises.push(
+        InfluencerProfile.findOne({ where: { userId: user.id } })
+          .then(profile => {
+            if (profile) {
+              profileData.influencerProfile = profile;
+              profileData.completion.influencer = calculateInfluencerProfileCompletion(profile);
+            }
+          })
+      );
+    }
+
+    await Promise.all(promises);
+
+    // Simplified flattened response for single-role users (backward compatibility/convenience)
+    // If a user has primarily one role, you might want a top-level "completionPercentage"
+    // matching that role to make frontend simple.
+    if (profileData.ownerProfile && !profileData.influencerProfile) {
+      profileData.profile = profileData.ownerProfile;
+      profileData.completionPercentage = profileData.completion.owner;
+    } else if (profileData.influencerProfile && !profileData.ownerProfile) {
+      profileData.profile = profileData.influencerProfile;
+      profileData.completionPercentage = profileData.completion.influencer;
     } else {
+      // If multiple roles or no profiles, leave 'profile' undefined or null
+      // and let client use the specific ownerProfile/influencerProfile fields
       profileData.profile = null;
       profileData.completionPercentage = 0;
     }
@@ -532,4 +573,78 @@ exports.googleAuthCallback = (req, res, next) => {
       return next(error);
     }
   })(req, res, next);
+};
+
+// Update influencer profile
+exports.updateInfluencerProfile = async (req, res, next) => {
+  try {
+    const { InfluencerProfile } = require('../models');
+    const userId = req.user.id;
+
+    // Allowed fields to update
+    const allowed = ['bio','image','location','socialMediaLinks','primaryPlatform','followersCount','engagementRate','categories','contentTypes','collaborationTypes','audienceAgeRange','audienceGender','audienceLocation','interests','isOnboarded'];
+
+    // Find or create profile
+    let profile = await InfluencerProfile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await InfluencerProfile.create({ userId });
+    }
+
+    const updates = {};
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        let val = req.body[key];
+        // Attempt to parse JSON strings for complex types
+        if ((key === 'socialMediaLinks' || key === 'categories' || key === 'contentTypes' || key === 'collaborationTypes' || key === 'interests') && typeof val === 'string') {
+          try { val = JSON.parse(val); } catch (e) { /* leave as-is */ }
+        }
+        updates[key] = val;
+      }
+    }
+
+    await profile.update(updates);
+
+    // Recalculate completion and persist
+    const completion = calculateInfluencerProfileCompletion(profile);
+    await profile.update({ completionPercentage: completion });
+
+    sendSuccess(res, 200, 'Influencer profile updated', { profile, completionPercentage: completion });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Update owner profile
+exports.updateOwnerProfile = async (req, res, next) => {
+  try {
+    const { OwnerProfile } = require('../models');
+    const userId = req.user.id;
+
+    const allowed = ['businessName','businessType','industry','location','description','image','website','phoneNumber','platformsUsed','primaryMarketingGoal','targetAudience','isOnboarded'];
+
+    let profile = await OwnerProfile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await OwnerProfile.create({ userId });
+    }
+
+    const updates = {};
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        let val = req.body[key];
+        if ((key === 'platformsUsed' || key === 'targetAudience') && typeof val === 'string') {
+          try { val = JSON.parse(val); } catch (e) { /* leave as-is */ }
+        }
+        updates[key] = val;
+      }
+    }
+
+    await profile.update(updates);
+
+    const completion = calculateOwnerProfileCompletion(profile);
+    await profile.update({ completionPercentage: completion });
+
+    sendSuccess(res, 200, 'Owner profile updated', { profile, completionPercentage: completion });
+  } catch (error) {
+    return next(error);
+  }
 };

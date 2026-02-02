@@ -39,6 +39,7 @@ User {
     string email UK
     string password
     string googleId UK
+    enum status "ACTIVE, BLOCKED, SUSPENDED, INCOMPLETE"
     string resetPasswordToken
     date resetPasswordExpires
     timestamp createdAt
@@ -170,6 +171,8 @@ CollaborationRequest {
     int campaignId FK
     int influencerId FK
     enum status "pending, accepted, rejected, cancelled"
+    decimal proposedBudget
+    text message
     timestamp createdAt
     timestamp updatedAt
 }

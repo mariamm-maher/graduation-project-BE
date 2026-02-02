@@ -44,6 +44,11 @@ const User = sequelize.define('User', {
     allowNull: true,
     unique: true
   },
+  status: {
+    type: DataTypes.ENUM('ACTIVE', 'BLOCKED', 'SUSPENDED', 'INCOMPLETE'),
+    allowNull: false,
+    defaultValue: 'INCOMPLETE'
+  },
   resetPasswordToken: {
     type: DataTypes.STRING,
     allowNull: true

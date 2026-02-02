@@ -21,7 +21,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: './components.yaml#/components/schemas/Campaign'
+                      $ref: '../components/schemas.yaml#/schemas/Campaign'
   /api/campaigns/create:
     post:
       tags:
@@ -79,7 +79,7 @@ paths:
                     type: object
                     properties:
                       campaign:
-                        $ref: './components.yaml#/components/schemas/Campaign'
+                        $ref: '../components/schemas.yaml#/schemas/Campaign'
                       aiPreview:
                         type: object
                         description: AI generated suggestions

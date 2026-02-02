@@ -1,53 +1,125 @@
 openapi: 3.0.0
+
 info:
   title: Node.js Backend API
-  description: API Documentation for the Campaign Management & Collaboration Platform
+  description: |
+    API Documentation for the Campaign Management & Collaboration Platform
+    
+    ## Authentication
+    Most endpoints require JWT authentication via Bearer token.
+    
+    ## Rate Limiting
+    API calls are rate-limited to prevent abuse.
   version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
 servers:
   - url: http://localhost:5000
     description: Local Development Server
+  - url: https://api-staging.example.com
+    description: Staging Server
+  - url: https://api.example.com
+    description: Production Server
+
 tags:
   - name: Auth
     description: Authentication and User Management
   - name: Campaigns
     description: Campaign Management and AI Generation
-  - name: Collaboration
-    description: Influencer Collaboration
-  - name: Marketplace
-    description: Service Marketplace
+  - name: Collaborations
+    description: Influencer Collaboration Management
+  - name: Admin
+    description: Administrative Operations (Admin Only)
 
-# Include schemas and security
 components:
-  $ref: './components.yaml#/components'
+  # Security schemes
+  securitySchemes:
+    $ref: './components/security.yaml#/securitySchemes'
+  
+  # Schemas
+  schemas:
+    $ref: './components/schemas.yaml#/schemas'
+  
+  # Reusable responses
+  responses:
+    $ref: './components/responses.yaml#/responses'
+  
+  # Reusable parameters
+  parameters:
+    $ref: './components/parameters.yaml#/parameters'
 
-# Include paths from other files
-# Note: For simple merging, many tools require paths to be defined here or merged properly.
-# Standard OpenAPI 3.0 allows $ref on Path Item Objects.
+# All API paths
 paths:
-  # Auth Paths
+  # ==================== AUTH ENDPOINTS ====================
   /api/auth/signup:
-    $ref: './auth.yaml#/paths/~1api~1auth~1signup'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1signup'
+  
   /api/auth/login:
-    $ref: './auth.yaml#/paths/~1api~1auth~1login'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1login'
+  
   /api/auth/select-role:
-    $ref: './auth.yaml#/paths/~1api~1auth~1select-role'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1select-role'
+  
   /api/auth/refresh-token:
-    $ref: './auth.yaml#/paths/~1api~1auth~1refresh-token'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1refresh-token'
+  
   /api/auth/google:
-    $ref: './auth.yaml#/paths/~1api~1auth~1google'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1google'
+  
   /api/auth/google/callback:
-    $ref: './auth.yaml#/paths/~1api~1auth~1google~1callback'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1google~1callback'
+  
   /api/auth/logout:
-    $ref: './auth.yaml#/paths/~1api~1auth~1logout'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1logout'
+  
   /api/auth/logout-all:
-    $ref: './auth.yaml#/paths/~1api~1auth~1logout-all'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1logout-all'
+  
   /api/auth/sessions:
-    $ref: './auth.yaml#/paths/~1api~1auth~1sessions'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1sessions'
+  
   /api/auth/sessions/{sessionId}:
-    $ref: './auth.yaml#/paths/~1api~1auth~1sessions~1{sessionId}'
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1sessions~1{sessionId}'
+  
+  /api/auth/profile:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1profile'
+  
+  /api/auth/profile/influencer:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1profile~1influencer'
+  
+  /api/auth/profile/owner:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1profile~1owner'
 
-  # Campaign Paths
+  # ==================== CAMPAIGN ENDPOINTS ====================
   /api/campaigns:
-    $ref: './campaigns.yaml#/paths/~1api~1campaigns'
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns'
+  
   /api/campaigns/create:
-    $ref: './campaigns.yaml#/paths/~1api~1campaigns~1create'
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1create'
+  
+  /api/campaigns/{id}/lifecycle:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1lifecycle'
+
+  # ==================== ADMIN ENDPOINTS ====================
+  /api/admin/analytics:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1analytics'
+  
+  /api/admin/users:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1users'
+  
+  /api/admin/sessions:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1sessions'
+  
+  /api/admin/collaborations:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1collaborations'
+  
+  /api/admin/campaigns:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1campaigns'
+  
+  /api/admin/logs:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs'
+  
+  /api/admin/logs/recent:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'

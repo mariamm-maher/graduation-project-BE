@@ -1,0 +1,40 @@
+responses:
+  UnauthorizedError:
+    description: Access token is missing or invalid
+    content:
+      application/json:
+        schema:
+          $ref: './schemas.yaml#/schemas/Error'
+        example:
+          status: error
+          message: Unauthorized
+
+  ForbiddenError:
+    description: User does not have permission to access this resource
+    content:
+      application/json:
+        schema:
+          $ref: './schemas.yaml#/schemas/Error'
+        example:
+          status: error
+          message: Access denied
+
+  NotFoundError:
+    description: The specified resource was not found
+    content:
+      application/json:
+        schema:
+          $ref: './schemas.yaml#/schemas/Error'
+        example:
+          status: error
+          message: Resource not found
+
+  ValidationError:
+    description: Invalid input data
+    content:
+      application/json:
+        schema:
+          $ref: './schemas.yaml#/schemas/Error'
+        example:
+          status: error
+          message: Validation failed

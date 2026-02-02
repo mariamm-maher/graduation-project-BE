@@ -29,6 +29,14 @@ const CollaborationRequest = sequelize.define('CollaborationRequest', {
     type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'cancelled'),
     defaultValue: 'pending',
     allowNull: false
+  },
+  proposedBudget: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: true
+  },
+  message: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true
