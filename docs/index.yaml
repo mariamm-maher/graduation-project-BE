@@ -4,10 +4,8 @@ info:
   title: Node.js Backend API
   description: |
     API Documentation for the Campaign Management & Collaboration Platform
-    
     ## Authentication
     Most endpoints require JWT authentication via Bearer token.
-    
     ## Rate Limiting
     API calls are rate-limited to prevent abuse.
   version: 1.0.0
@@ -39,15 +37,12 @@ components:
   # Security schemes
   securitySchemes:
     $ref: './components/security.yaml#/securitySchemes'
-  
   # Schemas
   schemas:
     $ref: './components/schemas.yaml#/schemas'
-  
   # Reusable responses
   responses:
     $ref: './components/responses.yaml#/responses'
-  
   # Reusable parameters
   parameters:
     $ref: './components/parameters.yaml#/parameters'
@@ -57,19 +52,15 @@ paths:
   # ==================== AUTH ENDPOINTS ====================
   /api/auth/signup:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1signup'
-  
   /api/auth/login:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1login'
-  
   /api/auth/select-role:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1select-role'
-  
   /api/auth/refresh-token:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1refresh-token'
-  
   /api/auth/google:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1google'
-  
+
   /api/auth/google/callback:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1google~1callback'
   
@@ -100,7 +91,7 @@ paths:
   
   /api/campaigns/create:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1create'
-  
+
   /api/campaigns/{id}/lifecycle:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1lifecycle'
 
@@ -110,28 +101,61 @@ paths:
   # ==================== OWNER ENDPOINTS ====================
   /api/owner/influencers:
     $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers'
-  
+
   /api/owner/influencers/{id}:
     $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers~1{id}'
 
   # ==================== ADMIN ENDPOINTS ====================
   /api/admin/analytics:
     $ref: './paths/admin.yaml#/paths/~1api~1admin~1analytics'
-  
+
   /api/admin/users:
     $ref: './paths/admin.yaml#/paths/~1api~1admin~1users'
-  
+
+  /api/admin/users/{id}:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1users~1{id}'
+
+  /api/admin/users/{id}/role:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1users~1{id}~1role'
+
+  /api/admin/users/{id}/status:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1users~1{id}~1status'
+
   /api/admin/sessions:
     $ref: './paths/admin.yaml#/paths/~1api~1admin~1sessions'
-  
+
+  /api/admin/chatrooms:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1chatrooms'
+
+  /api/admin/chatrooms/{id}/messages:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1chatrooms~1{id}~1messages'
+
   /api/admin/collaborations:
     $ref: './paths/admin.yaml#/paths/~1api~1admin~1collaborations'
-  
+
+  /api/admin/collaborations/{id}:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1collaborations~1{id}'
+
+  /api/admin/collaborations/{id}/status:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1collaborations~1{id}~1status'
+
+  /api/admin/collaboration-requests:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1collaboration-requests'
+
+  /api/admin/collaboration-requests/{id}/status:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1collaboration-requests~1{id}~1status'
+
   /api/admin/campaigns:
     $ref: './paths/admin.yaml#/paths/~1api~1admin~1campaigns'
-  
-  /api/admin/logs:
-    $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs'
-  
-  /api/admin/logs/recent:
-    $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'
+
+  /api/admin/campaigns/{id}:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1campaigns~1{id}'
+
+  /api/admin/campaigns/{id}/status:
+    $ref: './paths/admin.yaml#/paths/~1api~1admin~1campaigns~1{id}~1status'
+
+  # /api/admin/logs:
+  #   $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs'
+
+  # /api/admin/logs/recent:
+  #   $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'

@@ -1,50 +1,68 @@
-const { Role, User, UserRole } = require('../models');
+const { Role, User } = require('../models');
 
 const seedRoles = async () => {
   try {
-    // Check if roles already exist
-    const existingRoles = await Role.count();
-    
-    if (existingRoles === 0) {
+    /*Seed Roles*/
+    const roleCount = await Role.count();
+
+    if (roleCount === 0) {
       await Role.bulkCreate([
         { name: 'OWNER' },
         { name: 'INFLUENCER' },
         { name: 'ADMIN' }
       ]);
-      console.log('Roles seeded successfully');
+      console.log('Roles created successfully');
     } else {
       console.log('Roles already exist');
     }
 
-    // Seed Admin User
+    /* Seed Admin User (ONLY ONE)  */
     const adminEmail = 'admin@admin.com';
-    const existingAdmin = await User.findOne({ where: { email: adminEmail } });
 
-    if (!existingAdmin) {
-      console.log('Creating admin user...');
-      const adminUser = await User.create({
-        firstName: 'Admin',
-        lastName: 'User',
-        email: adminEmail,
-        password: 'Admin123'
-      });
+    // get ADMIN role (after roles are guaranteed to exist)
+    const adminRole = await Role.findOne({ where: { name: 'ADMIN' } });
 
-      const adminRole = await Role.findOne({ where: { name: 'ADMIN' } });
-      
-      if (adminRole) {
-        await UserRole.create({
-          userId: adminUser.id,
-          roleId: adminRole.id
-        });
-        console.log('Admin user (admin@admin.com) created with password: Admin123');
-      }
-    } else {
-      console.log('Admin user already exists');
+    if (!adminRole) {
+      console.log('ADMIN role not found');
+      return;
     }
 
+    // check if ANY admin user exists
+    const existingAdmins = await User.findAll({
+      attributes: { exclude: ['status'] },
+      include: [{
+        model: Role,
+        as: 'roles',
+        where: { name: 'ADMIN' }
+      }]
+    });
+
+    // If admin already exists, don't create another one
+    if (existingAdmins.length > 0) {
+      console.log('Admin user already exists ✅');
+      return;
+    }
+
+    // Create the ONLY admin user
+    console.log('Creating the ONLY admin user...');
+
+    const adminUser = await User.create({
+      firstName: 'Admin',
+      lastName: 'User',
+      email: adminEmail,
+      password: 'Admin123'
+    });
+
+    // Assign ADMIN role
+    await adminUser.setRoles([adminRole]);
+
+    console.log('Admin user created successfully ✅');
+
   } catch (error) {
-    console.error('Error seeding roles:', error);
+    console.error('Error seeding roles & admin user:', error);
   }
 };
 
 module.exports = seedRoles;
+
+

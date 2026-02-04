@@ -1,8 +1,7 @@
-const { User, Session, Campaign, Collaboration, Role, OwnerProfile, InfluencerProfile } = require('../models');
+const { User, Session, Campaign, Collaboration, CollaborationRequest, Role, OwnerProfile, InfluencerProfile, ChatRoom, ChatParticipant, Message, Log } = require('../models');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
-const { Log } = require('../models');
 
 // @desc    Get admin dashboard analytics
 // @route   GET /api/admin/analytics
@@ -145,17 +144,238 @@ exports.getUsers = async (req, res, next) => {
 
     sendSuccess(res, 200, 'Users retrieved successfully', {
       users,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
-      }
     });
   } catch (error) {
     return next(error);
   }
 };
+// @desc    Get single user by ID
+// @route   GET /api/admin/users/:id
+// @access  Private (ADMIN only)
+exports.getUserById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Build where clause
+    const whereClause = { id };
+
+    // Build include for roles
+    const includeClause = [
+      {
+        model: Role,
+        as: 'roles',
+        attributes: ['id', 'name'],
+        through: { attributes: [] }
+      }
+    ];
+
+    const user = await User.findOne({
+      where: whereClause,
+      include: includeClause,
+      attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt']
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    sendSuccess(res, 200, 'User retrieved successfully', { user });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Update user role
+// @route   PATCH /api/admin/users/:id/role
+// @access  Private (ADMIN only)
+exports.updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role: roleName } = req.body;
+
+    if (!roleName) {
+      return next(new AppError('Role name is required', 400));
+    }
+
+    // Build where clause
+    const whereClause = { id };
+
+    // Build include for roles
+    const includeClause = [
+      {
+        model: Role,
+        as: 'roles',
+        attributes: ['id', 'name'],
+        through: { attributes: [] }
+      }
+    ];
+
+    const user = await User.findOne({
+      where: whereClause,
+      include: includeClause,
+      attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt']
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    const role = await Role.findOne({ where: { name: roleName } });
+    if (!role) {
+      return next(new AppError(`Role "${roleName}" not found. Valid roles: OWNER, INFLUENCER, ADMIN`, 400));
+    }
+
+    await user.setRoles([role]);
+
+    const updatedUser = await User.findOne({
+      where: whereClause,
+      include: includeClause,
+      attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt']
+    });
+
+    const userData = updatedUser.toJSON();
+    const roles = userData.roles || [];
+    delete userData.roles;
+
+    sendSuccess(res, 200, 'User role updated successfully', {
+      user: userData,
+      roles
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+// @desc    Update user status
+// @route   PATCH /api/admin/users/:id/status
+// @access  Private (ADMIN only)
+exports.updateUserStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return next(new AppError('Status is required', 400));
+    }
+
+    const validStatuses = ['ACTIVE', 'BLOCKED', 'SUSPENDED', 'INCOMPLETE'];
+    if (!validStatuses.includes(status)) {
+      return next(new AppError(`Invalid status. Valid values: ${validStatuses.join(', ')}`, 400));
+    }
+
+    const whereClause = { id };
+
+    const user = await User.findOne({ where: whereClause });
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    await user.update({ status });
+
+    const updatedUser = await User.findOne({
+      where: { id },
+      include: [
+        {
+          model: Role,
+          as: 'roles',
+          attributes: ['id', 'name'],
+          through: { attributes: [] }
+        }
+      ],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'status', 'createdAt', 'updatedAt']
+    });
+
+    sendSuccess(res, 200, 'status updated successfully', {
+      users: [updatedUser],
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+// @desc    Delete user
+// @route   DELETE /api/admin/users/:id
+// @access  Private (ADMIN only)
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Build where clause
+    const whereClause = { id };
+
+    // Build include for roles
+    const includeClause = [
+      {
+        model: Role,
+        as: 'roles',
+        attributes: ['id', 'name'],
+        through: { attributes: [] }
+      }
+    ];
+
+    const user = await User.findOne({
+      where: whereClause,
+      include: includeClause,
+      attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt']
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Find all chat rooms where user is a participant
+    const chatRoomsWithUser = await ChatParticipant.findAll({
+      where: { userId: id },
+      attributes: ['chatRoomId']
+    });
+
+    const chatRoomIds = chatRoomsWithUser.map(cp => cp.chatRoomId);
+
+    // Delete all messages in these chat rooms
+    if (chatRoomIds.length > 0) {
+      await Message.destroy({
+        where: {
+          chatRoomId: {
+            [Op.in]: chatRoomIds
+          }
+        }
+      });
+    }
+
+    // Delete chat participant records for this user
+    await ChatParticipant.destroy({
+      where: { userId: id }
+    });
+
+    // Delete empty chat rooms (where no participants remain)
+    if (chatRoomIds.length > 0) {
+      const emptyRooms = await ChatRoom.findAll({
+        where: {
+          id: {
+            [Op.in]: chatRoomIds
+          }
+        },
+        include: [{
+          model: ChatParticipant,
+          as: 'chatParticipants',
+          attributes: ['id']
+        }]
+      });
+
+      for (const room of emptyRooms) {
+        if (room.chatParticipants.length === 0) {
+          await room.destroy();
+        }
+      }
+    }
+
+    await user.destroy();
+
+    sendSuccess(res, 200, 'User deleted successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+
 
 // @desc    Get all sessions
 // @route   GET /api/admin/sessions
@@ -201,73 +421,22 @@ exports.getSessions = async (req, res, next) => {
   }
 };
 
-// @desc    Get all collaborations
-// @route   GET /api/admin/collaborations
-// @access  Private (ADMIN only)
-exports.getCollaborations = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, status } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build where clause
-    const whereClause = {};
-    if (status) {
-      whereClause.status = status;
-    }
-
-    const { count, rows: collaborations } = await Collaboration.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: Campaign,
-          as: 'campaign',
-          attributes: ['id', 'campaignName', 'lifecycleStage']
-        },
-        {
-          model: User,
-          as: 'influencer',
-          attributes: ['id', 'firstName', 'lastName', 'email']
-        },
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email']
-        }
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
-    });
-
-    sendSuccess(res, 200, 'Collaborations retrieved successfully', {
-      collaborations,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
-      }
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
 
 // @desc    Get all campaigns
 // @route   GET /api/admin/campaigns
 // @access  Private (ADMIN only)
 exports.getCampaigns = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, lifecycleStage, goalType } = req.query;
+    const { page = 1, limit = 10, goalType, lifecycleStage } = req.query;
     const offset = (page - 1) * limit;
 
     // Build where clause
     const whereClause = {};
-    if (lifecycleStage) {
-      whereClause.lifecycleStage = lifecycleStage;
-    }
     if (goalType) {
       whereClause.goalType = goalType;
+    }
+    if (lifecycleStage) {
+      whereClause.lifecycleStage = lifecycleStage;
     }
 
     const { count, rows: campaigns } = await Campaign.findAndCountAll({
@@ -295,55 +464,125 @@ exports.getCampaigns = async (req, res, next) => {
     return next(error);
   }
 };
-
-// @desc    Get logs (paginated, admin only)
-// @route   GET /api/admin/logs
+// @desc    Get single campaign by ID
+// @route   GET /api/admin/campaigns/:id
 // @access  Private (ADMIN only)
-exports.getLogs = async (req, res, next) => {
+exports.getCampaignById = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, entity, action, actor } = req.query;
-    const offset = (page - 1) * limit;
+    const { id } = req.params;
 
-    const whereClause = {};
-    if (entity) whereClause.entity = entity;
-    if (action) whereClause.action = action;
-    if (actor) whereClause.actor = actor;
+    // Build where clause
+    const whereClause = { id };
 
-    const { count, rows: logs } = await Log.findAndCountAll({
-      where: whereClause,
-      include: [{ model: User, as: 'actorUser', attributes: ['id', 'firstName', 'lastName', 'email'] }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
-    });
-
-    sendSuccess(res, 200, 'Logs retrieved successfully', {
-      logs,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
+    // Build include for user (owner)
+    const includeClause = [
+      {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email']
       }
+    ];
+
+    const campaign = await Campaign.findOne({
+      where: whereClause,
+      include: includeClause
     });
+
+    if (!campaign) {
+      return next(new AppError('Campaign not found', 404));
+    }
+
+    sendSuccess(res, 200, 'Campaign retrieved successfully', { campaign });
   } catch (error) {
     return next(error);
   }
 };
 
-// @desc    Get recent activity (newest 10 logs)
-// @route   GET /api/admin/logs/recent
+// @desc    Update campaign status (lifecycleStage)
+// @route   PATCH /api/admin/campaigns/:id/status
 // @access  Private (ADMIN only)
-exports.getRecentActivity = async (req, res, next) => {
+exports.updateCampaignStatus = async (req, res, next) => {
   try {
-    const recent = await Log.findAll({
-      include: [{ model: User, as: 'actorUser', attributes: ['id', 'firstName', 'lastName', 'email'] }],
-      limit: 10,
-      order: [['createdAt', 'DESC']]
+    const { id } = req.params;
+    const { status: lifecycleStage } = req.body;
+
+    if (!lifecycleStage) {
+      return next(new AppError('Status is required', 400));
+    }
+
+    const validStatuses = ['draft', 'ai_generated', 'active', 'completed'];
+    if (!validStatuses.includes(lifecycleStage)) {
+      return next(new AppError(`Invalid status. Valid values: ${validStatuses.join(', ')}`, 400));
+    }
+
+    // Build where clause
+    const whereClause = { id };
+
+    // Build include for user (owner)
+    const includeClause = [
+      {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }
+    ];
+
+    const campaign = await Campaign.findOne({
+      where: whereClause,
+      include: includeClause
     });
 
-    sendSuccess(res, 200, 'Recent activity retrieved successfully', { recent });
+    if (!campaign) {
+      return next(new AppError('Campaign not found', 404));
+    }
+
+    await campaign.update({ lifecycleStage });
+
+    const updatedCampaign = await Campaign.findOne({
+      where: whereClause,
+      include: includeClause
+    });
+
+    sendSuccess(res, 200, 'Campaign status updated successfully', { campaign: updatedCampaign });
   } catch (error) {
     return next(error);
   }
 };
+
+// @desc    Delete campaign
+// @route   DELETE /api/admin/campaigns/:id
+// @access  Private (ADMIN only)
+exports.deleteCampaign = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Build where clause
+    const whereClause = { id };
+
+    // Build include for user (owner)
+    const includeClause = [
+      {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }
+    ];
+
+    const campaign = await Campaign.findOne({
+      where: whereClause,
+      include: includeClause
+    });
+
+    if (!campaign) {
+      return next(new AppError('Campaign not found', 404));
+    }
+
+    await campaign.destroy();
+
+    sendSuccess(res, 200, 'Campaign deleted successfully');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+

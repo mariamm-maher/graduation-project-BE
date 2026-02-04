@@ -34,77 +34,85 @@ exports.signup = (req, res, next) => {
 // Select role function
 exports.selectRole = async (req, res, next) => {
   try {
-    const { userId, roleId } = req.body;
+    let { userId, roleId } = req.body;
 
-    // Validate required fields
+
     if (!userId || !roleId) {
       return next(new AppError('UserId and roleId are required', 400));
     }
 
-    const { User, Role, UserRole } = require('../models');
+    const parsedRoleId = Number(String(roleId).trim());
 
-    // Check if user exists
+    if (Number.isNaN(parsedRoleId)) {
+      return next(new AppError('Invalid roleId', 400));
+    }
+
+    //  BLOCK ADMIN ROLE (id = 3)
+    if (parsedRoleId === 3) {
+      return next(
+        new AppError('ADMIN role is reserved and cannot be assigned to other users', 403)
+      );
+    }
+
+    const { User, Role, UserRole, OwnerProfile, InfluencerProfile } =
+      require('../models');
+
+    // Check user exists
     const user = await User.findByPk(userId);
     if (!user) {
       return next(new AppError('User not found', 404));
     }
 
-    // Check if role exists
-    const role = await Role.findByPk(roleId);
+    // Check role exists
+    const role = await Role.findByPk(parsedRoleId);
     if (!role) {
       return next(new AppError('Role not found', 404));
     }
 
-    // Disallow assigning admin role via this endpoint
-    if (Number(roleId) === 3 || role.name === 'ADMIN') {
-      return next(new AppError('You cannot be admin', 403));
+    // Extra safety: block ADMIN by name
+    if (role.name.toUpperCase() === 'ADMIN') {
+      return next(
+        new AppError('ADMIN role is reserved and cannot be assigned to other users', 403)
+      );
     }
 
-    // Check if user already has this role
+    // Prevent duplicate role
     const existingUserRole = await UserRole.findOne({
-      where: { userId, roleId }
+      where: { userId, roleId: parsedRoleId }
     });
 
     if (existingUserRole) {
       return next(new AppError('User already has this role', 400));
     }
 
-    // Assign role to user
-    await UserRole.create({ userId, roleId });
+    // Assign role
+    await UserRole.create({
+      userId,
+      roleId: parsedRoleId
+    });
 
-    // Create role-specific profile if needed
-    try {
-      const { OwnerProfile, InfluencerProfile } = require('../models');
-      if (role.name === 'OWNER') {
-        // create owner profile if not exists
-        const existing = await OwnerProfile.findOne({ where: { userId } });
-        if (!existing) {
-          await OwnerProfile.create({ userId });
-        }
+    // Create role profile if needed
+    if (role.name === 'OWNER') {
+      const existing = await OwnerProfile.findOne({ where: { userId } });
+      if (!existing) {
+        await OwnerProfile.create({ userId });
       }
-
-      if (role.name === 'INFLUENCER') {
-        // create influencer profile if not exists
-        const existing = await InfluencerProfile.findOne({ where: { userId } });
-        if (!existing) {
-          await InfluencerProfile.create({ userId });
-        }
-      }
-    } catch (e) {
-      // non-blocking: don't fail role assignment if profile creation errors
     }
 
+    if (role.name === 'INFLUENCER') {
+      const existing = await InfluencerProfile.findOne({ where: { userId } });
+      if (!existing) {
+        await InfluencerProfile.create({ userId });
+      }
+    }
+
+    // Success response
     sendSuccess(res, 201, 'Role assigned successfully', {
       userId,
-      roleId,
+      roleId: parsedRoleId,
       roleName: role.name,
       needsOnBoarding: true
     });
-
-    // Log role change
-    try {
-      await logAction({ req, action: 'CHANGE_ROLE', entity: 'User', entityId: userId, meta: { roleId, roleName: role.name } });
-    } catch (e) {}
   } catch (error) {
     next(error);
   }
