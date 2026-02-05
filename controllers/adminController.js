@@ -584,5 +584,341 @@ exports.deleteCampaign = async (req, res, next) => {
     return next(error);
   }
 };
+// @desc    Get all collaborations
+// @route   GET /api/admin/collaborations
+// @access  Private (ADMIN only)
+exports.getCollaborations = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Build where clause
+    const whereClause = {};
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const { count, rows: collaborations } = await Collaboration.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName', 'lifecycleStage']
+        },
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    sendSuccess(res, 200, 'Collaborations retrieved successfully', {
+      collaborations,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Get single collaboration by ID
+// @route   GET /api/admin/collaborations/:id
+// @access  Private (ADMIN only)
+exports.getCollaborationById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.query;
+
+    // Build where clause similar to getCollaborations
+    const whereClause = { id };
+    if (status) whereClause.status = status;
+
+    const collaboration = await Collaboration.findOne({
+      where: whereClause,
+      include: [
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName', 'lifecycleStage']
+        },
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
+
+    if (!collaboration) {
+      return next(new AppError('Collaboration not found', 404));
+    }
+
+    sendSuccess(res, 200, 'Collaborations retrieved successfully', {
+      collaborations: [collaboration],
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Get all collaboration requests
+// @route   GET /api/admin/collaboration-requests
+// @access  Private (ADMIN only)
+exports.getCollaborationRequests = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Build where clause
+    const whereClause = {};
+    if (status) whereClause.status = status;
+
+    const { count, rows: requests } = await CollaborationRequest.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName', 'lifecycleStage']
+        },
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    sendSuccess(res, 200, 'Collaboration requests retrieved successfully', {
+      collaborationRequests: requests,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Update collaboration request status
+// @route   PATCH /api/admin/collaboration-requests/:id/status
+// @access  Private (ADMIN only)
+exports.updateCollaborationRequestStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return next(new AppError('Status is required', 400));
+    }
+
+    const validStatuses = ['pending', 'accepted', 'rejected', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return next(new AppError(`Invalid status. Valid values: ${validStatuses.join(', ')}`, 400));
+    }
+
+    const whereClause = { id };
+
+    const request = await CollaborationRequest.findOne({ where: whereClause });
+    if (!request) {
+      return next(new AppError('Collaboration request not found', 404));
+    }
+
+    await request.update({ status });
+
+    const updated = await CollaborationRequest.findOne({
+      where: { id },
+      include: [
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName']
+        },
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
+
+    sendSuccess(res, 200, 'Collaboration request status updated successfully', {
+      collaborationRequests: [updated],
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Update collaboration status
+// @route   PATCH /api/admin/collaborations/:id/status
+// @access  Private (ADMIN only)
+exports.updateCollaborationStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return next(new AppError('Status is required', 400));
+    }
+
+    const validStatuses = ['pending', 'active', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+   return next(new AppError(`Invalid status. Valid values: ${validStatuses.join(', ')}`, 400));
+    }
+
+    const whereClause = { id };
+
+    const collaboration = await Collaboration.findOne({ where: whereClause });
+    if (!collaboration) {
+      return next(new AppError('Collaboration not found', 404));
+    }
+
+    await collaboration.update({ status });
+
+    const updated = await Collaboration.findOne({
+      where: { id },
+      include: [
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName', 'lifecycleStage']
+        },
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
+
+    sendSuccess(res, 200, 'Collaborations updated successfully', {
+      collaborations: [updated],
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 1,
+        totalPages: 1
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Get logs (paginated, admin only)
+// @route   GET /api/admin/logs
+// @access  Private (ADMIN only)
+exports.getLogs = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, entity, action, actor } = req.query;
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+    if (entity) whereClause.entity = entity;
+    if (action) whereClause.action = action;
+    if (actor) whereClause.actor = actor;
+
+    const { count, rows: logs } = await Log.findAndCountAll({
+      where: whereClause,
+      include: [{ model: User, as: 'actorUser', attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    sendSuccess(res, 200, 'Logs retrieved successfully', {
+      logs,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// @desc    Get recent activity (newest 10 logs)
+// @route   GET /api/admin/logs/recent
+// @access  Private (ADMIN only)
+exports.getRecentActivity = async (req, res, next) => {
+  try {
+    const recent = await Log.findAll({
+      include: [{ model: User, as: 'actorUser', attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      limit: 10,
+      order: [['createdAt', 'DESC']]
+    });
+
+    sendSuccess(res, 200, 'Recent activity retrieved successfully', { recent });
+  } catch (error) {
+    return next(error);
+  }
+};
+// @desc    Get all sessions
+// @route   GET /api/admin/sessions
+// @access  Private (ADMIN only)
+exports.getSessions = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, active } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Build where clause
+    const whereClause = {};
+    if (active === 'true') {
+      whereClause.revokedAt = null;
+      whereClause.expiresAt = {
+        [Op.gt]: new Date()
+      };
+    }
+
+    const { count, rows: sessions } = await Session.findAndCountAll({
+      where: whereClause,
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }],
+      attributes: ['id', 'userId', 'ip', 'userAgent', 'createdAt', 'expiresAt', 'revokedAt'],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    sendSuccess(res, 200, 'Sessions retrieved successfully', {
+      sessions,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 
 

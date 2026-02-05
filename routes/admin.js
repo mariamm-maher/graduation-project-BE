@@ -12,10 +12,14 @@ const {
   getCampaigns,
   getCampaignById,
   updateCampaignStatus,
-  // updateCollaborationStatus,
-   deleteCampaign,
-  // getLogs,
- // getRecentActivity
+  getCollaborations,
+  getCollaborationRequests,
+  updateCollaborationRequestStatus,
+  getCollaborationById,
+  updateCollaborationStatus,
+  deleteCampaign,
+  getLogs,
+  getRecentActivity
 } = require('../controllers/adminController');
 
 // All admin routes require authentication and ADMIN role
@@ -82,6 +86,47 @@ router.get('/campaigns/:id', getCampaignById);
 // @access  Private (ADMIN only)
 router.delete('/campaigns/:id', deleteCampaign);
 
+
+// // @route   GET /api/admin/collaborations
+// // @desc    Get all collaborations
+// // @access  Private (ADMIN only)
+ router.get('/collaborations', getCollaborations);
+
+// // @route   GET /api/admin/collaboration-requests
+// // @desc    Get all collaboration requests
+// // @access  Private (ADMIN only)
+ router.get('/collaboration-requests', getCollaborationRequests);
+
+// // @route   PATCH /api/admin/collaboration-requests/:id/status
+// // @desc    Update collaboration request status
+// // @access  Private (ADMIN only)
+ router.patch('/collaboration-requests/:id/status', updateCollaborationRequestStatus);
+
+// // @route   GET /api/admin/collaborations/:id
+// // @desc    Get single collaboration by ID
+// // @access  Private (ADMIN only)
+ router.get('/collaborations/:id', getCollaborationById);
+
+// // @route   PATCH /api/admin/collaborations/:id/status
+// // @desc    Update collaboration status
+// // @access  Private (ADMIN only)
+ router.patch('/collaborations/:id/status', updateCollaborationStatus);
+
+// @route   GET /api/admin/logs
+// @desc    Get system logs
+// @access  Private (ADMIN only)
+router.get('/logs', getLogs);
+
+// @route   GET /api/admin/recent-activity
+// @desc    Get recent admin activity
+// @access  Private (ADMIN only)
+router.get('/recent-activity', getRecentActivity);
+
+
+
+
+module.exports = router;
+
 //==============================================================================
 // // @route   GET /api/admin/chatrooms
 // // @desc    Get all chat rooms
@@ -93,30 +138,4 @@ router.delete('/campaigns/:id', deleteCampaign);
 // // @access  Private (ADMIN only)
 // router.get('/chatrooms/:id/messages', getChatRoomMessages);
 
-// // @route   GET /api/admin/collaborations
-// // @desc    Get all collaborations
-// // @access  Private (ADMIN only)
-// router.get('/collaborations', getCollaborations);
 
-// // @route   GET /api/admin/collaboration-requests
-// // @desc    Get all collaboration requests
-// // @access  Private (ADMIN only)
-// router.get('/collaboration-requests', getCollaborationRequests);
-
-// // @route   PATCH /api/admin/collaboration-requests/:id/status
-// // @desc    Update collaboration request status
-// // @access  Private (ADMIN only)
-// router.patch('/collaboration-requests/:id/status', updateCollaborationRequestStatus);
-
-// // @route   GET /api/admin/collaborations/:id
-// // @desc    Get single collaboration by ID
-// // @access  Private (ADMIN only)
-// router.get('/collaborations/:id', getCollaborationById);
-
-// // @route   PATCH /api/admin/collaborations/:id/status
-// // @desc    Update collaboration status
-// // @access  Private (ADMIN only)
-// router.patch('/collaborations/:id/status', updateCollaborationStatus);
-
-
-module.exports = router;
