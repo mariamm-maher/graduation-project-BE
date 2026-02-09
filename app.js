@@ -19,6 +19,7 @@ app.use(passport.initialize());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/social-media', require('./routes/socialMedia'));
 
 // Test route
 app.get('/api/test', (req, res) => {

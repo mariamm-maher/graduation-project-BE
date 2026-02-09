@@ -8,6 +8,8 @@ const Campaign = require('./Campaign');
 const Collaboration = require('./Collaboration');
 const Chat = require('./Chat');
 const Message = require('./Message');
+const SocialMediaAccount = require('./SocialMediaAccount');
+
 
 // Define relationships
 
@@ -166,5 +168,7 @@ module.exports = {
   Campaign,
   Collaboration,
   Chat,
-  Message
+  Message,
+  SocialMediaAccount,
+
 };
