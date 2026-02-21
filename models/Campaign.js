@@ -23,8 +23,8 @@ const Campaign = sequelize.define('Campaign', {
       len: [3, 100]
     }
   },
-  status: {
-    type: DataTypes.ENUM('draft', 'active', 'completed'),
+  lifecycleStage: {
+    type: DataTypes.ENUM('draft', 'ai_generated', 'active', 'completed'),
     defaultValue: 'draft',
     allowNull: false
   },

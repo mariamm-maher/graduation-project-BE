@@ -1,0 +1,43 @@
+parameters:
+  PageNumber:
+    name: page
+    in: query
+    description: Page number for pagination
+    schema:
+      type: integer
+      minimum: 1
+      default: 1
+
+  PageSize:
+    name: limit
+    in: query
+    description: Number of items per page
+    schema:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+
+  UserId:
+    name: userId
+    in: path
+    required: true
+    description: User ID
+    schema:
+      type: integer
+
+  CampaignId:
+    name: id
+    in: path
+    required: true
+    description: Campaign ID
+    schema:
+      type: integer
+
+  SessionId:
+    name: sessionId
+    in: path
+    required: true
+    description: Session ID
+    schema:
+      type: integer

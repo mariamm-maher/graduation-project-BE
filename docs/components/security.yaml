@@ -1,0 +1,11 @@
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+    description: JWT token from login/refresh
+  cookieAuth:
+    type: apiKey
+    in: cookie
+    name: refreshToken
+    description: HTTP-only refresh token cookie

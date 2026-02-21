@@ -3,9 +3,6 @@ const FacebookService = require('./facebookService');
 const TwitterService = require('./XService');
 const LinkedInService = require('./linkedinService');
 
-/**
- * Factory to get the appropriate platform service
- */
 class PlatformFactory {
   static getService(platform) {
     const platformLower = platform.toLowerCase();
