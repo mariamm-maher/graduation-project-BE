@@ -23,6 +23,7 @@ const ServiceListing = require('./ServiceListing');
 const ServiceRequest = require('./ServiceRequest');
 const Offer = require('./Offer');
 const Proposal = require('./Proposal');
+const Notification = require('./Notification');
 
 // Define relationships
 
@@ -399,6 +400,18 @@ Proposal.belongsTo(User, {
   as: 'influencer'
 });
 
+// User and Notification - One-to-Many
+User.hasMany(Notification, {
+  foreignKey: 'userId',
+  as: 'notifications',
+  onDelete: 'CASCADE'
+});
+
+Notification.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -424,5 +437,6 @@ module.exports = {
   ServiceRequest,
   Offer,
   Proposal,
-  Log
+  Log,
+  Notification
 };

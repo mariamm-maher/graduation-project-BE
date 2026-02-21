@@ -32,6 +32,8 @@ tags:
     description: Influencer Collaboration Management
   - name: Admin
     description: Administrative Operations (Admin Only)
+  - name: Notifications          
+    description: User Notifications Management
 
 components:
   # Security schemes
@@ -171,3 +173,20 @@ paths:
 
   # /api/admin/logs/recent:
   #   $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'
+
+  # ==================== ADMIN ENDPOINTS ====================
+
+  /api/notifications:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications'
+
+  /api/notifications/unread:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1unread'
+
+  /api/notifications/{id}/read:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1{id}~1read'
+
+  /api/notifications/read-all:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1read-all'
+
+  /api/notifications/{id}:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1{id}'

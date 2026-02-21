@@ -1,0 +1,236 @@
+paths:
+  /api/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get all user notifications (paginated)
+      description: Returns a paginated list of notifications belonging to the authenticated user, sorted by creation date (newest first).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../components/parameters.yaml#/parameters/PageNumber'
+        - $ref: '../components/parameters.yaml#/parameters/PageSize'
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Notifications retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      notifications:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            message:
+                              type: string
+                              example: "Your campaign has been approved"
+                            type:
+                              type: string
+                              enum: [info, warning, error]
+                              example: info
+                            isRead:
+                              type: boolean
+                              example: false
+                            createdAt:
+                              type: string
+                              format: date-time
+                              example: "2025-02-20T14:30:00Z"
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 45
+                          page:
+                            type: integer
+                            example: 1
+                          limit:
+                            type: integer
+                            example: 10
+                          totalPages:
+                            type: integer
+                            example: 5
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+
+  /api/notifications/unread:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notifications count
+      description: Returns only the count of unread notifications for the current authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Unread count retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      unread:
+                        type: integer
+                        example: 7
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+
+  /api/notifications/{id}/read:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark a single notification as read
+      description: Marks the specified notification as read (only if it belongs to the authenticated user).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the notification to mark as read
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Notification marked as read
+                  data:
+                    type: object
+                    properties:
+                      notification:
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          isRead: { type: boolean, example: true }
+        '400':
+          description: Invalid notification ID
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+
+  /api/notifications/read-all:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: Marks **all** unread notifications of the authenticated user as read in one request.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: All notifications marked as read
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+
+  /api/notifications/{id}:
+    delete:
+      tags:
+        - Notifications
+      summary: Delete a notification
+      description: Permanently deletes a specific notification (only if it belongs to the authenticated user).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the notification to delete
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Notification deleted successfully
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'

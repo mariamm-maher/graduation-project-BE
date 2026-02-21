@@ -30,6 +30,7 @@ app.use('/api/campaigns', require('./routes/campaign'));
 app.use('/api/collaborations', require('./routes/collaboration'));
 app.use('/api/owner', require('./routes/owner'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/notifications', require('./routes/notification'));
 
 // Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
