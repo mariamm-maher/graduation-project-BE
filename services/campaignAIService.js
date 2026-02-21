@@ -121,7 +121,7 @@ exports.generateCampaignWithAI = async (campaignData) => {
               }
             },
             {
-              metric: 'clicks',
+              metric: 'engagement_rate',
               estimatedRange: {
                 min: totalBudget * 2,
                 max: totalBudget * 5,

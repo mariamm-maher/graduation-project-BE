@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const Campaign = require('./Campaign');
 
 const KPI = sequelize.define('KPI', {
   id: {
@@ -28,8 +27,5 @@ const KPI = sequelize.define('KPI', {
 }, {
   timestamps: false
 });
-
-Campaign.hasMany(KPI, { foreignKey: 'campaignId', as: 'kpis' });
-KPI.belongsTo(Campaign, { foreignKey: 'campaignId' });
 
 module.exports = KPI;

@@ -5,6 +5,10 @@ const UserRole = require('./UserRole');
 const OwnerProfile = require('./OwnerProfile');
 const InfluencerProfile = require('./InfluencerProfile');
 const Campaign = require('./Campaign');
+const KPI = require('./KPI');
+const TargetAudience = require('./TargetAudience');
+const ContentCalendar = require('./ContentCalendar');
+const CampaignAIVersion = require('./CampaignAIVersion');
 const Collaboration = require('./Collaboration');
 const CollaborationRequest = require('./CollaborationRequest');
 const CollaborationContract = require('./CollaborationContract');
@@ -69,6 +73,54 @@ User.hasMany(Campaign, {
 Campaign.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user'
+});
+
+// Campaign and KPI - One-to-Many
+Campaign.hasMany(KPI, {
+  foreignKey: 'campaignId',
+  as: 'kpis',
+  onDelete: 'CASCADE'
+});
+
+KPI.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
+});
+
+// Campaign and TargetAudience - One-to-One
+Campaign.hasOne(TargetAudience, {
+  foreignKey: 'campaignId',
+  as: 'targetAudience',
+  onDelete: 'CASCADE'
+});
+
+TargetAudience.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
+});
+
+// Campaign and ContentCalendar - One-to-Many
+Campaign.hasMany(ContentCalendar, {
+  foreignKey: 'campaignId',
+  as: 'contentCalendar',
+  onDelete: 'CASCADE'
+});
+
+ContentCalendar.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
+});
+
+// Campaign and CampaignAIVersion - One-to-Many
+Campaign.hasMany(CampaignAIVersion, {
+  foreignKey: 'campaignId',
+  as: 'aiVersions',
+  onDelete: 'CASCADE'
+});
+
+CampaignAIVersion.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
 });
 
 // Campaign and Collaboration - One-to-Many
@@ -355,6 +407,10 @@ module.exports = {
   OwnerProfile,
   InfluencerProfile,
   Campaign,
+  KPI,
+  TargetAudience,
+  ContentCalendar,
+  CampaignAIVersion,
   Collaboration,
   CollaborationRequest,
   CollaborationContract,
@@ -367,7 +423,6 @@ module.exports = {
   ServiceListing,
   ServiceRequest,
   Offer,
-  Proposal
-  ,
+  Proposal,
   Log
 };

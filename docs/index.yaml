@@ -89,11 +89,23 @@ paths:
   /api/campaigns:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns'
   
-  /api/campaigns/create:
-    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1create'
+  /api/campaigns/ai/generate:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1ai~1generate'
 
-  /api/campaigns/{id}/lifecycle:
-    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1lifecycle'
+  /api/campaigns/draft:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1draft'
+
+  /api/campaigns/save-and-publish:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1save-and-publish'
+
+  /api/campaigns/save:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1save'
+
+  /api/campaigns/{id}/complete:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1complete'
+
+  /api/campaigns/{id}/cancel:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1cancel'
 
   /api/collaborations:
     $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations'

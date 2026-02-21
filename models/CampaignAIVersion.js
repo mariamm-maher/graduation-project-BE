@@ -3,12 +3,12 @@ const sequelize = require('../config/db');
 
 const CampaignAIVersion = sequelize.define('CampaignAIVersion', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   campaignId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Campaigns',

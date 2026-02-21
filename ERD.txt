@@ -87,12 +87,13 @@ Campaign {
     int id PK
     int userId FK
     string campaignName
-    enum lifecycleStage "draft, ai_generated, active, completed"
+    enum lifecycleStage "draft, ai_generated, saved, completed, cancelled"
     text UserDescription
     enum goalType "awareness, consideration, conversion, lead_generation, retention"
     float totalBudget
     string currency
     enum budgetFlexibility "strict, flexible"
+    boolean isPublished default false
     date startDate
     date endDate
     timestamp createdAt

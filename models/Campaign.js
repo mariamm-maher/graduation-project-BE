@@ -24,8 +24,8 @@ const Campaign = sequelize.define('Campaign', {
     }
   },
   lifecycleStage: {
-    type: DataTypes.ENUM('draft', 'ai_generated', 'active', 'completed'),
-    defaultValue: 'draft',
+    type: DataTypes.ENUM('draft', 'ai_generated', 'saved', 'completed', 'cancelled'),
+    defaultValue: 'ai_generated',
     allowNull: false
   },
   UserDescription: {
@@ -47,6 +47,10 @@ const Campaign = sequelize.define('Campaign', {
   budgetFlexibility: {
     type: DataTypes.ENUM('strict', 'flexible'),
     allowNull: true
+  },
+  isPublished: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   startDate: {
     type: DataTypes.DATE,
