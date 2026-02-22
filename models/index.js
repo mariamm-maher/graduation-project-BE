@@ -24,6 +24,7 @@ const ServiceRequest = require('./ServiceRequest');
 const Offer = require('./Offer');
 const Proposal = require('./Proposal');
 const Notification = require('./Notification');
+const UploadedFile = require('./UploadedFile');
 
 // Define relationships
 
@@ -412,6 +413,19 @@ Notification.belongsTo(User, {
   as: 'user'
 });
 
+// User and UploadedFile - One-to-Many
+User.hasMany(UploadedFile, {
+  foreignKey: 'userId',
+  as: 'uploadedFiles',
+  onDelete: 'CASCADE'
+});
+
+UploadedFile.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+
 module.exports = {
   sequelize,
   User,
@@ -438,5 +452,6 @@ module.exports = {
   Offer,
   Proposal,
   Log,
-  Notification
+  Notification,
+  UploadedFile
 };

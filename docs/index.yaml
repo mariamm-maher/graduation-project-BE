@@ -34,6 +34,8 @@ tags:
     description: Administrative Operations (Admin Only)
   - name: Notifications          
     description: User Notifications Management
+  - name: Upload
+    description: File Upload and Management
 
 components:
   # Security schemes
@@ -174,7 +176,7 @@ paths:
   # /api/admin/logs/recent:
   #   $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'
 
-  # ==================== ADMIN ENDPOINTS ====================
+  # ==================== NOTIFICATIONS ENDPOINTS ====================
 
   /api/notifications:
     $ref: './paths/notification.yaml#/paths/~1api~1notifications'
@@ -190,3 +192,14 @@ paths:
 
   /api/notifications/{id}:
     $ref: './paths/notification.yaml#/paths/~1api~1notifications~1{id}'
+
+  # ==================== UPLOAD ENDPOINTS ====================
+
+  /api/upload/image:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1image'
+  /api/upload/images:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1images'
+  /api/upload/document:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1document'
+  /api/upload/{fileId}:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1{fileId}'

@@ -8,6 +8,7 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-bundled.json');
+const path = require('path');
 
 const app = express();
 
@@ -20,6 +21,8 @@ app.use(cors({
   credentials: true
 }));
 
+// Serve static files from the "uploads" folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -31,6 +34,7 @@ app.use('/api/collaborations', require('./routes/collaboration'));
 app.use('/api/owner', require('./routes/owner'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notification'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
