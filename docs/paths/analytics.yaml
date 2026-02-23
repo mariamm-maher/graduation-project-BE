@@ -1,0 +1,113 @@
+paths:
+  /api/analytics:
+    get:
+      tags:
+        - Analytics
+      summary: Get dashboard overview
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [owner, influencer]
+        - name: dateRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, monthly, all]
+            default: 30d
+      responses:
+        '200':
+          description: Dashboard stats
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '400':
+          description: Invalid parameters
+
+  /api/analytics/campaigns:
+    get:
+      tags:
+        - Analytics
+      summary: Campaign performance
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dateRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, monthly, all]
+      responses:
+        '200':
+          description: Campaign analytics
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/analytics/earnings:
+    get:
+      tags:
+        - Analytics
+      summary: Earnings overview (influencer)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [monthly, yearly, all]
+            default: monthly
+      responses:
+        '200':
+          description: Earnings data
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/analytics/collaborations:
+    get:
+      tags:
+        - Analytics
+      summary: Collaboration analytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: dateRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, monthly, all]
+      responses:
+        '200':
+          description: Collaboration analytics
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/analytics/roi:
+    get:
+      tags:
+        - Analytics
+      summary: ROI analysis (owner)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: dateRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, monthly, all]
+      responses:
+        '200':
+          description: ROI data
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'

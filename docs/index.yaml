@@ -36,6 +36,8 @@ tags:
     description: User Notifications Management
   - name: Upload
     description: File Upload and Management
+  - name: Analytics
+    description: Platform Analytics and Reports
 
 components:
   # Security schemes
@@ -203,3 +205,20 @@ paths:
     $ref: './paths/upload.yaml#/paths/~1api~1upload~1document'
   /api/upload/{fileId}:
     $ref: './paths/upload.yaml#/paths/~1api~1upload~1{fileId}'
+
+  # ==================== ANALYTICS ENDPOINTS ====================
+
+  /api/analytics:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics'
+
+  /api/analytics/campaigns:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1campaigns'
+
+  /api/analytics/earnings:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1earnings'
+
+  /api/analytics/collaborations:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1collaborations'
+
+  /api/analytics/roi:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1roi'
