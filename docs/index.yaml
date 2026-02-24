@@ -38,6 +38,8 @@ tags:
     description: File Upload and Management
   - name: Analytics
     description: Platform Analytics and Reports
+  - name: Profile
+    description: User Profile Management (Owner & Influencer)
 
 components:
   # Security schemes
@@ -222,3 +224,17 @@ paths:
 
   /api/analytics/roi:
     $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1roi'
+    
+  # ==================== PROFILE ENDPOINTS ====================
+
+  /api/profile/owner:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1owner'
+  
+  /api/profile/influencer:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1influencer'
+  
+  /api/profile/owner/completion:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1owner~1completion'
+  
+  /api/profile/influencer/completion:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1influencer~1completion'
