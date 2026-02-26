@@ -26,7 +26,7 @@ const CollaborationRequest = sequelize.define('CollaborationRequest', {
     onDelete: 'CASCADE'
   },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'rejected', 'cancelled'),
+    type: DataTypes.ENUM('pending', 'negotiated', 'accepted', 'rejected', 'cancelled'),
     defaultValue: 'pending',
     allowNull: false
   },

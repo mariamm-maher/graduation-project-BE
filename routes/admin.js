@@ -19,7 +19,15 @@ const {
   updateCollaborationStatus,
   deleteCampaign,
   getLogs,
-  getRecentActivity
+  getRecentActivity,
+  deleteServiceListing,
+  getServiceListings,
+  updateServiceListingStatus,
+  getServiceRequests,
+  updateServiceRequestStatus,
+  deleteServiceRequest
+
+
 } = require('../controllers/adminController');
 
 // All admin routes require authentication and ADMIN role
@@ -121,6 +129,38 @@ router.get('/logs', getLogs);
 // @desc    Get recent admin activity
 // @access  Private (ADMIN only)
 router.get('/recent-activity', getRecentActivity);
+
+// @route   DELETE /api/admin/service-listings/:id
+// @desc    Delete a service listing
+// @access  Private (ADMIN only)
+router.delete('/service-listings/:id', deleteServiceListing);
+
+// @route   GET /api/admin/service-listings
+// @desc    Get all service listings with filters
+// @access  Private (ADMIN only)
+router.get('/service-listings', getServiceListings);
+
+// @route   PATCH /api/admin/service-listings/:id/status
+// @desc    Update service listing status
+// @access  Private (ADMIN only)
+router.patch('/service-listings/:id/status', updateServiceListingStatus);
+
+// @route   GET /api/admin/service-requests
+// @desc    Get all service requests with filters
+// @access  Private (ADMIN only)
+router.get('/service-requests', getServiceRequests);
+
+
+// @route   PATCH /api/admin/service-requests/:id/status
+// @desc    Update service request status
+// @access  Private (ADMIN only)
+router.patch('/service-requests/:id/status', updateServiceRequestStatus);
+
+// @route   DELETE /api/admin/service-requests/:id
+// @desc    Delete a service request
+// @access  Private (ADMIN only)
+router.delete('/service-requests/:id', deleteServiceRequest);
+
 
 
 

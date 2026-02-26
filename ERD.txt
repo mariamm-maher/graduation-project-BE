@@ -267,7 +267,6 @@ Proposal {
     timestamp createdAt
     timestamp updatedAt
 }
-
 InfluencerProfile {
     int id PK
     int userId FK "unique"

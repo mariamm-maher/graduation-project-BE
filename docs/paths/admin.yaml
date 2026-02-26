@@ -52,202 +52,208 @@ paths:
           description: Unauthorized
         '403':
           description: Access denied
-    /api/admin/collaboration-requests:
-      get:
-        tags:
-          - Admin
-        summary: Get All Collaboration Requests
-        description: Retrieves a paginated list of collaboration requests with optional status filter.
-        security:
-          - bearerAuth: []
-        parameters:
-          - in: query
-            name: page
-            schema:
-              type: integer
-              default: 1
-            description: Page number
-          - in: query
-            name: limit
-            schema:
-              type: integer
-              default: 10
-            description: Items per page
-          - in: query
-            name: status
-            schema:
-              type: string
-              enum: [pending, accepted, rejected, cancelled]
-            description: Filter by request status
-        responses:
-          '200':
-            description: Collaboration requests retrieved successfully
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    status:
-                      type: string
-                      example: success
-                    data:
-                      type: object
-                      properties:
-                        collaborationRequests:
-                          type: array
-                          items:
-                            type: object
-                        pagination:
+  
+  /api/admin/collaboration-requests:
+    get:
+      tags:
+        - Admin
+      summary: Get All Collaboration Requests
+      description: Retrieves a paginated list of collaboration requests with optional status filter.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, accepted, rejected, cancelled]
+          description: Filter by request status
+      responses:
+        '200':
+          description: Collaboration requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      collaborationRequests:
+                        type: array
+                        items:
                           type: object
-          '401':
-            description: Unauthorized
-          '403':
-            description: Access denied
-    /api/admin/collaboration-requests/{id}/status:
-      patch:
-        tags:
-          - Admin
-        summary: Update Collaboration Request Status
-        description: Update the status of a collaboration request.
-        security:
-          - bearerAuth: []
-        parameters:
-          - in: path
-            name: id
-            required: true
-            schema:
-              type: integer
-        requestBody:
+                      pagination:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  
+  /api/admin/collaboration-requests/{id}/status:
+    patch:
+      tags:
+        - Admin
+      summary: Update Collaboration Request Status
+      description: Update the status of a collaboration request.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
           required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, accepted, rejected, cancelled]
+      responses:
+        '200':
+          description: Collaboration request status updated
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  
+  /api/admin/collaborations/{id}:
+    get:
+      tags:
+        - Admin
+      summary: Get Collaboration by ID
+      description: Retrieve a single collaboration by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Optional status filter
+      responses:
+        '200':
+          description: Collaboration retrieved successfully
           content:
             application/json:
               schema:
                 type: object
-                required: [status]
                 properties:
                   status:
                     type: string
-                    enum: [pending, accepted, rejected, cancelled]
-        responses:
-          '200':
-            description: Collaboration request status updated
-          '400':
-            description: Bad request
-          '401':
-            description: Unauthorized
-          '403':
-            description: Access denied
-    /api/admin/collaborations/{id}:
-      get:
-        tags:
-          - Admin
-        summary: Get Collaboration by ID
-        description: Retrieve a single collaboration by its ID.
-        security:
-          - bearerAuth: []
-        parameters:
-          - in: path
-            name: id
-            required: true
-            schema:
-              type: integer
-          - in: query
-            name: status
-            schema:
-              type: string
-            description: Optional status filter
-        responses:
-          '200':
-            description: Collaboration retrieved successfully
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    status:
-                      type: string
-                      example: success
-                    data:
-                      type: object
-                      properties:
-                        collaborations:
-                          type: array
-                          items:
-                            type: object
-                        pagination:
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      collaborations:
+                        type: array
+                        items:
                           type: object
-          '401':
-            description: Unauthorized
-          '403':
-            description: Access denied
-    /api/admin/collaborations/{id}/status:
-      patch:
-        tags:
-          - Admin
-        summary: Update Collaboration Status
-        description: Update the status of an existing collaboration.
-        security:
-          - bearerAuth: []
-        parameters:
-          - in: path
-            name: id
-            required: true
-            schema:
-              type: integer
-        requestBody:
+                      pagination:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  
+  /api/admin/collaborations/{id}/status:
+    patch:
+      tags:
+        - Admin
+      summary: Update Collaboration Status
+      description: Update the status of an existing collaboration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
           required: true
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    enum: [pending, active, completed, cancelled]
-        responses:
-          '200':
-            description: Collaboration status updated successfully
-          '400':
-            description: Bad request
-          '401':
-            description: Unauthorized
-          '403':
-            description: Access denied
-    /api/admin/users/{id}/status:
-      patch:
-        tags:
-          - Admin
-        summary: Update User Status
-        description: Update a user's account status (ACTIVE, BLOCKED, SUSPENDED, INCOMPLETE).
-        security:
-          - bearerAuth: []
-        parameters:
-          - in: path
-            name: id
-            required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
             schema:
-              type: integer
-        requestBody:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, active, completed, cancelled]
+      responses:
+        '200':
+          description: Collaboration status updated successfully
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  
+  /api/admin/users/{id}/status:
+    patch:
+      tags:
+        - Admin
+      summary: Update User Status
+      description: Update a user's account status (ACTIVE, BLOCKED, SUSPENDED, INCOMPLETE).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
           required: true
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    enum: [ACTIVE, BLOCKED, SUSPENDED, INCOMPLETE]
-        responses:
-          '200':
-            description: User status updated successfully
-          '400':
-            description: Bad request
-          '401':
-            description: Unauthorized
-          '403':
-            description: Access denied
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, BLOCKED, SUSPENDED, INCOMPLETE]
+      responses:
+        '200':
+          description: User status updated successfully
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+  
   /api/admin/users:
     get:
       tags:
@@ -313,6 +319,81 @@ paths:
           description: Unauthorized
         '403':
           description: Access denied
+
+  /api/admin/users/{id}:
+    get:
+      tags:
+        - Admin
+      summary: Get User by ID
+      description: Retrieves a specific user by ID with their profile information.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: User not found
+
+  /api/admin/users/{id}/role:
+    patch:
+      tags:
+        - Admin
+      summary: Update User Role
+      description: Update a user's role (OWNER, INFLUENCER, ADMIN).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [OWNER, INFLUENCER, ADMIN]
+                  description: New role for the user
+      responses:
+        '200':
+          description: User role updated successfully
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: User not found
+
   /api/admin/sessions:
     get:
       tags:
@@ -413,6 +494,93 @@ paths:
           description: Unauthorized
         '403':
           description: Access denied
+  
+  /api/admin/chatrooms:
+    get:
+      tags:
+        - Admin
+      summary: Get All Chatrooms
+      description: Retrieves a paginated list of all chatrooms with their participants.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+      responses:
+        '200':
+          description: Chatrooms retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      chatrooms:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+
+  /api/admin/chatrooms/{id}/messages:
+    get:
+      tags:
+        - Admin
+      summary: Get Chatroom Messages
+      description: Retrieves all messages from a specific chatroom by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Chatroom ID
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Chatroom not found
+  
   /api/admin/campaigns:
     get:
       tags:
@@ -587,62 +755,3 @@ paths:
           description: Unauthorized
         '403':
           description: Access denied
-  /api/admin/users/{id}:
-    get:
-      summary: Get user by id
-      responses:
-        '200':
-          description: OK
-
-
-  /api/admin/users/{id}/role:
-    patch:
-      summary: Update user role
-      responses:
-        '200':
-          description: Role updated
-  /api/admin/users/{id}/status:
-    patch:
-      summary: Update user status
-      responses:
-        '200':
-          description: Status updated
-  /api/admin/collaborations/{id}:
-    get:
-      summary: Get collaboration by id
-      responses:
-        '200':
-          description: OK
-  /api/admin/collaborations/{id}/status:
-    patch:
-      summary: Update collaboration status
-      responses:
-        '200':
-          description: Status updated
-  /api/admin/chatrooms:
-    get:
-      summary: get chatrooms
-      responses:
-        '200':
-          description: OK
-
-  /api/admin/chatrooms/{id}/messages:
-    get:
-      summary: get chatrooms by id 
-      responses:
-        '200':
-          description: OK
-
-  /api/admin/collaboration-requests:
-    get:
-        summary: get collaboration request
-        responses:
-          '200':
-            description: OK
-  /api/admin/collaboration-requests/{id}/status:
-    patch:
-        summary: updated collaboration request
-        responses:
-          '200':
-            description: OK
-

@@ -21,7 +21,7 @@ const ServiceListing = require('./ServiceListing');
 const ServiceRequest = require('./ServiceRequest');
 const Offer = require('./Offer');
 const Proposal = require('./Proposal');
-const SocialMediaAccount = require('./SocialMediaAccount');
+//const SocialMediaAccount = require('./SocialMediaAccount');
 // Define relationships
 
 // User and Role - Many-to-Many
