@@ -32,12 +32,14 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
 app.use('/api/collaborations', require('./routes/collaboration'));
 app.use('/api/owner', require('./routes/owner'));
+app.use('/api/service-listings', require('./routes/serviceListings'));
+app.use('/api/analytics', require('./routes/analytics')); 
+app.use('/api/offers', require('./routes/offers'));
+
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/service-listings', require('./routes/serviceListings'));
-app.use('/api', require('./routes/offers'));
 
 // Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

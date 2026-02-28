@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth'); // No authorize, as it's for any authenticated user
+const { authenticate } = require('../middleware/auth'); 
 const {
   getNotifications,
   getUnreadCount,
