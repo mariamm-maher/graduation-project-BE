@@ -39,11 +39,12 @@ const Offer = sequelize.define('Offer', {
     allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'rejected'),
+    // State machine: pending → negotiated → accepted | rejected | expired | withdrawn
+    type: DataTypes.ENUM('pending', 'negotiated', 'accepted', 'rejected', 'expired', 'withdrawn'),
     allowNull: false,
     defaultValue: 'pending',
     validate: {
-      isIn: [['pending', 'accepted', 'rejected']]
+      isIn: [['pending', 'negotiated', 'accepted', 'rejected', 'expired', 'withdrawn']]
     }
   }
 }, {
