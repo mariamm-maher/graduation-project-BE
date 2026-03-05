@@ -315,42 +315,42 @@ exports.rejectOffer = async (req, res, next) =>
 // // @desc    Counter-offer (influencer) → negotiated
 // // @route   POST /api/offers/:id/counter
 // // @access  Private (INFLUENCER)
-// exports.counterOffer = async (req, res, next) => {
-//   try {
-//     const { id } = req.params;
-//     const userId = req.user.id;
-//     const { offerPrice, message } = req.body;
+exports.counterOffer = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { offerPrice, message } = req.body;
 
-//     if (offerPrice == null) {
-//       return next(new AppError('offerPrice is required for counter-offer', 400));
-//     }
+    if (offerPrice == null) {
+      return next(new AppError('offerPrice is required for counter-offer', 400));
+    }
 
-//     const offer = await loadOfferWithRelations(id);
-//     if (!offer) {
-//       return next(new AppError('Offer not found', 404));
-//     }
+    const offer = await loadOfferWithRelations(id);
+    if (!offer) {
+      return next(new AppError('Offer not found', 404));
+    }
 
-//     const isInfluencer = offer.serviceListing && offer.serviceListing.influencerId === userId;
-//     if (!isInfluencer) {
-//       return next(new AppError('Only the influencer can counter this offer', 403));
-//     }
+    const isInfluencer = offer.serviceListing && offer.serviceListing.influencerId === userId;
+    if (!isInfluencer) {
+      return next(new AppError('Only the influencer can counter this offer', 403));
+    }
 
-//     if (!['pending', 'negotiated'].includes(offer.status)) {
-//       return next(new AppError('Only pending or negotiated offers can be countered', 400));
-//     }
+    if (!['pending', 'negotiated'].includes(offer.status)) {
+      return next(new AppError('Only pending or negotiated offers can be countered', 400));
+    }
 
-//     ensureTransition(offer.status, 'negotiated');
+    ensureTransition(offer.status, 'negotiated');
 
-//     await offer.update({
-//       status: 'negotiated',
-//       offerPrice,
-//       message: message !== undefined ? message : offer.message
-//     });
+    await offer.update({
+      status: 'negotiated',
+      offerPrice,
+      message: message !== undefined ? message : offer.message
+    });
 
-//     const updated = await loadOfferWithRelations(id);
-//     sendSuccess(res, 200, 'Counter-offer sent successfully', { offer: updated });
-//   } catch (error) {
-//     return next(error);
-//   }
-// };
+    const updated = await loadOfferWithRelations(id);
+    sendSuccess(res, 200, 'Counter-offer sent successfully', { offer: updated });
+  } catch (error) {
+    return next(error);
+  }
+};
 
