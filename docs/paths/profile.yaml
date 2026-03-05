@@ -1,0 +1,298 @@
+paths:
+  /api/profile/owner:
+    get:
+      tags:
+        - Profile
+      summary: Get authenticated owner profile
+      description: Returns the combined user and owner profile data for the currently authenticated owner.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Owner profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  status: { type: integer, example: 200 }
+                  message: { type: string, example: "Owner profile retrieved" }
+                  data:
+                    type: object
+                    properties:
+                      profile:
+                        type: object
+                        properties:
+                          id: { type: integer, example: 3 }
+                          userId: { type: integer, example: 8 }
+                          firstName: { type: string, example: "Ahmed" }
+                          lastName: { type: string, example: "Mohamed" }
+                          email: { type: string, format: email, example: "owner@gmail.com" }
+                          status: { type: string, example: "INCOMPLETE" }
+                          businessName: { type: string, example: "Ahmed Tech Solutions" }
+                          businessType: { type: string, example: "Software & AI" }
+                          industry: { type: string, example: "Technology & Marketing" }
+                          location: { type: string, example: "Cairo, Egypt" }
+                          description: { type: string }
+                          image: { type: string, nullable: true }
+                          website: { type: string, example: "https://ahmedtech.com" }
+                          phoneNumber: { type: string, example: "01234567890" }
+                          platformsUsed: { type: array, items: { type: string } }
+                          primaryMarketingGoal: { type: string, example: "brand_awareness" }
+                          targetAudience: { type: object }
+                          completionPercentage: { type: integer, example: 45 }
+                          isOnboarded: { type: boolean, example: false }
+                          isCompleted: { type: boolean, example: false }
+                          createdAt: { type: string, format: date-time }
+                          updatedAt: { type: string, format: date-time }
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          description: User is not an owner
+        '404':
+          description: Profile or user not found
+
+    post:
+      tags:
+        - Profile
+      summary: Create or update owner profile (onboarding)
+      description: Creates a new owner profile if none exists, or updates the existing one.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                businessName: { type: string, example: "Ahmed Tech Solutions" }
+                businessType: { type: string, example: "Software & AI" }
+                industry: { type: string, example: "Technology & Marketing" }
+                location: { type: string, example: "Cairo, Egypt" }
+                description: { type: string }
+                website: { type: string, example: "https://ahmedtech.com" }
+                phoneNumber: { type: string, example: "01234567890" }
+                platformsUsed: { type: array, items: { type: string } }
+                primaryMarketingGoal: { type: string, example: "brand_awareness" }
+                targetAudience: { type: object }
+                firstName: { type: string, example: "Ahmed" }
+                lastName: { type: string, example: "Mohamed" }
+                email: { type: string, format: email }
+      responses:
+        '201':
+          description: Profile created
+        '200':
+          description: Profile updated (already existed)
+        '403':
+          description: Not an owner
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - Profile
+      summary: Update owner profile
+      description: Updates any fields in the owner profile or basic user info.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                email: { type: string, format: email }
+                businessName: { type: string }
+                businessType: { type: string }
+                industry: { type: string }
+                location: { type: string }
+                description: { type: string }
+                website: { type: string }
+                phoneNumber: { type: string }
+                platformsUsed: { type: array, items: { type: string } }
+                primaryMarketingGoal: { type: string }
+                targetAudience: { type: object }
+      responses:
+        '200':
+          description: Profile updated
+        '404':
+          description: Profile not found
+        '403':
+          description: Not an owner
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+    delete:
+      tags:
+        - Profile
+      summary: Delete owner profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile deleted
+        '404':
+          description: Profile not found
+        '403':
+          description: Not an owner
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/profile/owner/completion:
+    get:
+      tags:
+        - Profile
+      summary: Get owner profile completion status
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Completion status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  status: { type: integer, example: 200 }
+                  message: { type: string, example: "Owner profile completion status" }
+                  data:
+                    type: object
+                    properties:
+                      completed: { type: boolean, example: false }
+                      percentage: { type: integer, example: 45 }
+                      filledFields: { type: integer, example: 9 }
+                      totalFields: { type: integer, example: 20 }
+                      missingFields: { type: array, items: { type: string }, example: ["bio", "instagram"] }
+        '403':
+          description: Not an owner
+
+  /api/profile/influencer:
+    get:
+      tags:
+        - Profile
+      summary: Get authenticated influencer profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Influencer profile retrieved
+        '403':
+          description: Not an influencer
+        '404':
+          description: Profile or user not found
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - Profile
+      summary: Create or update influencer profile (onboarding)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio: { type: string }
+                image: { type: string }
+                location: { type: string }
+                socialMediaLinks: { type: object }
+                primaryPlatform: { type: string, example: "instagram" }
+                followersCount: { type: integer, example: 25000 }
+                engagementRate: { type: number, example: 4.5 }
+                categories: { type: array, items: { type: string } }
+                contentTypes: { type: array, items: { type: string } }
+                collaborationTypes: { type: array, items: { type: string } }
+                audienceAgeRange: { type: string, example: "18-34" }
+                audienceGender: { type: string, example: "female" }
+                audienceLocation: { type: string, example: "Egypt" }
+                interests: { type: array, items: { type: string } }
+                firstName: { type: string }
+                lastName: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '201':
+          description: Profile created
+        '200':
+          description: Profile updated (already existed)
+        '403':
+          description: Not an influencer
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - Profile
+      summary: Update influencer profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio: { type: string }
+                image: { type: string }
+                location: { type: string }
+                socialMediaLinks: { type: object }
+                primaryPlatform: { type: string }
+                followersCount: { type: integer }
+                engagementRate: { type: number }
+                categories: { type: array, items: { type: string } }
+                contentTypes: { type: array, items: { type: string } }
+                collaborationTypes: { type: array, items: { type: string } }
+                audienceAgeRange: { type: string }
+                audienceGender: { type: string }
+                audienceLocation: { type: string }
+                interests: { type: array, items: { type: string } }
+                firstName: { type: string }
+                lastName: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Profile updated
+        '404':
+          description: Profile not found
+        '403':
+          description: Not an influencer
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+    delete:
+      tags:
+        - Profile
+      summary: Delete influencer profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile deleted
+        '404':
+          description: Profile not found
+        '403':
+          description: Not an influencer
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/profile/influencer/completion:
+    get:
+      tags:
+        - Profile
+      summary: Get influencer profile completion status
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Completion status
+        '403':
+          description: Not an influencer

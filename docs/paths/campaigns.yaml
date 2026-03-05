@@ -4,12 +4,41 @@ paths:
       tags:
         - Campaigns
       summary: Get All Campaigns
-      description: Retrieves a list of all campaigns for the authenticated user.
+      description: Retrieves a list of all campaigns for the authenticated user with pagination and filtering.
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+        - in: query
+          name: lifecycleStage
+          schema:
+            type: string
+            enum: [draft, ai_generated, saved, completed, cancelled]
+          description: Filter by lifecycle stage
+        - in: query
+          name: goalType
+          schema:
+            type: string
+          description: Filter by goal type
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search campaigns by name
       responses:
         '200':
-          description: List of campaigns
+          description: List of campaigns with pagination
           content:
             application/json:
               schema:
@@ -18,16 +47,32 @@ paths:
                   status:
                     type: string
                     example: success
+                  message:
+                    type: string
+                    example: Campaigns retrieved successfully
                   data:
-                    type: array
-                    items:
-                      $ref: '../components/schemas.yaml#/schemas/Campaign'
-  /api/campaigns/create:
+                    type: object
+                    properties:
+                      campaigns:
+                        type: array
+                        items:
+                          $ref: '../components/schemas.yaml#/schemas/Campaign'
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          totalPages:
+                            type: integer
     post:
       tags:
         - Campaigns
-      summary: Create Campaign & Generate AI Preview
-      description: Creates a new campaign draft and triggers AI generation for campaign details.
+      summary: Create Manual Campaign
+      description: Creates a new manual campaign with lifecycleStage set to 'draft'.
       security:
         - bearerAuth: []
       requestBody:
@@ -46,7 +91,8 @@ paths:
                   example: A marketing campaign for our new summer clothing line focusing on Gen Z.
                 goalType:
                   type: string
-                  example: Brand Awareness
+                  enum: [awareness, consideration, conversion, lead_generation, retention]
+                  example: awareness
                 totalBudget:
                   type: number
                   example: 5000
@@ -55,6 +101,7 @@ paths:
                   example: USD
                 budgetFlexibility:
                   type: string
+                  enum: [strict, flexible]
                   example: flexible
                 startDate:
                   type: string
@@ -66,7 +113,7 @@ paths:
                   example: '2023-08-31'
       responses:
         '201':
-          description: Campaign created and AI preview generated
+          description: Manual campaign created successfully
           content:
             application/json:
               schema:
@@ -75,22 +122,599 @@ paths:
                   status:
                     type: string
                     example: success
+                  message:
+                    type: string
+                    example: Manual campaign created successfully.
                   data:
                     type: object
                     properties:
                       campaign:
-                        $ref: '../components/schemas.yaml#/schemas/Campaign'
-                      aiPreview:
                         type: object
-                        description: AI generated suggestions
+                        properties:
+                          id:
+                            type: integer
+                          campaignName:
+                            type: string
+                          lifecycleStage:
+                            type: string
+                            example: draft
+                          userId:
+                            type: integer
+                          createdAt:
+                            type: string
+                            format: date-time
         '400':
           description: Validation error
-  /api/campaigns/{id}/lifecycle:
-    patch:
+
+  /api/campaigns/ai/generate:
+    post:
       tags:
         - Campaigns
-      summary: Change Campaign Lifecycle Stage
-      description: Updates the lifecycle stage of a campaign (OWNER only).
+      summary: Generate AI Campaign Preview
+      description: Generates AI campaign preview without saving to database. Returns AI-generated suggestions for review.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignName, userDescription, goalType, totalBudget, currency, startDate, endDate]
+              properties:
+                campaignName:
+                  type: string
+                  example: Summer Fashion Launch
+                userDescription:
+                  type: string
+                  example: A marketing campaign for our new summer clothing line focusing on Gen Z.
+                goalType:
+                  type: string
+                  enum: [awareness, consideration, conversion, lead_generation, retention]
+                  example: awareness
+                totalBudget:
+                  type: number
+                  example: 5000
+                currency:
+                  type: string
+                  example: USD
+                budgetFlexibility:
+                  type: string
+                  enum: [strict, flexible]
+                  example: flexible
+                startDate:
+                  type: string
+                  format: date
+                  example: '2023-06-01'
+                endDate:
+                  type: string
+                  format: date
+                  example: '2023-08-31'
+      responses:
+        '201':
+          description: AI campaign preview generated successfully (not saved to DB)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: AI campaign draft generated successfully.
+                  data:
+                    type: object
+                    properties:
+                      aiPreview:
+                        type: object
+                        description: AI generated campaign suggestions
+        '400':
+          description: Validation error
+
+  /api/campaigns/draft:
+    post:
+      tags:
+        - Campaigns
+      summary: Save Campaign as Draft
+      description: Saves AI preview or manual campaign as draft with lifecycleStage set to 'draft' and isPublished set to false. Accepts full campaign with all relations.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignName, userDescription, goalType, totalBudget, currency, startDate, endDate]
+              properties:
+                campaignName:
+                  type: string
+                  example: Summer Fashion Launch
+                userDescription:
+                  type: string
+                  example: A marketing campaign for our new summer clothing line focusing on Gen Z.
+                goalType:
+                  type: string
+                  enum: [awareness, consideration, conversion, lead_generation, retention]
+                  example: awareness
+                totalBudget:
+                  type: number
+                  example: 5000
+                currency:
+                  type: string
+                  example: USD
+                budgetFlexibility:
+                  type: string
+                  enum: [strict, flexible]
+                  example: flexible
+                startDate:
+                  type: string
+                  format: date
+                  example: '2023-06-01'
+                endDate:
+                  type: string
+                  format: date
+                  example: '2023-08-31'
+                targetAudience:
+                  type: object
+                  properties:
+                    ageRange:
+                      type: string
+                      example: 18-24
+                    gender:
+                      type: string
+                      enum: [all, male, female, custom]
+                      example: all
+                    interests:
+                      type: array
+                      items:
+                        type: string
+                      example: [fashion, lifestyle, sustainability]
+                    platformsUsed:
+                      type: array
+                      items:
+                        type: string
+                      example: [instagram, tiktok, youtube]
+                kpis:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      metric:
+                        type: string
+                        enum: [impressions, reach, engagement_rate, conversions, ROAS, CPA, CTR]
+                        example: impressions
+                      targetValue:
+                        type: string
+                        example: 100000
+                contentCalendar:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day:
+                        type: integer
+                        example: 1
+                      date:
+                        type: string
+                        format: date
+                        example: '2023-06-01'
+                      platform:
+                        type: string
+                        example: instagram
+                      contentType:
+                        type: string
+                        enum: [video, carousel, story, reel, post, article]
+                        example: reel
+                      caption:
+                        type: string
+                        example: Summer vibes are here!
+                      mediaUrl:
+                        type: string
+                        example: https://example.com/media.jpg
+                      task:
+                        type: string
+                        example: Create and post summer reel
+                      status:
+                        type: string
+                        enum: [scheduled, posted, failed]
+                        example: scheduled
+                aiVersion:
+                  type: object
+                  properties:
+                    versionNumber:
+                      type: integer
+                      example: 1
+                    strategy:
+                      type: object
+                      description: AI generated strategy
+                    execution:
+                      type: object
+                      description: AI generated execution plan
+                    estimations:
+                      type: object
+                      description: AI generated estimations
+                    isActive:
+                      type: boolean
+                      example: true
+      responses:
+        '201':
+          description: Campaign draft saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Campaign draft saved successfully.
+                  data:
+                    type: object
+                    properties:
+                      campaign:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          campaignName:
+                            type: string
+                          lifecycleStage:
+                            type: string
+                            example: draft
+                          isPublished:
+                            type: boolean
+                            example: false
+                          userId:
+                            type: integer
+                          createdAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: Validation error
+
+  /api/campaigns/save-and-publish:
+    post:
+      tags:
+        - Campaigns
+      summary: Save and Publish Campaign
+      description: Creates and publishes campaign in one step. Sets lifecycleStage to 'saved' and isPublished to true. Logs CREATE_CAMPAIGN action. Accepts full campaign with all relations.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignName, userDescription, goalType, totalBudget, currency, startDate, endDate]
+              properties:
+                campaignName:
+                  type: string
+                  example: Summer Fashion Launch
+                userDescription:
+                  type: string
+                  example: A marketing campaign for our new summer clothing line focusing on Gen Z.
+                goalType:
+                  type: string
+                  enum: [awareness, consideration, conversion, lead_generation, retention]
+                  example: awareness
+                totalBudget:
+                  type: number
+                  example: 5000
+                currency:
+                  type: string
+                  example: USD
+                budgetFlexibility:
+                  type: string
+                  enum: [strict, flexible]
+                  example: flexible
+                startDate:
+                  type: string
+                  format: date
+                  example: '2023-06-01'
+                endDate:
+                  type: string
+                  format: date
+                  example: '2023-08-31'
+                targetAudience:
+                  type: object
+                  properties:
+                    ageRange:
+                      type: string
+                      example: 18-24
+                    gender:
+                      type: string
+                      enum: [all, male, female, custom]
+                      example: all
+                    interests:
+                      type: array
+                      items:
+                        type: string
+                      example: [fashion, lifestyle, sustainability]
+                    platformsUsed:
+                      type: array
+                      items:
+                        type: string
+                      example: [instagram, tiktok, youtube]
+                kpis:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      metric:
+                        type: string
+                        enum: [impressions, reach, engagement_rate, conversions, ROAS, CPA, CTR]
+                        example: impressions
+                      targetValue:
+                        type: string
+                        example: 100000
+                contentCalendar:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day:
+                        type: integer
+                        example: 1
+                      date:
+                        type: string
+                        format: date
+                        example: '2023-06-01'
+                      platform:
+                        type: string
+                        example: instagram
+                      contentType:
+                        type: string
+                        enum: [video, carousel, story, reel, post, article]
+                        example: reel
+                      caption:
+                        type: string
+                        example: Summer vibes are here!
+                      mediaUrl:
+                        type: string
+                        example: https://example.com/media.jpg
+                      task:
+                        type: string
+                        example: Create and post summer reel
+                      status:
+                        type: string
+                        enum: [scheduled, posted, failed]
+                        example: scheduled
+                aiVersion:
+                  type: object
+                  properties:
+                    versionNumber:
+                      type: integer
+                      example: 1
+                    strategy:
+                      type: object
+                      description: AI generated strategy
+                    execution:
+                      type: object
+                      description: AI generated execution plan
+                    estimations:
+                      type: object
+                      description: AI generated estimations
+                    isActive:
+                      type: boolean
+                      example: true
+      responses:
+        '201':
+          description: Campaign saved and published successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Campaign saved and published successfully.
+                  data:
+                    type: object
+                    properties:
+                      campaign:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          campaignName:
+                            type: string
+                          lifecycleStage:
+                            type: string
+                            example: saved
+                          isPublished:
+                            type: boolean
+                            example: true
+                          userId:
+                            type: integer
+                          createdAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: Validation error
+
+  /api/campaigns/save:
+    post:
+      tags:
+        - Campaigns
+      summary: Save Campaign
+      description: Creates a new campaign with 'saved' lifecycleStage and configurable publish status. Accepts full campaign with all relations. Logs the CREATE_CAMPAIGN action.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignName, userDescription, goalType, totalBudget, currency, startDate, endDate]
+              properties:
+                campaignName:
+                  type: string
+                  example: Summer Fashion Launch
+                userDescription:
+                  type: string
+                  example: A marketing campaign for our new summer clothing line focusing on Gen Z.
+                goalType:
+                  type: string
+                  enum: [awareness, consideration, conversion, lead_generation, retention]
+                  example: awareness
+                totalBudget:
+                  type: number
+                  example: 5000
+                currency:
+                  type: string
+                  example: USD
+                budgetFlexibility:
+                  type: string
+                  enum: [strict, flexible]
+                  example: flexible
+                startDate:
+                  type: string
+                  format: date
+                  example: '2023-06-01'
+                endDate:
+                  type: string
+                  format: date
+                  example: '2023-08-31'
+                isPublished:
+                  type: boolean
+                  example: true
+                  description: Set to true to publish, false to save as draft (default true)
+                targetAudience:
+                  type: object
+                  properties:
+                    ageRange:
+                      type: string
+                      example: 18-24
+                    gender:
+                      type: string
+                      enum: [all, male, female, custom]
+                      example: all
+                    interests:
+                      type: array
+                      items:
+                        type: string
+                      example: [fashion, lifestyle]
+                    platformsUsed:
+                      type: array
+                      items:
+                        type: string
+                      example: [instagram, tiktok]
+                kpis:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      metric:
+                        type: string
+                        enum: [impressions, reach, engagement_rate, conversions, ROAS, CPA, CTR]
+                        example: engagement_rate
+                      targetValue:
+                        type: string
+                        example: 5%
+                contentCalendar:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day:
+                        type: integer
+                        example: 1
+                      date:
+                        type: string
+                        format: date
+                        example: '2023-06-01'
+                      platform:
+                        type: string
+                        example: instagram
+                      contentType:
+                        type: string
+                        enum: [video, carousel, story, reel, post, article]
+                        example: reel
+                      caption:
+                        type: string
+                        example: Summer vibes!
+                      mediaUrl:
+                        type: string
+                        example: https://example.com/media.jpg
+                      task:
+                        type: string
+                        example: Create reel
+                      status:
+                        type: string
+                        enum: [scheduled, posted, failed]
+                        example: scheduled
+                aiVersion:
+                  type: object
+                  properties:
+                    versionNumber:
+                      type: integer
+                      example: 1
+                    strategy:
+                      type: object
+                      description: AI generated strategy
+                    execution:
+                      type: object
+                      description: AI generated execution plan
+                    estimations:
+                      type: object
+                      description: AI generated estimations
+                    isActive:
+                      type: boolean
+                      example: true
+      responses:
+        '201':
+          description: Campaign saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Campaign saved successfully.
+                  data:
+                    type: object
+                    properties:
+                      campaign:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          campaignName:
+                            type: string
+                          lifecycleStage:
+                            type: string
+                            example: saved
+                          isPublished:
+                            type: boolean
+                            example: true
+                          userId:
+                            type: integer
+                          createdAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: Validation error (missing fields, invalid dates or budget)
+
+  /api/campaigns/{id}/complete:
+    post:
+      tags:
+        - Campaigns
+      summary: Complete Campaign
+      description: Marks a 'saved' campaign as 'completed'. Only campaigns in 'saved' state can be completed.
       security:
         - bearerAuth: []
       parameters:
@@ -100,21 +724,9 @@ paths:
           schema:
             type: integer
           description: Campaign ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [lifecycleStage]
-              properties:
-                lifecycleStage:
-                  type: string
-                  enum: [draft, ai_generated, active, completed]
-                  example: active
       responses:
         '200':
-          description: Lifecycle stage updated
+          description: Campaign completed successfully
           content:
             application/json:
               schema:
@@ -123,23 +735,80 @@ paths:
                   status:
                     type: string
                     example: success
+                  message:
+                    type: string
+                    example: Campaign completed successfully.
                   data:
                     type: object
                     properties:
-                      id:
-                        type: integer
-                        example: 1
-                      campaignName:
-                        type: string
-                        example: Summer Sale
-                      lifecycleStage:
-                        type: string
-                        example: active
-                      updatedAt:
-                        type: string
-                        format: date-time
-                        example: '2023-06-01T12:00:00Z'
+                      campaign:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          campaignName:
+                            type: string
+                          lifecycleStage:
+                            type: string
+                            example: completed
+                          updatedAt:
+                            type: string
+                            format: date-time
         '400':
-          description: Invalid lifecycle stage
+          description: Only saved campaigns can be completed
+        '403':
+          description: Not authorized to complete this campaign
+        '404':
+          description: Campaign not found
+
+  /api/campaigns/{id}/cancel:
+    post:
+      tags:
+        - Campaigns
+      summary: Cancel Campaign
+      description: Cancels a campaign. Cannot cancel campaigns that are already 'completed'.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Campaign ID
+      responses:
+        '200':
+          description: Campaign cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Campaign cancelled successfully.
+                  data:
+                    type: object
+                    properties:
+                      campaign:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          campaignName:
+                            type: string
+                          lifecycleStage:
+                            type: string
+                            example: cancelled
+                          updatedAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: Completed campaigns cannot be cancelled
+        '403':
+          description: Not authorized to cancel this campaign
         '404':
           description: Campaign not found

@@ -7,50 +7,61 @@ const Collaboration = sequelize.define('Collaboration', {
     primaryKey: true,
     autoIncrement: true
   },
+  collaborationRequestId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: { model: 'CollaborationRequests', key: 'id' },
+    onDelete: 'RESTRICT'
+  },
   campaignId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Campaigns',
-      key: 'id'
-    }
-  },
-  influencerId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
+    references: { model: 'Campaigns', key: 'id' },
+    onDelete: 'CASCADE'
   },
   ownerId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
+    references: { model: 'Users', key: 'id' },
+    onDelete: 'RESTRICT'
   },
-  contractId: {
+  influencerId: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'CollaborationContracts',
-      key: 'id'
-    },
-    onDelete: 'SET NULL'
-  },
-  budget: {
-    type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    validate: {
-      min: 0
-    }
+    references: { model: 'Users', key: 'id' },
+    onDelete: 'RESTRICT'
   },
+
   status: {
-    type: DataTypes.ENUM('pending', 'active', 'completed', 'cancelled'),
-    defaultValue: 'pending'
+    type: DataTypes.ENUM(
+      'pending_contract_sign',
+      'live', // Accepted, contract not yet generated
+      'in_progress',      // Contract exists, tasks underway
+      'completed',        // All tasks approved
+      'cancelled',        // Terminated after start        
+    ),
+    // FIX: default was 'PendingContract' which was NOT in the ENUM — caused crash
+    defaultValue: 'pending_contract_sign',
+    allowNull: false
+  },
+
+  startDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  endDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  completedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  cancelledAt: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
+
 }, {
   timestamps: true
 });

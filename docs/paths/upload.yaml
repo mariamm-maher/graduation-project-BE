@@ -1,0 +1,123 @@
+paths:
+  /api/upload/image:
+    post:
+      tags:
+        - Upload
+      summary: Upload a single image
+      description: Uploads a single image file (max 10MB). File must be sent as form-data with key 'image'.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Image uploaded successfully
+        '400':
+          description: Invalid file or no file uploaded
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/upload/images:
+    post:
+      tags:
+        - Upload
+      summary: Upload multiple images
+      description: Uploads up to 10 images (max 10MB each). Files must be sent as form-data with key 'images'.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Images uploaded successfully
+        '400':
+          description: Invalid files or no files uploaded
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/upload/document:
+    post:
+      tags:
+        - Upload
+      summary: Upload a document (PDF or DOCX)
+      description: Uploads a single document file (PDF or DOCX, max 10MB). File must be sent as form-data with key 'document'.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Document uploaded successfully
+        '400':
+          description: Invalid file type or no file uploaded
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/upload/{fileId}:
+    get:
+      tags:
+        - Upload
+      summary: Get file metadata
+      description: Retrieves metadata and URL of an uploaded file (only if owned by the user).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: File metadata retrieved
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+
+    delete:
+      tags:
+        - Upload
+      summary: Delete uploaded file
+      description: Deletes the file and its record (only if owned by the user).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: File deleted successfully
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'

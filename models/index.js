@@ -3,12 +3,16 @@ const User = require('./User');
 const Role = require('./Role');
 const UserRole = require('./UserRole');
 const OwnerProfile = require('./OwnerProfile');
+const Brand = require('./Brand')
 const InfluencerProfile = require('./InfluencerProfile');
 const Campaign = require('./Campaign');
+const KPI = require('./KPI');
+const TargetAudience = require('./TargetAudience');
+const ContentCalendar = require('./ContentCalendar');
+const CampaignAIVersion = require('./CampaignAIVersion');
 const Collaboration = require('./Collaboration');
 const CollaborationRequest = require('./CollaborationRequest');
 const CollaborationContract = require('./CollaborationContract');
-const CollaborationBoard = require('./CollaborationBoard');
 const CollaborationTask = require('./CollaborationTask');
 const ChatRoom = require('./ChatRoom');
 const ChatParticipant = require('./ChatParticipant');
@@ -22,6 +26,8 @@ const ServiceRequest = require('./ServiceRequest');
 const Offer = require('./Offer');
 const Proposal = require('./Proposal');
 //const SocialMediaAccount = require('./SocialMediaAccount');
+const Notification = require('./Notification');
+const UploadedFile = require('./UploadedFile');
 // Define relationships
 
 // User and Role - Many-to-Many
@@ -60,7 +66,10 @@ InfluencerProfile.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user'
 });
-
+Brand.belongsTo(User, {
+  foreignKey: 'ownerId',
+  as: 'owner'
+});
 // User and Campaign - One-to-Many
 User.hasMany(Campaign, {
   foreignKey: 'userId',
@@ -73,131 +82,115 @@ Campaign.belongsTo(User, {
   as: 'user'
 });
 
-// Campaign and Collaboration - One-to-Many
-Campaign.hasMany(Collaboration, {
+// Campaign and KPI - One-to-Many
+Campaign.hasMany(KPI, {
   foreignKey: 'campaignId',
-  as: 'collaborations',
+  as: 'kpis',
   onDelete: 'CASCADE'
 });
 
-Collaboration.belongsTo(Campaign, {
+KPI.belongsTo(Campaign, {
   foreignKey: 'campaignId',
   as: 'campaign'
 });
 
-// User (Influencer) and Collaboration - One-to-Many
-User.hasMany(Collaboration, {
-  foreignKey: 'influencerId',
-  as: 'influencerCollaborations',
+// Campaign and TargetAudience - One-to-One
+Campaign.hasOne(TargetAudience, {
+  foreignKey: 'campaignId',
+  as: 'targetAudience',
   onDelete: 'CASCADE'
 });
 
-Collaboration.belongsTo(User, {
-  foreignKey: 'influencerId',
-  as: 'influencer'
+TargetAudience.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
 });
 
-// User (Owner) and Collaboration - One-to-Many
-User.hasMany(Collaboration, {
-  foreignKey: 'ownerId',
-  as: 'ownerCollaborations',
+// Campaign and ContentCalendar - One-to-Many
+Campaign.hasMany(ContentCalendar, {
+  foreignKey: 'campaignId',
+  as: 'contentCalendar',
   onDelete: 'CASCADE'
 });
 
-Collaboration.belongsTo(User, {
-  foreignKey: 'ownerId',
-  as: 'owner'
+ContentCalendar.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
 });
 
-// Campaign and CollaborationRequest - One-to-Many
+// Campaign and CampaignAIVersion - One-to-Many
+Campaign.hasMany(CampaignAIVersion, {
+  foreignKey: 'campaignId',
+  as: 'aiVersions',
+  onDelete: 'CASCADE'
+});
+
+CampaignAIVersion.belongsTo(Campaign, {
+  foreignKey: 'campaignId',
+  as: 'campaign'
+});
+
 Campaign.hasMany(CollaborationRequest, {
   foreignKey: 'campaignId',
   as: 'collaborationRequests',
   onDelete: 'CASCADE'
 });
+CollaborationRequest.belongsTo(Campaign, { foreignKey: 'campaignId', as: 'campaign' });
 
-CollaborationRequest.belongsTo(Campaign, {
-  foreignKey: 'campaignId',
-  as: 'campaign'
+User.hasMany(CollaborationRequest, {
+  foreignKey: 'ownerId',
+  as: 'sentCollaborationRequests',
+  onDelete: 'CASCADE'
 });
+CollaborationRequest.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
 
-// User (Influencer) and CollaborationRequest - One-to-Many
 User.hasMany(CollaborationRequest, {
   foreignKey: 'influencerId',
-  as: 'collaborationRequests',
+  as: 'receivedCollaborationRequests',
   onDelete: 'CASCADE'
 });
+CollaborationRequest.belongsTo(User, { foreignKey: 'influencerId', as: 'influencer' });
 
-CollaborationRequest.belongsTo(User, {
-  foreignKey: 'influencerId',
-  as: 'influencer'
-});
 
-// CollaborationRequest and CollaborationContract - One-to-Many
-CollaborationRequest.hasMany(CollaborationContract, {
+CollaborationRequest.hasOne(Collaboration, {
   foreignKey: 'collaborationRequestId',
-  as: 'contracts',
-  onDelete: 'CASCADE'
+  as: 'collaboration',
+  onDelete: 'RESTRICT'
 });
-
-CollaborationContract.belongsTo(CollaborationRequest, {
+Collaboration.belongsTo(CollaborationRequest, {
   foreignKey: 'collaborationRequestId',
   as: 'request'
 });
 
-// CollaborationContract and Collaboration - One-to-One
-CollaborationContract.hasOne(Collaboration, {
-  foreignKey: 'contractId',
-  as: 'collaboration',
-  onDelete: 'SET NULL'
-});
+Campaign.hasMany(Collaboration, { foreignKey: 'campaignId', as: 'collaborations', onDelete: 'CASCADE' });
+Collaboration.belongsTo(Campaign, { foreignKey: 'campaignId', as: 'campaign' });
 
-Collaboration.belongsTo(CollaborationContract, {
-  foreignKey: 'contractId',
-  as: 'contract'
-});
+User.hasMany(Collaboration, { foreignKey: 'ownerId', as: 'ownerCollaborations', onDelete: 'CASCADE' });
+Collaboration.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
 
-// Collaboration and CollaborationBoard - One-to-Many
-Collaboration.hasMany(CollaborationBoard, {
+User.hasMany(Collaboration, { foreignKey: 'influencerId', as: 'influencerCollaborations', onDelete: 'CASCADE' });
+Collaboration.belongsTo(User, { foreignKey: 'influencerId', as: 'influencer' });
+
+
+Collaboration.hasOne(CollaborationContract, {
   foreignKey: 'collaborationId',
-  as: 'boards',
+  as: 'contract',
   onDelete: 'CASCADE'
 });
-
-CollaborationBoard.belongsTo(Collaboration, {
+CollaborationContract.belongsTo(Collaboration, {
   foreignKey: 'collaborationId',
   as: 'collaboration'
 });
 
-// CollaborationBoard and CollaborationTask - One-to-Many
-CollaborationBoard.hasMany(CollaborationTask, {
-  foreignKey: 'boardId',
+
+Collaboration.hasMany(CollaborationTask, {
+  foreignKey: 'collaborationId',
   as: 'tasks',
   onDelete: 'CASCADE'
 });
-
-CollaborationTask.belongsTo(CollaborationBoard, {
-  foreignKey: 'boardId',
-  as: 'board'
-});
-
-// User and CollaborationTask - One-to-Many (assigned tasks)
-User.hasMany(CollaborationTask, {
-  foreignKey: 'assignedTo',
-  as: 'assignedTasks',
-  onDelete: 'SET NULL'
-});
-
-CollaborationTask.belongsTo(User, {
-  foreignKey: 'assignedTo',
-  as: 'assignee'
-});
-
-// Collaboration and ChatRoom - One-to-One (optional)
-Collaboration.hasOne(ChatRoom, {
+CollaborationTask.belongsTo(Collaboration, {
   foreignKey: 'collaborationId',
-  as: 'chatRoom',
-  onDelete: 'SET NULL'
+  as: 'collaboration'
 });
 
 ChatRoom.belongsTo(Collaboration, {
@@ -348,20 +341,44 @@ Proposal.belongsTo(User, {
   foreignKey: 'influencerId',
   as: 'influencer'
 });
+User.hasMany(Notification, {
+  foreignKey: 'userId',
+  as: 'notifications',
+  onDelete: 'CASCADE'
+});
 
+Notification.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// User and UploadedFile - One-to-Many
+User.hasMany(UploadedFile, {
+  foreignKey: 'userId',
+  as: 'uploadedFiles',
+  onDelete: 'CASCADE'
+});
+
+UploadedFile.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
 module.exports = {
   sequelize,
   User,
   Role,
   UserRole,
   OwnerProfile,
+  Brand,
   InfluencerProfile,
   Campaign,
+  KPI,
+  TargetAudience,
+  ContentCalendar,
+  CampaignAIVersion,
   Collaboration,
-
   CollaborationRequest,
   CollaborationContract,
-  CollaborationBoard,
   CollaborationTask,
   ChatRoom,
   ChatParticipant,
@@ -372,5 +389,6 @@ module.exports = {
   Offer,
   Proposal
   ,
-  Log
+  Log,
+  UploadedFile,
 };

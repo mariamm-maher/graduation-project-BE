@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const Campaign = require('./Campaign');
 
 const TargetAudience = sequelize.define('TargetAudience', {
   id: {
@@ -36,8 +35,5 @@ const TargetAudience = sequelize.define('TargetAudience', {
 }, {
   timestamps: false
 });
-
-Campaign.hasOne(TargetAudience, { foreignKey: 'campaignId', as: 'targetAudience' });
-TargetAudience.belongsTo(Campaign, { foreignKey: 'campaignId' });
 
 module.exports = TargetAudience;

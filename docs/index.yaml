@@ -32,6 +32,14 @@ tags:
     description: Influencer Collaboration Management
   - name: Admin
     description: Administrative Operations (Admin Only)
+  - name: Notifications          
+    description: User Notifications Management
+  - name: Upload
+    description: File Upload and Management
+  - name: Analytics
+    description: Platform Analytics and Reports
+  - name: Profile
+    description: User Profile Management (Owner & Influencer)
 
 components:
   # Security schemes
@@ -89,11 +97,23 @@ paths:
   /api/campaigns:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns'
   
-  /api/campaigns/create:
-    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1create'
+  /api/campaigns/ai/generate:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1ai~1generate'
 
-  /api/campaigns/{id}/lifecycle:
-    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1lifecycle'
+  /api/campaigns/draft:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1draft'
+
+  /api/campaigns/save-and-publish:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1save-and-publish'
+
+  /api/campaigns/save:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1save'
+
+  /api/campaigns/{id}/complete:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1complete'
+
+  /api/campaigns/{id}/cancel:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1cancel'
 
   /api/collaborations:
     $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations'
@@ -159,3 +179,62 @@ paths:
 
   # /api/admin/logs/recent:
   #   $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'
+
+  # ==================== NOTIFICATIONS ENDPOINTS ====================
+
+  /api/notifications:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications'
+
+  /api/notifications/unread:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1unread'
+
+  /api/notifications/{id}/read:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1{id}~1read'
+
+  /api/notifications/read-all:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1read-all'
+
+  /api/notifications/{id}:
+    $ref: './paths/notification.yaml#/paths/~1api~1notifications~1{id}'
+
+  # ==================== UPLOAD ENDPOINTS ====================
+
+  /api/upload/image:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1image'
+  /api/upload/images:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1images'
+  /api/upload/document:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1document'
+  /api/upload/{fileId}:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload~1{fileId}'
+
+  # ==================== ANALYTICS ENDPOINTS ====================
+
+  /api/analytics:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics'
+
+  /api/analytics/campaigns:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1campaigns'
+
+  /api/analytics/earnings:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1earnings'
+
+  /api/analytics/collaborations:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1collaborations'
+
+  /api/analytics/roi:
+    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1roi'
+    
+  # ==================== PROFILE ENDPOINTS ====================
+
+  /api/profile/owner:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1owner'
+  
+  /api/profile/influencer:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1influencer'
+  
+  /api/profile/owner/completion:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1owner~1completion'
+  
+  /api/profile/influencer/completion:
+    $ref: './paths/profile.yaml#/paths/~1api~1profile~1influencer~1completion'

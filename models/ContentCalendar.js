@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const Campaign = require('./Campaign');
 
 const ContentCalendar = sequelize.define('ContentCalendar', {
   id: {
@@ -52,8 +51,5 @@ const ContentCalendar = sequelize.define('ContentCalendar', {
 }, {
   timestamps: false
 });
-
-Campaign.hasMany(ContentCalendar, { foreignKey: 'campaignId', as: 'contentCalendar' });
-ContentCalendar.belongsTo(Campaign, { foreignKey: 'campaignId' });
 
 module.exports = ContentCalendar;

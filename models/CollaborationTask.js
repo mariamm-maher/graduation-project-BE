@@ -7,13 +7,10 @@ const CollaborationTask = sequelize.define('CollaborationTask', {
     primaryKey: true,
     autoIncrement: true
   },
-  boardId: {
+  collaborationId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'CollaborationBoards',
-      key: 'id'
-    },
+    references: { model: 'Collaborations', key: 'id' },
     onDelete: 'CASCADE'
   },
   taskName: {
@@ -24,30 +21,65 @@ const CollaborationTask = sequelize.define('CollaborationTask', {
       len: [3, 200]
     }
   },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   status: {
-    type: DataTypes.ENUM('todo', 'in_progress', 'review', 'completed', 'cancelled'),
+    type: DataTypes.ENUM(
+      'todo',
+      'in_progress',
+      'in_review',
+      'approved',   
+      'rejected'
+    ),
     defaultValue: 'todo',
     allowNull: false
   },
-  assignedTo: {
+  sortOrder: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
-    onDelete: 'SET NULL'
+    defaultValue: 0,
+    allowNull: true
   },
   dueDate: {
-    type: DataTypes.DATE,
+    type: DataTypes.DATEONLY,
     allowNull: true
   },
   completedAt: {
     type: DataTypes.DATE,
     allowNull: true
-  }
+  },
+  platform: {
+    type: DataTypes.ENUM(
+      'instagram', 'tiktok', 'youtube',
+      'facebook', 'twitter', 'linkedin',
+      'snapchat', 'whatsapp', 'other'
+    ),
+    allowNull: true
+  },
+  contentType: {
+    type: DataTypes.ENUM(
+      'post', 'story', 'reel', 'video',
+      'carousel', 'article', 'tweet', 'poll'
+    ),
+    allowNull: true
+  },
+
+  submissionNote: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  submittedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  reviewNote: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+
 }, {
-  timestamps: true
+  timestamps: true 
 });
 
 module.exports = CollaborationTask;

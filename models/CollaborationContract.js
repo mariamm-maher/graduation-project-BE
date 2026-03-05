@@ -7,34 +7,41 @@ const CollaborationContract = sequelize.define('CollaborationContract', {
     primaryKey: true,
     autoIncrement: true
   },
-  collaborationRequestId: {
+  collaborationId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'CollaborationRequests',
-      key: 'id'
-    },
+    unique: true,           
+    references: { model: 'Collaborations', key: 'id' },
     onDelete: 'CASCADE'
   },
-  budget: {
+  agreedPrice: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    validate: {
-      min: 0
-    }
+    validate: { min: 0 }
+  },
+
+  // Format: [{ title, description, platform, contentType, dueDate }]
+  deliverables: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
   },
   startDate: {
-    type: DataTypes.DATE,
-    allowNull: false
+    type: DataTypes.DATEONLY,
+    allowNull: true
   },
   endDate: {
-    type: DataTypes.DATE,
-    allowNull: false
+    type: DataTypes.DATEONLY,
+    allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('draft', 'active', 'completed', 'terminated'),
-    defaultValue: 'draft',
+    type: DataTypes.ENUM('draft', 'sent', 'signed'),
+    defaultValue: 'draft',   // FIX: auto-signed on acceptance, so starts as 'active' not 'draft'
     allowNull: false
+  },
+  notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true

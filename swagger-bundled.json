@@ -43,6 +43,22 @@
     {
       "name": "Admin",
       "description": "Administrative Operations (Admin Only)"
+    },
+    {
+      "name": "Notifications",
+      "description": "User Notifications Management"
+    },
+    {
+      "name": "Upload",
+      "description": "File Upload and Management"
+    },
+    {
+      "name": "Analytics",
+      "description": "Platform Analytics and Reports"
+    },
+    {
+      "name": "Profile",
+      "description": "User Profile Management (Owner & Influencer)"
     }
   ],
   "paths": {
@@ -674,15 +690,66 @@
           "Campaigns"
         ],
         "summary": "Get All Campaigns",
-        "description": "Retrieves a list of all campaigns for the authenticated user.",
+        "description": "Retrieves a list of all campaigns for the authenticated user with pagination and filtering.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "in": "query",
+            "name": "lifecycleStage",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "ai_generated",
+                "saved",
+                "completed",
+                "cancelled"
+              ]
+            },
+            "description": "Filter by lifecycle stage"
+          },
+          {
+            "in": "query",
+            "name": "goalType",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by goal type"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search campaigns by name"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "List of campaigns",
+            "description": "List of campaigns with pagination",
             "content": {
               "application/json": {
                 "schema": {
@@ -692,64 +759,90 @@
                       "type": "string",
                       "example": "success"
                     },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaigns retrieved successfully"
+                    },
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "userId": {
-                            "type": "integer"
-                          },
-                          "campaignName": {
-                            "type": "string"
-                          },
-                          "userDescription": {
-                            "type": "string"
-                          },
-                          "goalType": {
-                            "type": "string",
-                            "enum": [
-                              "awareness",
-                              "consideration",
-                              "conversion",
-                              "lead_generation",
-                              "retention"
-                            ]
-                          },
-                          "totalBudget": {
-                            "type": "number",
-                            "format": "decimal"
-                          },
-                          "currency": {
-                            "type": "string"
-                          },
-                          "lifecycleStage": {
-                            "type": "string",
-                            "enum": [
-                              "draft",
-                              "ai_generated",
-                              "active",
-                              "completed"
-                            ]
-                          },
-                          "startDate": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "endDate": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time"
+                      "type": "object",
+                      "properties": {
+                        "campaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "userId": {
+                                "type": "integer"
+                              },
+                              "campaignName": {
+                                "type": "string"
+                              },
+                              "userDescription": {
+                                "type": "string"
+                              },
+                              "goalType": {
+                                "type": "string",
+                                "enum": [
+                                  "awareness",
+                                  "consideration",
+                                  "conversion",
+                                  "lead_generation",
+                                  "retention"
+                                ]
+                              },
+                              "totalBudget": {
+                                "type": "number",
+                                "format": "decimal"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "lifecycleStage": {
+                                "type": "string",
+                                "enum": [
+                                  "draft",
+                                  "ai_generated",
+                                  "active",
+                                  "completed"
+                                ]
+                              },
+                              "startDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "page": {
+                              "type": "integer"
+                            },
+                            "limit": {
+                              "type": "integer"
+                            },
+                            "totalPages": {
+                              "type": "integer"
+                            }
                           }
                         }
                       }
@@ -760,15 +853,13 @@
             }
           }
         }
-      }
-    },
-    "/api/campaigns/create": {
+      },
       "post": {
         "tags": [
           "Campaigns"
         ],
-        "summary": "Create Campaign & Generate AI Preview",
-        "description": "Creates a new campaign draft and triggers AI generation for campaign details.",
+        "summary": "Create Manual Campaign",
+        "description": "Creates a new manual campaign with lifecycleStage set to 'draft'.",
         "security": [
           {
             "bearerAuth": []
@@ -800,7 +891,14 @@
                   },
                   "goalType": {
                     "type": "string",
-                    "example": "Brand Awareness"
+                    "enum": [
+                      "awareness",
+                      "consideration",
+                      "conversion",
+                      "lead_generation",
+                      "retention"
+                    ],
+                    "example": "awareness"
                   },
                   "totalBudget": {
                     "type": "number",
@@ -812,6 +910,10 @@
                   },
                   "budgetFlexibility": {
                     "type": "string",
+                    "enum": [
+                      "strict",
+                      "flexible"
+                    ],
                     "example": "flexible"
                   },
                   "startDate": {
@@ -831,7 +933,7 @@
         },
         "responses": {
           "201": {
-            "description": "Campaign created and AI preview generated",
+            "description": "Manual campaign created successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -840,6 +942,10 @@
                     "status": {
                       "type": "string",
                       "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Manual campaign created successfully."
                     },
                     "data": {
                       "type": "object",
@@ -850,62 +956,21 @@
                             "id": {
                               "type": "integer"
                             },
-                            "userId": {
-                              "type": "integer"
-                            },
                             "campaignName": {
-                              "type": "string"
-                            },
-                            "userDescription": {
-                              "type": "string"
-                            },
-                            "goalType": {
-                              "type": "string",
-                              "enum": [
-                                "awareness",
-                                "consideration",
-                                "conversion",
-                                "lead_generation",
-                                "retention"
-                              ]
-                            },
-                            "totalBudget": {
-                              "type": "number",
-                              "format": "decimal"
-                            },
-                            "currency": {
                               "type": "string"
                             },
                             "lifecycleStage": {
                               "type": "string",
-                              "enum": [
-                                "draft",
-                                "ai_generated",
-                                "active",
-                                "completed"
-                              ]
+                              "example": "draft"
                             },
-                            "startDate": {
-                              "type": "string",
-                              "format": "date-time"
-                            },
-                            "endDate": {
-                              "type": "string",
-                              "format": "date-time"
+                            "userId": {
+                              "type": "integer"
                             },
                             "createdAt": {
                               "type": "string",
                               "format": "date-time"
-                            },
-                            "updatedAt": {
-                              "type": "string",
-                              "format": "date-time"
                             }
                           }
-                        },
-                        "aiPreview": {
-                          "type": "object",
-                          "description": "AI generated suggestions"
                         }
                       }
                     }
@@ -920,13 +985,973 @@
         }
       }
     },
-    "/api/campaigns/{id}/lifecycle": {
-      "patch": {
+    "/api/campaigns/ai/generate": {
+      "post": {
         "tags": [
           "Campaigns"
         ],
-        "summary": "Change Campaign Lifecycle Stage",
-        "description": "Updates the lifecycle stage of a campaign (OWNER only).",
+        "summary": "Generate AI Campaign Preview",
+        "description": "Generates AI campaign preview without saving to database. Returns AI-generated suggestions for review.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "campaignName",
+                  "userDescription",
+                  "goalType",
+                  "totalBudget",
+                  "currency",
+                  "startDate",
+                  "endDate"
+                ],
+                "properties": {
+                  "campaignName": {
+                    "type": "string",
+                    "example": "Summer Fashion Launch"
+                  },
+                  "userDescription": {
+                    "type": "string",
+                    "example": "A marketing campaign for our new summer clothing line focusing on Gen Z."
+                  },
+                  "goalType": {
+                    "type": "string",
+                    "enum": [
+                      "awareness",
+                      "consideration",
+                      "conversion",
+                      "lead_generation",
+                      "retention"
+                    ],
+                    "example": "awareness"
+                  },
+                  "totalBudget": {
+                    "type": "number",
+                    "example": 5000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "budgetFlexibility": {
+                    "type": "string",
+                    "enum": [
+                      "strict",
+                      "flexible"
+                    ],
+                    "example": "flexible"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-06-01"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-08-31"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "AI campaign preview generated successfully (not saved to DB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "AI campaign draft generated successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "aiPreview": {
+                          "type": "object",
+                          "description": "AI generated campaign suggestions"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/api/campaigns/draft": {
+      "post": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Save Campaign as Draft",
+        "description": "Saves AI preview or manual campaign as draft with lifecycleStage set to 'draft' and isPublished set to false. Accepts full campaign with all relations.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "campaignName",
+                  "userDescription",
+                  "goalType",
+                  "totalBudget",
+                  "currency",
+                  "startDate",
+                  "endDate"
+                ],
+                "properties": {
+                  "campaignName": {
+                    "type": "string",
+                    "example": "Summer Fashion Launch"
+                  },
+                  "userDescription": {
+                    "type": "string",
+                    "example": "A marketing campaign for our new summer clothing line focusing on Gen Z."
+                  },
+                  "goalType": {
+                    "type": "string",
+                    "enum": [
+                      "awareness",
+                      "consideration",
+                      "conversion",
+                      "lead_generation",
+                      "retention"
+                    ],
+                    "example": "awareness"
+                  },
+                  "totalBudget": {
+                    "type": "number",
+                    "example": 5000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "budgetFlexibility": {
+                    "type": "string",
+                    "enum": [
+                      "strict",
+                      "flexible"
+                    ],
+                    "example": "flexible"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-06-01"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-08-31"
+                  },
+                  "targetAudience": {
+                    "type": "object",
+                    "properties": {
+                      "ageRange": {
+                        "type": "string",
+                        "example": "18-24"
+                      },
+                      "gender": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "male",
+                          "female",
+                          "custom"
+                        ],
+                        "example": "all"
+                      },
+                      "interests": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "fashion",
+                          "lifestyle",
+                          "sustainability"
+                        ]
+                      },
+                      "platformsUsed": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "instagram",
+                          "tiktok",
+                          "youtube"
+                        ]
+                      }
+                    }
+                  },
+                  "kpis": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "metric": {
+                          "type": "string",
+                          "enum": [
+                            "impressions",
+                            "reach",
+                            "engagement_rate",
+                            "conversions",
+                            "ROAS",
+                            "CPA",
+                            "CTR"
+                          ],
+                          "example": "impressions"
+                        },
+                        "targetValue": {
+                          "type": "string",
+                          "example": 100000
+                        }
+                      }
+                    }
+                  },
+                  "contentCalendar": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "day": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "example": "2023-06-01"
+                        },
+                        "platform": {
+                          "type": "string",
+                          "example": "instagram"
+                        },
+                        "contentType": {
+                          "type": "string",
+                          "enum": [
+                            "video",
+                            "carousel",
+                            "story",
+                            "reel",
+                            "post",
+                            "article"
+                          ],
+                          "example": "reel"
+                        },
+                        "caption": {
+                          "type": "string",
+                          "example": "Summer vibes are here!"
+                        },
+                        "mediaUrl": {
+                          "type": "string",
+                          "example": "https://example.com/media.jpg"
+                        },
+                        "task": {
+                          "type": "string",
+                          "example": "Create and post summer reel"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "scheduled",
+                            "posted",
+                            "failed"
+                          ],
+                          "example": "scheduled"
+                        }
+                      }
+                    }
+                  },
+                  "aiVersion": {
+                    "type": "object",
+                    "properties": {
+                      "versionNumber": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "strategy": {
+                        "type": "object",
+                        "description": "AI generated strategy"
+                      },
+                      "execution": {
+                        "type": "object",
+                        "description": "AI generated execution plan"
+                      },
+                      "estimations": {
+                        "type": "object",
+                        "description": "AI generated estimations"
+                      },
+                      "isActive": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Campaign draft saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaign draft saved successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "campaignName": {
+                              "type": "string"
+                            },
+                            "lifecycleStage": {
+                              "type": "string",
+                              "example": "draft"
+                            },
+                            "isPublished": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "userId": {
+                              "type": "integer"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/api/campaigns/save-and-publish": {
+      "post": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Save and Publish Campaign",
+        "description": "Creates and publishes campaign in one step. Sets lifecycleStage to 'saved' and isPublished to true. Logs CREATE_CAMPAIGN action. Accepts full campaign with all relations.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "campaignName",
+                  "userDescription",
+                  "goalType",
+                  "totalBudget",
+                  "currency",
+                  "startDate",
+                  "endDate"
+                ],
+                "properties": {
+                  "campaignName": {
+                    "type": "string",
+                    "example": "Summer Fashion Launch"
+                  },
+                  "userDescription": {
+                    "type": "string",
+                    "example": "A marketing campaign for our new summer clothing line focusing on Gen Z."
+                  },
+                  "goalType": {
+                    "type": "string",
+                    "enum": [
+                      "awareness",
+                      "consideration",
+                      "conversion",
+                      "lead_generation",
+                      "retention"
+                    ],
+                    "example": "awareness"
+                  },
+                  "totalBudget": {
+                    "type": "number",
+                    "example": 5000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "budgetFlexibility": {
+                    "type": "string",
+                    "enum": [
+                      "strict",
+                      "flexible"
+                    ],
+                    "example": "flexible"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-06-01"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-08-31"
+                  },
+                  "targetAudience": {
+                    "type": "object",
+                    "properties": {
+                      "ageRange": {
+                        "type": "string",
+                        "example": "18-24"
+                      },
+                      "gender": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "male",
+                          "female",
+                          "custom"
+                        ],
+                        "example": "all"
+                      },
+                      "interests": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "fashion",
+                          "lifestyle",
+                          "sustainability"
+                        ]
+                      },
+                      "platformsUsed": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "instagram",
+                          "tiktok",
+                          "youtube"
+                        ]
+                      }
+                    }
+                  },
+                  "kpis": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "metric": {
+                          "type": "string",
+                          "enum": [
+                            "impressions",
+                            "reach",
+                            "engagement_rate",
+                            "conversions",
+                            "ROAS",
+                            "CPA",
+                            "CTR"
+                          ],
+                          "example": "impressions"
+                        },
+                        "targetValue": {
+                          "type": "string",
+                          "example": 100000
+                        }
+                      }
+                    }
+                  },
+                  "contentCalendar": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "day": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "example": "2023-06-01"
+                        },
+                        "platform": {
+                          "type": "string",
+                          "example": "instagram"
+                        },
+                        "contentType": {
+                          "type": "string",
+                          "enum": [
+                            "video",
+                            "carousel",
+                            "story",
+                            "reel",
+                            "post",
+                            "article"
+                          ],
+                          "example": "reel"
+                        },
+                        "caption": {
+                          "type": "string",
+                          "example": "Summer vibes are here!"
+                        },
+                        "mediaUrl": {
+                          "type": "string",
+                          "example": "https://example.com/media.jpg"
+                        },
+                        "task": {
+                          "type": "string",
+                          "example": "Create and post summer reel"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "scheduled",
+                            "posted",
+                            "failed"
+                          ],
+                          "example": "scheduled"
+                        }
+                      }
+                    }
+                  },
+                  "aiVersion": {
+                    "type": "object",
+                    "properties": {
+                      "versionNumber": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "strategy": {
+                        "type": "object",
+                        "description": "AI generated strategy"
+                      },
+                      "execution": {
+                        "type": "object",
+                        "description": "AI generated execution plan"
+                      },
+                      "estimations": {
+                        "type": "object",
+                        "description": "AI generated estimations"
+                      },
+                      "isActive": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Campaign saved and published successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaign saved and published successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "campaignName": {
+                              "type": "string"
+                            },
+                            "lifecycleStage": {
+                              "type": "string",
+                              "example": "saved"
+                            },
+                            "isPublished": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "userId": {
+                              "type": "integer"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/api/campaigns/save": {
+      "post": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Save Campaign",
+        "description": "Creates a new campaign with 'saved' lifecycleStage and configurable publish status. Accepts full campaign with all relations. Logs the CREATE_CAMPAIGN action.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "campaignName",
+                  "userDescription",
+                  "goalType",
+                  "totalBudget",
+                  "currency",
+                  "startDate",
+                  "endDate"
+                ],
+                "properties": {
+                  "campaignName": {
+                    "type": "string",
+                    "example": "Summer Fashion Launch"
+                  },
+                  "userDescription": {
+                    "type": "string",
+                    "example": "A marketing campaign for our new summer clothing line focusing on Gen Z."
+                  },
+                  "goalType": {
+                    "type": "string",
+                    "enum": [
+                      "awareness",
+                      "consideration",
+                      "conversion",
+                      "lead_generation",
+                      "retention"
+                    ],
+                    "example": "awareness"
+                  },
+                  "totalBudget": {
+                    "type": "number",
+                    "example": 5000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "USD"
+                  },
+                  "budgetFlexibility": {
+                    "type": "string",
+                    "enum": [
+                      "strict",
+                      "flexible"
+                    ],
+                    "example": "flexible"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-06-01"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2023-08-31"
+                  },
+                  "isPublished": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Set to true to publish, false to save as draft (default true)"
+                  },
+                  "targetAudience": {
+                    "type": "object",
+                    "properties": {
+                      "ageRange": {
+                        "type": "string",
+                        "example": "18-24"
+                      },
+                      "gender": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "male",
+                          "female",
+                          "custom"
+                        ],
+                        "example": "all"
+                      },
+                      "interests": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "fashion",
+                          "lifestyle"
+                        ]
+                      },
+                      "platformsUsed": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "instagram",
+                          "tiktok"
+                        ]
+                      }
+                    }
+                  },
+                  "kpis": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "metric": {
+                          "type": "string",
+                          "enum": [
+                            "impressions",
+                            "reach",
+                            "engagement_rate",
+                            "conversions",
+                            "ROAS",
+                            "CPA",
+                            "CTR"
+                          ],
+                          "example": "engagement_rate"
+                        },
+                        "targetValue": {
+                          "type": "string",
+                          "example": "5%"
+                        }
+                      }
+                    }
+                  },
+                  "contentCalendar": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "day": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "example": "2023-06-01"
+                        },
+                        "platform": {
+                          "type": "string",
+                          "example": "instagram"
+                        },
+                        "contentType": {
+                          "type": "string",
+                          "enum": [
+                            "video",
+                            "carousel",
+                            "story",
+                            "reel",
+                            "post",
+                            "article"
+                          ],
+                          "example": "reel"
+                        },
+                        "caption": {
+                          "type": "string",
+                          "example": "Summer vibes!"
+                        },
+                        "mediaUrl": {
+                          "type": "string",
+                          "example": "https://example.com/media.jpg"
+                        },
+                        "task": {
+                          "type": "string",
+                          "example": "Create reel"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "scheduled",
+                            "posted",
+                            "failed"
+                          ],
+                          "example": "scheduled"
+                        }
+                      }
+                    }
+                  },
+                  "aiVersion": {
+                    "type": "object",
+                    "properties": {
+                      "versionNumber": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "strategy": {
+                        "type": "object",
+                        "description": "AI generated strategy"
+                      },
+                      "execution": {
+                        "type": "object",
+                        "description": "AI generated execution plan"
+                      },
+                      "estimations": {
+                        "type": "object",
+                        "description": "AI generated estimations"
+                      },
+                      "isActive": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Campaign saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaign saved successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "campaignName": {
+                              "type": "string"
+                            },
+                            "lifecycleStage": {
+                              "type": "string",
+                              "example": "saved"
+                            },
+                            "isPublished": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "userId": {
+                              "type": "integer"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (missing fields, invalid dates or budget)"
+          }
+        }
+      }
+    },
+    "/api/campaigns/{id}/complete": {
+      "post": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Complete Campaign",
+        "description": "Marks a 'saved' campaign as 'completed'. Only campaigns in 'saved' state can be completed.",
         "security": [
           {
             "bearerAuth": []
@@ -943,34 +1968,9 @@
             "description": "Campaign ID"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "lifecycleStage"
-                ],
-                "properties": {
-                  "lifecycleStage": {
-                    "type": "string",
-                    "enum": [
-                      "draft",
-                      "ai_generated",
-                      "active",
-                      "completed"
-                    ],
-                    "example": "active"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Lifecycle stage updated",
+            "description": "Campaign completed successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -980,25 +1980,31 @@
                       "type": "string",
                       "example": "success"
                     },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaign completed successfully."
+                    },
                     "data": {
                       "type": "object",
                       "properties": {
-                        "id": {
-                          "type": "integer",
-                          "example": 1
-                        },
-                        "campaignName": {
-                          "type": "string",
-                          "example": "Summer Sale"
-                        },
-                        "lifecycleStage": {
-                          "type": "string",
-                          "example": "active"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "example": "2023-06-01T12:00:00Z"
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "campaignName": {
+                              "type": "string"
+                            },
+                            "lifecycleStage": {
+                              "type": "string",
+                              "example": "completed"
+                            },
+                            "updatedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
                         }
                       }
                     }
@@ -1008,7 +2014,90 @@
             }
           },
           "400": {
-            "description": "Invalid lifecycle stage"
+            "description": "Only saved campaigns can be completed"
+          },
+          "403": {
+            "description": "Not authorized to complete this campaign"
+          },
+          "404": {
+            "description": "Campaign not found"
+          }
+        }
+      }
+    },
+    "/api/campaigns/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Cancel Campaign",
+        "description": "Cancels a campaign. Cannot cancel campaigns that are already 'completed'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Campaign ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign cancelled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaign cancelled successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "campaignName": {
+                              "type": "string"
+                            },
+                            "lifecycleStage": {
+                              "type": "string",
+                              "example": "cancelled"
+                            },
+                            "updatedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Completed campaigns cannot be cancelled"
+          },
+          "403": {
+            "description": "Not authorized to cancel this campaign"
           },
           "404": {
             "description": "Campaign not found"
@@ -1238,6 +2327,677 @@
               }
             }
           }
+        }
+      }
+    },
+    
+    "/api/collaborations/requests": {
+      "post": {
+        "tags": ["Collaboration Requests"],
+        "summary": "Send collaboration invite to influencer",
+        "description": "Brand (owner) sends a collaboration request to an influencer for a campaign.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["campaignId", "influencerId"],
+                "properties": {
+                  "campaignId": { "type": "integer", "example": 1 },
+                  "influencerId": { "type": "integer", "example": 5 },
+                  "proposedBudget": { "type": "number", "example": 1500.00 },
+                  "message": { "type": "string", "example": "Hi! We'd love to work with you on our summer campaign." },
+                  "expiresAt": { "type": "string", "format": "date-time", "example": "2024-04-01T00:00:00Z" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Collaboration request sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "Collaboration request sent" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "request": { "$ref": "#/components/schemas/CollaborationRequest" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Active request already exists for this influencer on this campaign" },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "get": {
+        "tags": ["Collaboration Requests"],
+        "summary": "List requests for a campaign (owner)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "campaignId", "in": "query", "required": true, "schema": { "type": "integer" }, "example": 1 },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["pending", "negotiating", "accepted", "rejected", "cancelled", "expired"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of collaboration requests for the campaign" }
+        }
+      }
+    },
+
+    "/api/collaborations/requests/mine/sent": {
+      "get": {
+        "tags": ["Collaboration Requests"],
+        "summary": "Get all requests I sent (owner)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["pending", "negotiating", "accepted", "rejected", "cancelled", "expired"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of sent requests" }
+        }
+      }
+    },
+
+    "/api/collaborations/requests/mine/received": {
+      "get": {
+        "tags": ["Collaboration Requests"],
+        "summary": "Get all requests I received (influencer)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["pending", "negotiating", "accepted", "rejected", "cancelled", "expired"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of received requests" }
+        }
+      }
+    },
+
+    "/api/collaborations/requests/{id}": {
+      "get": {
+        "tags": ["Collaboration Requests"],
+        "summary": "Get a single collaboration request",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Collaboration request details" },
+          "404": { "description": "Request not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/requests/{id}/respond": {
+      "patch": {
+        "tags": ["Collaboration Requests"],
+        "summary": "Respond to a collaboration request",
+        "description": "**Influencer** responds when status is `pending`. **Owner** responds when status is `negotiating`.\n\n| Action | Who | Result |\n|--------|-----|--------|\n| `accept` | Influencer (pending) or Owner (negotiating) | Creates Collaboration |\n| `reject` | Influencer (pending) or Owner (negotiating) | Terminates request |\n| `counter` | Influencer (pending) → Owner's turn / Owner (negotiating) → Influencer's turn | Budget negotiation |",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["action"],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["accept", "reject", "counter"],
+                    "example": "counter"
+                  },
+                  "newBudget": {
+                    "type": "number",
+                    "description": "Required when action is 'counter'",
+                    "example": 1800.00
+                  },
+                  "responseMessage": {
+                    "type": "string",
+                    "example": "I can do it for $1800 instead."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request updated. If accepted, a Collaboration is also created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "request": { "$ref": "#/components/schemas/CollaborationRequest" },
+                        "collaboration": { "$ref": "#/components/schemas/Collaboration", "description": "Only present when action is 'accept'" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid action or wrong turn" },
+          "403": { "description": "Not your turn to respond" },
+          "404": { "description": "Request not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/requests/{id}/cancel": {
+      "patch": {
+        "tags": ["Collaboration Requests"],
+        "summary": "Cancel a collaboration request (owner only)",
+        "description": "Owner can cancel while status is `pending` or `negotiating`.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Request cancelled" },
+          "400": { "description": "Request is already in a terminal state" },
+          "403": { "description": "Only the owner can cancel" },
+          "404": { "description": "Request not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/mine/owner": {
+      "get": {
+        "tags": ["Collaborations"],
+        "summary": "List my collaborations as owner",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["PendingContractSign", "live", "InProgress", "completed", "cancelled"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of collaborations where I am the brand" }
+        }
+      }
+    },
+
+    "/api/collaborations/mine/influencer": {
+      "get": {
+        "tags": ["Collaborations"],
+        "summary": "List my collaborations as influencer",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "enum": ["PendingContractSign", "live", "InProgress", "completed", "cancelled"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of collaborations where I am the influencer" }
+        }
+      }
+    },
+
+    "/api/collaborations/{id}": {
+      "get": {
+        "tags": ["Collaborations"],
+        "summary": "Get a single collaboration",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collaboration details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "collaboration": { "$ref": "#/components/schemas/Collaboration" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Collaboration not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/{id}/cancel": {
+      "patch": {
+        "tags": ["Collaborations"],
+        "summary": "Cancel a collaboration (owner only)",
+        "description": "Owner can cancel from any non-terminal status.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Collaboration cancelled" },
+          "403": { "description": "Only the owner can cancel" },
+          "404": { "description": "Collaboration not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/{id}/complete": {
+      "patch": {
+        "tags": ["Collaborations"],
+        "summary": "Mark collaboration as completed (owner only)",
+        "description": "All tasks must be `Approved` before this can be called.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Collaboration marked as completed" },
+          "400": { "description": "Not all tasks are approved yet" },
+          "403": { "description": "Only the owner can complete a collaboration" },
+          "404": { "description": "Collaboration not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/{collaborationId}/contract": {
+      "post": {
+        "tags": ["Contracts"],
+        "summary": "Create a draft contract (owner only)",
+        "description": "Owner creates a contract for a collaboration in `PendingContractSign` status. Deliverables will become tasks when the influencer signs.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "collaborationId", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["agreedPrice", "deliverables"],
+                "properties": {
+                  "agreedPrice": { "type": "number", "example": 1500.00 },
+                  "currency": { "type": "string", "example": "USD" },
+                  "startDate": { "type": "string", "format": "date", "example": "2024-03-01" },
+                  "endDate": { "type": "string", "format": "date", "example": "2024-04-01" },
+                  "notes": { "type": "string", "example": "Content must be approved before posting." },
+                  "deliverables": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["title"],
+                      "properties": {
+                        "title": { "type": "string", "example": "Instagram Post — Product Reveal" },
+                        "description": { "type": "string", "example": "Lifestyle photo with brand hashtag" },
+                        "platform": { "type": "string", "example": "instagram" },
+                        "contentType": { "type": "string", "example": "post" },
+                        "dueDate": { "type": "string", "format": "date", "example": "2024-03-20" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft contract created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "contract": { "$ref": "#/components/schemas/CollaborationContract" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Contract already exists or invalid data" },
+          "403": { "description": "Only the owner can create a contract" },
+          "404": { "description": "Collaboration not found" }
+        }
+      },
+      "get": {
+        "tags": ["Contracts"],
+        "summary": "Get contract for a collaboration",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "collaborationId", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Contract details" },
+          "403": { "description": "Unauthorized — not a participant" },
+          "404": { "description": "No contract exists yet" }
+        }
+      }
+    },
+
+    "/api/collaborations/contracts/{id}": {
+      "patch": {
+        "tags": ["Contracts"],
+        "summary": "Update a draft contract (owner only)",
+        "description": "Only allowed while contract status is `draft`.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agreedPrice": { "type": "number", "example": 1600.00 },
+                  "startDate": { "type": "string", "format": "date" },
+                  "endDate": { "type": "string", "format": "date" },
+                  "deliverables": {
+                    "type": "array",
+                    "items": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Contract updated" },
+          "400": { "description": "Only draft contracts can be updated" },
+          "403": { "description": "Only the owner can update a contract" },
+          "404": { "description": "Contract not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/contracts/{id}/send": {
+      "patch": {
+        "tags": ["Contracts"],
+        "summary": "Send contract to influencer (owner only)",
+        "description": "Moves contract from `draft` → `sent`. Influencer can now sign.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Contract sent to influencer" },
+          "400": { "description": "Only draft contracts can be sent" },
+          "403": { "description": "Only the owner can send a contract" },
+          "404": { "description": "Contract not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/contracts/{id}/sign": {
+      "patch": {
+        "tags": ["Contracts"],
+        "summary": "Sign the contract (influencer only)",
+        "description": "Signs the contract → status becomes `signed` → collaboration moves to `live` → tasks auto-created from deliverables → chat room opened.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contract signed. Returns contract, collaboration, chatRoom, and auto-created tasks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "contract": { "$ref": "#/components/schemas/CollaborationContract" },
+                        "collaboration": { "$ref": "#/components/schemas/Collaboration" },
+                        "chatRoom": { "type": "object" },
+                        "tasks": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/CollaborationTask" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Only sent contracts can be signed" },
+          "403": { "description": "Only the influencer can sign" },
+          "404": { "description": "Contract not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/{collaborationId}/tasks": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get task board for a collaboration",
+        "description": "Returns all tasks sorted by sortOrder. Use this to render the kanban board.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "collaborationId", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tasks": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/CollaborationTask" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Not a participant in this collaboration" },
+          "404": { "description": "Collaboration not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/tasks/{id}": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get a single task",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Task details" },
+          "404": { "description": "Task not found" }
+        }
+      },
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Update a task (owner only)",
+        "description": "Owner can edit taskName, description, platform, contentType, dueDate, sortOrder.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "taskName": { "type": "string", "example": "Instagram Post — Updated Title" },
+                  "description": { "type": "string" },
+                  "platform": { "type": "string", "enum": ["instagram", "tiktok", "youtube", "facebook", "twitter", "linkedin", "snapchat", "whatsapp", "other"] },
+                  "contentType": { "type": "string", "enum": ["post", "story", "reel", "video", "carousel", "article", "tweet", "poll"] },
+                  "dueDate": { "type": "string", "format": "date" },
+                  "sortOrder": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Task updated" },
+          "403": { "description": "Only the owner can edit tasks" },
+          "404": { "description": "Task not found" }
+        }
+      }
+    },
+
+    "/api/collaborations/tasks/{id}/start": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Start a task (influencer only)",
+        "description": "Moves task from `todo` → `in_progress`.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Task started" },
+          "400": { "description": "Task cannot be started from its current status" },
+          "403": { "description": "Only the influencer can start tasks" }
+        }
+      }
+    },
+
+    "/api/collaborations/tasks/{id}/submit": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Submit task for review (influencer only)",
+        "description": "Moves task from `in_progress` → `in_review`. Saves submission URL and note.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "submissionUrl": { "type": "string", "example": "https://instagram.com/p/abc123" },
+                  "submissionNote": { "type": "string", "example": "Used the brand hashtag as discussed." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Task submitted for review" },
+          "400": { "description": "Task must be in_progress to submit" },
+          "403": { "description": "Only the influencer can submit tasks" }
+        }
+      }
+    },
+
+    "/api/collaborations/tasks/{id}/approve": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Approve a task (owner only)",
+        "description": "Moves task from `in_review` → `Approved`. If all tasks approved, owner can then complete the collaboration.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Task approved" },
+          "400": { "description": "Task must be in_review to approve" },
+          "403": { "description": "Only the owner can approve tasks" }
+        }
+      }
+    },
+
+    "/api/collaborations/tasks/{id}/reject": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Reject task and send back for revision (owner only)",
+        "description": "Moves task from `in_review` → `todo`. Influencer can resubmit.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reviewNote": { "type": "string", "example": "Please add the discount code in the caption." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Task sent back for revision" },
+          "400": { "description": "Task must be in_review" },
+          "403": { "description": "Only the owner can reject tasks" }
+        }
+      }
+    },
+
+    "/api/collaborations/tasks/{id}/reject-final": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Permanently reject a task (owner only)",
+        "description": "Moves task to `rejected` — terminal state, no resubmission possible.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reviewNote": { "type": "string", "example": "Content does not match brand guidelines at all." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Task permanently rejected" },
+          "400": { "description": "Task must be in_review" },
+          "403": { "description": "Only the owner can reject tasks" }
         }
       }
     },
@@ -2914,6 +4674,2133 @@
           },
           "404": {
             "description": "Campaign not found"
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Get all user notifications (paginated)",
+        "description": "Returns a paginated list of notifications belonging to the authenticated user, sorted by creation date (newest first).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Notifications retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "notifications": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "example": 1
+                              },
+                              "message": {
+                                "type": "string",
+                                "example": "Your campaign has been approved"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "info",
+                                  "warning",
+                                  "error"
+                                ],
+                                "example": "info"
+                              },
+                              "isRead": {
+                                "type": "boolean",
+                                "example": false
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2025-02-20T14:30:00Z"
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "example": 45
+                            },
+                            "page": {
+                              "type": "integer",
+                              "example": 1
+                            },
+                            "limit": {
+                              "type": "integer",
+                              "example": 10
+                            },
+                            "totalPages": {
+                              "type": "integer",
+                              "example": 5
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/unread": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Get unread notifications count",
+        "description": "Returns only the count of unread notifications for the current authenticated user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unread count retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Unread count retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "unread": {
+                          "type": "integer",
+                          "example": 7
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "patch": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark a single notification as read",
+        "description": "Marks the specified notification as read (only if it belongs to the authenticated user).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the notification to mark as read",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Notification marked as read"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "notification": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "isRead": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid notification ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Resource not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/read-all": {
+      "patch": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark all notifications as read",
+        "description": "Marks **all** unread notifications of the authenticated user as read in one request.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "All notifications marked as read"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}": {
+      "delete": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Delete a notification",
+        "description": "Permanently deletes a specific notification (only if it belongs to the authenticated user).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the notification to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Notification deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Resource not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/image": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Upload a single image",
+        "description": "Uploads a single image file (max 10MB). File must be sent as form-data with key 'image'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Image uploaded successfully"
+          },
+          "400": {
+            "description": "Invalid file or no file uploaded"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/images": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Upload multiple images",
+        "description": "Uploads up to 10 images (max 10MB each). Files must be sent as form-data with key 'images'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Images uploaded successfully"
+          },
+          "400": {
+            "description": "Invalid files or no files uploaded"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/document": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Upload a document (PDF or DOCX)",
+        "description": "Uploads a single document file (PDF or DOCX, max 10MB). File must be sent as form-data with key 'document'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "document": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document uploaded successfully"
+          },
+          "400": {
+            "description": "Invalid file type or no file uploaded"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload/{fileId}": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Get file metadata",
+        "description": "Retrieves metadata and URL of an uploaded file (only if owned by the user).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File metadata retrieved"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Resource not found"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Delete uploaded file",
+        "description": "Deletes the file and its record (only if owned by the user).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Resource not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Get dashboard overview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "influencer"
+              ]
+            }
+          },
+          {
+            "name": "dateRange",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "monthly",
+                "all"
+              ],
+              "default": "30d"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard stats"
+          },
+          "400": {
+            "description": "Invalid parameters"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/campaigns": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Campaign performance",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dateRange",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "monthly",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign analytics"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/earnings": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Earnings overview (influencer)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "monthly",
+                "yearly",
+                "all"
+              ],
+              "default": "monthly"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Earnings data"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/collaborations": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Collaboration analytics",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "dateRange",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "monthly",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collaboration analytics"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/roi": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "ROI analysis (owner)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "dateRange",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "monthly",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ROI data"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/owner": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get authenticated owner profile",
+        "description": "Returns the combined user and owner profile data for the currently authenticated owner.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Owner profile retrieved"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "profile": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "example": 3
+                            },
+                            "userId": {
+                              "type": "integer",
+                              "example": 8
+                            },
+                            "firstName": {
+                              "type": "string",
+                              "example": "Ahmed"
+                            },
+                            "lastName": {
+                              "type": "string",
+                              "example": "Mohamed"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email",
+                              "example": "owner@gmail.com"
+                            },
+                            "status": {
+                              "type": "string",
+                              "example": "INCOMPLETE"
+                            },
+                            "businessName": {
+                              "type": "string",
+                              "example": "Ahmed Tech Solutions"
+                            },
+                            "businessType": {
+                              "type": "string",
+                              "example": "Software & AI"
+                            },
+                            "industry": {
+                              "type": "string",
+                              "example": "Technology & Marketing"
+                            },
+                            "location": {
+                              "type": "string",
+                              "example": "Cairo, Egypt"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "image": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "website": {
+                              "type": "string",
+                              "example": "https://ahmedtech.com"
+                            },
+                            "phoneNumber": {
+                              "type": "string",
+                              "example": "01234567890"
+                            },
+                            "platformsUsed": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "primaryMarketingGoal": {
+                              "type": "string",
+                              "example": "brand_awareness"
+                            },
+                            "targetAudience": {
+                              "type": "object"
+                            },
+                            "completionPercentage": {
+                              "type": "integer",
+                              "example": 45
+                            },
+                            "isOnboarded": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "isCompleted": {
+                              "type": "boolean",
+                              "example": false
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "updatedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "User is not an owner"
+          },
+          "404": {
+            "description": "Profile or user not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Create or update owner profile (onboarding)",
+        "description": "Creates a new owner profile if none exists, or updates the existing one.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "businessName": {
+                    "type": "string",
+                    "example": "Ahmed Tech Solutions"
+                  },
+                  "businessType": {
+                    "type": "string",
+                    "example": "Software & AI"
+                  },
+                  "industry": {
+                    "type": "string",
+                    "example": "Technology & Marketing"
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "Cairo, Egypt"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "website": {
+                    "type": "string",
+                    "example": "https://ahmedtech.com"
+                  },
+                  "phoneNumber": {
+                    "type": "string",
+                    "example": "01234567890"
+                  },
+                  "platformsUsed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "primaryMarketingGoal": {
+                    "type": "string",
+                    "example": "brand_awareness"
+                  },
+                  "targetAudience": {
+                    "type": "object"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "Ahmed"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Mohamed"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated (already existed)"
+          },
+          "201": {
+            "description": "Profile created"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Update owner profile",
+        "description": "Updates any fields in the owner profile or basic user info.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "businessName": {
+                    "type": "string"
+                  },
+                  "businessType": {
+                    "type": "string"
+                  },
+                  "industry": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "website": {
+                    "type": "string"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "platformsUsed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "primaryMarketingGoal": {
+                    "type": "string"
+                  },
+                  "targetAudience": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Delete owner profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile deleted"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        }
+      }
+    },
+    "/api/profile/influencer": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get authenticated influencer profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencer profile retrieved"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an influencer"
+          },
+          "404": {
+            "description": "Profile or user not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Create or update influencer profile (onboarding)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "niche": {
+                    "type": "string",
+                    "example": "Fashion & Lifestyle"
+                  },
+                  "bio": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "socialMediaLinks": {
+                    "type": "object"
+                  },
+                  "primaryPlatform": {
+                    "type": "string",
+                    "example": "instagram"
+                  },
+                  "followersCount": {
+                    "type": "integer",
+                    "example": 25000
+                  },
+                  "engagementRate": {
+                    "type": "number",
+                    "example": 4.5
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "contentTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "collaborationTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "audienceAgeRange": {
+                    "type": "string",
+                    "example": "18-34"
+                  },
+                  "audienceGender": {
+                    "type": "string",
+                    "example": "female"
+                  },
+                  "audienceLocation": {
+                    "type": "string",
+                    "example": "Egypt"
+                  },
+                  "interests": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated (already existed)"
+          },
+          "201": {
+            "description": "Profile created"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an influencer"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Update influencer profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "niche": {
+                    "type": "string"
+                  },
+                  "bio": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "socialMediaLinks": {
+                    "type": "object"
+                  },
+                  "primaryPlatform": {
+                    "type": "string"
+                  },
+                  "followersCount": {
+                    "type": "integer"
+                  },
+                  "engagementRate": {
+                    "type": "number"
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "contentTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "collaborationTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "audienceAgeRange": {
+                    "type": "string"
+                  },
+                  "audienceGender": {
+                    "type": "string"
+                  },
+                  "audienceLocation": {
+                    "type": "string"
+                  },
+                  "interests": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an influencer"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Delete influencer profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile deleted"
+          },
+          "401": {
+            "description": "Access token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Something went wrong"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an influencer"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        }
+      }
+    },
+    "/api/profile/owner/completion": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get owner profile completion status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Completion status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Owner profile completion status"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "completed": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "percentage": {
+                          "type": "integer",
+                          "example": 45
+                        },
+                        "filledFields": {
+                          "type": "integer",
+                          "example": 9
+                        },
+                        "totalFields": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "missingFields": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "bio",
+                            "instagram"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner"
+          }
+        }
+      }
+    },
+    "/api/profile/influencer/completion": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get influencer profile completion status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Completion status"
+          },
+          "403": {
+            "description": "Not an influencer"
           }
         }
       }

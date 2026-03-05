@@ -10,10 +10,15 @@ const Role = sequelize.define('Role', {
   name: {
     type: DataTypes.ENUM('OWNER', 'INFLUENCER', 'ADMIN'),
     allowNull: false,
-    unique: true
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['name']
+    }
+  ]
 });
 
 module.exports = Role;

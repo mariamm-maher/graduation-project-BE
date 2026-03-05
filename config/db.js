@@ -5,10 +5,11 @@ const sequelize = new Sequelize(
   'postgres',    // username
   '12345', // password
 
+
   {
     host: 'localhost',
     dialect: 'postgres',
-    password:'mariam',
+    password:'admin',
     port: 5432,
     logging: false, 
   }
