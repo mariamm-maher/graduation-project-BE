@@ -9,12 +9,18 @@ const {
   saveCampaign,
   completeCampaign,
   cancelCampaign,
-  getCampaigns
+  getCampaigns,
+  getCampaignById,
+  deleteCampaign
 } = require('../controllers/compaginController');
 
 // @route   GET /api/campaigns
 // @desc    Get all campaigns for authenticated user
 router.get('/', authenticate, authorize('OWNER'), getCampaigns);
+
+// @route   GET /api/campaigns/:id
+// @desc    Get single campaign with all relations
+router.get('/:id', authenticate, authorize('OWNER'), getCampaignById);
 
 // @route   POST /api/campaigns/ai/generate
 // @desc    Generate AI campaign preview (no DB save)
@@ -43,5 +49,9 @@ router.post('/:id/complete', authenticate, authorize('OWNER'), completeCampaign)
 // @route   POST /api/campaigns/:id/cancel
 // @desc    Cancel a campaign
 router.post('/:id/cancel', authenticate, authorize('OWNER'), cancelCampaign);
+
+// @route   DELETE /api/campaigns/:id
+// @desc    Delete a campaign
+router.delete('/:id', authenticate, authorize('OWNER'), deleteCampaign);
 
 module.exports = router;

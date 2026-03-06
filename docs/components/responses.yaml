@@ -38,3 +38,24 @@ responses:
         example:
           status: error
           message: Validation failed
+
+  BadRequestError:
+    description: Bad request - Invalid input or parameters
+    content:
+      application/json:
+        schema:
+          $ref: './schemas.yaml#/schemas/Error'
+        example:
+          status: error
+          message: Bad request
+
+  InternalServerError:
+    description: Internal server error
+    content:
+      application/json:
+        schema:
+          $ref: './schemas.yaml#/schemas/Error'
+        example:
+          status: error
+          message: Internal server error
+

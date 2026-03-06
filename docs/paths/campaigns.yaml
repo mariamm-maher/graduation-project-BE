@@ -812,3 +812,190 @@ paths:
           description: Not authorized to cancel this campaign
         '404':
           description: Campaign not found
+
+  /api/campaigns/{id}:
+    get:
+      tags:
+        - Campaigns
+      summary: Get Single Campaign with All Relations
+      description: Retrieves a single campaign by ID with all related data including target audience, KPIs, content calendar, and AI versions.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Campaign ID
+      responses:
+        '200':
+          description: Campaign retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Campaign retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      campaign:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          userId:
+                            type: integer
+                          campaignName:
+                            type: string
+                          UserDescription:
+                            type: string
+                          goalType:
+                            type: string
+                          totalBudget:
+                            type: number
+                          currency:
+                            type: string
+                          budgetFlexibility:
+                            type: string
+                          startDate:
+                            type: string
+                            format: date
+                          endDate:
+                            type: string
+                            format: date
+                          lifecycleStage:
+                            type: string
+                          isPublished:
+                            type: boolean
+                          targetAudience:
+                            type: object
+                            nullable: true
+                            properties:
+                              id:
+                                type: integer
+                              campaignId:
+                                type: integer
+                              ageRange:
+                                type: string
+                              gender:
+                                type: string
+                              interests:
+                                type: array
+                                items:
+                                  type: string
+                              platformsUsed:
+                                type: array
+                                items:
+                                  type: string
+                          kpis:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                campaignId:
+                                  type: integer
+                                metric:
+                                  type: string
+                                targetValue:
+                                  type: string
+                          contentCalendar:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                campaignId:
+                                  type: integer
+                                day:
+                                  type: integer
+                                date:
+                                  type: string
+                                  format: date
+                                platform:
+                                  type: string
+                                contentType:
+                                  type: string
+                                caption:
+                                  type: string
+                                mediaUrl:
+                                  type: string
+                                task:
+                                  type: string
+                                status:
+                                  type: string
+                          aiVersions:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                campaignId:
+                                  type: integer
+                                versionNumber:
+                                  type: integer
+                                strategy:
+                                  type: object
+                                execution:
+                                  type: object
+                                estimations:
+                                  type: object
+                                isActive:
+                                  type: boolean
+                          createdAt:
+                            type: string
+                            format: date-time
+                          updatedAt:
+                            type: string
+                            format: date-time
+        '403':
+          description: Not authorized to view this campaign
+        '404':
+          description: Campaign not found
+    delete:
+      tags:
+        - Campaigns
+      summary: Delete Campaign
+      description: Deletes a campaign and all related records (cascade delete). Logs DELETE_CAMPAIGN action.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Campaign ID
+      responses:
+        '200':
+          description: Campaign deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Campaign deleted successfully
+                  data:
+                    type: object
+                    properties:
+                      deletedCampaignId:
+                        type: integer
+        '403':
+          description: Not authorized to delete this campaign
+        '404':
+          description: Campaign not found

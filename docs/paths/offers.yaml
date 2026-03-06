@@ -1,0 +1,464 @@
+paths:
+  /api/service-listings/{id}/offers:
+    post:
+      tags:
+        - Offers
+      summary: Create an offer for a service listing
+      description: Owners can create offers for service listings posted by influencers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Service listing ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - message
+              properties:
+                amount:
+                  type: number
+                  example: 1500.00
+                message:
+                  type: string
+                  example: "I'd like to collaborate on this service"
+                campaignId:
+                  type: integer
+                  example: 5
+      responses:
+        '201':
+          description: Offer created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offer created successfully
+                  data:
+                    type: object
+                    properties:
+                      offer:
+                        $ref: '../components/schemas.yaml#/schemas/Offer'
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/offers:
+    get:
+      tags:
+        - Offers
+      summary: Get my offers (Owner)
+      description: Returns all offers created by the authenticated owner
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../components/parameters.yaml#/parameters/PageNumber'
+        - $ref: '../components/parameters.yaml#/parameters/PageSize'
+        - name: status
+          in: query
+          required: false
+          description: Filter by offer status
+          schema:
+            type: string
+            enum: [pending, accepted, rejected, countered, withdrawn]
+            example: pending
+      responses:
+        '200':
+          description: Offers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offers retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      offers:
+                        type: array
+                        items:
+                          $ref: '../components/schemas.yaml#/schemas/Offer'
+                      pagination:
+                        $ref: '../components/schemas.yaml#/schemas/Pagination'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/offers/incoming:
+    get:
+      tags:
+        - Offers
+      summary: Get incoming offers (Influencer)
+      description: Returns all offers received by the authenticated influencer
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../components/parameters.yaml#/parameters/PageNumber'
+        - $ref: '../components/parameters.yaml#/parameters/PageSize'
+        - name: status
+          in: query
+          required: false
+          description: Filter by offer status
+          schema:
+            type: string
+            enum: [pending, accepted, rejected, countered, withdrawn]
+            example: pending
+      responses:
+        '200':
+          description: Incoming offers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Incoming offers retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      offers:
+                        type: array
+                        items:
+                          $ref: '../components/schemas.yaml#/schemas/Offer'
+                      pagination:
+                        $ref: '../components/schemas.yaml#/schemas/Pagination'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/offers/{id}:
+    get:
+      tags:
+        - Offers
+      summary: Get offer by ID
+      description: Returns details of a specific offer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Offer ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Offer retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offer retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      offer:
+                        $ref: '../components/schemas.yaml#/schemas/Offer'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+    put:
+      tags:
+        - Offers
+      summary: Update an offer (Owner)
+      description: Allows owner to update their offer details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Offer ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  example: 1800.00
+                message:
+                  type: string
+                  example: "Updated offer details"
+      responses:
+        '200':
+          description: Offer updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offer updated successfully
+                  data:
+                    type: object
+                    properties:
+                      offer:
+                        $ref: '../components/schemas.yaml#/schemas/Offer'
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Offers
+      summary: Withdraw an offer (Owner)
+      description: Allows owner to withdraw their offer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Offer ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Offer withdrawn successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offer withdrawn successfully
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/offers/{id}/accept:
+    post:
+      tags:
+        - Offers
+      summary: Accept an offer (Influencer)
+      description: Allows influencer to accept an offer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Offer ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Offer accepted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offer accepted successfully
+                  data:
+                    type: object
+                    properties:
+                      offer:
+                        $ref: '../components/schemas.yaml#/schemas/Offer'
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/offers/{id}/reject:
+    post:
+      tags:
+        - Offers
+      summary: Reject an offer (Influencer)
+      description: Allows influencer to reject an offer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Offer ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "Not interested at this time"
+      responses:
+        '200':
+          description: Offer rejected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Offer rejected successfully
+                  data:
+                    type: object
+                    properties:
+                      offer:
+                        $ref: '../components/schemas.yaml#/schemas/Offer'
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/offers/{id}/counter:
+    post:
+      tags:
+        - Offers
+      summary: Counter an offer (Influencer)
+      description: Allows influencer to counter an offer with a different amount or terms
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Offer ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - counterAmount
+              properties:
+                counterAmount:
+                  type: number
+                  example: 2000.00
+                message:
+                  type: string
+                  example: "I'd be happy to work with you at this rate"
+      responses:
+        '200':
+          description: Counter offer submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Counter offer submitted successfully
+                  data:
+                    type: object
+                    properties:
+                      offer:
+                        $ref: '../components/schemas.yaml#/schemas/Offer'
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'

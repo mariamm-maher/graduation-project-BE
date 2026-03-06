@@ -191,3 +191,94 @@ schemas:
         type: integer
       isOnboarded:
         type: boolean
+
+  ServiceListing:
+    type: object
+    properties:
+      id:
+        type: integer
+      influencerId:
+        type: integer
+      title:
+        type: string
+      description:
+        type: string
+      category:
+        type: string
+      price:
+        type: number
+        format: decimal
+      deliveryTime:
+        type: integer
+        description: Delivery time in days
+      platforms:
+        type: array
+        items:
+          type: string
+      tags:
+        type: array
+        items:
+          type: string
+      status:
+        type: string
+        enum: [draft, published, archived]
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  Offer:
+    type: object
+    properties:
+      id:
+        type: integer
+      serviceListingId:
+        type: integer
+      ownerId:
+        type: integer
+      influencerId:
+        type: integer
+      campaignId:
+        type: integer
+        nullable: true
+      amount:
+        type: number
+        format: decimal
+      counterAmount:
+        type: number
+        format: decimal
+        nullable: true
+      message:
+        type: string
+      status:
+        type: string
+        enum: [pending, accepted, rejected, countered, withdrawn]
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  Pagination:
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of items
+        example: 100
+      page:
+        type: integer
+        description: Current page number
+        example: 1
+      limit:
+        type: integer
+        description: Items per page
+        example: 10
+      totalPages:
+        type: integer
+        description: Total number of pages
+        example: 10
+

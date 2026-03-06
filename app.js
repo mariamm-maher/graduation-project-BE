@@ -7,7 +7,7 @@ const seedRoles = require('./config/seedRoles');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger.json');
+const swaggerDocument = require('./swagger-bundled.json');
 const path = require('path');
 
 const app = express();
@@ -36,12 +36,12 @@ app.use('/api/owner', require('./routes/owner'));
 app.use('/api/service-listings', require('./routes/serviceListings'));
 app.use('/api/analytics', require('./routes/analytics')); 
 app.use('/api/offers', require('./routes/offers'));
+// app.use('/api/social-media', require('./routes/socialMedia'));
 
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/analytics', require('./routes/analytics'));
-
 
 
 // Documentation Route

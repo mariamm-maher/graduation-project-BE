@@ -583,6 +583,83 @@ exports.getCampaigns = async (req, res, next) => {
   }
 };
 
+// @desc    Get single campaign with all relations
+// @route   GET /api/campaigns/:id
+// @access  Private
+exports.getCampaignById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const ownerId = req.user && req.user.id;
+
+    const campaign = await Campaign.findOne({
+      where: { id, userId: ownerId },
+      include: [
+        {
+          model: TargetAudience,
+          as: 'targetAudience'
+        },
+        {
+          model: KPI,
+          as: 'kpis'
+        },
+        {
+          model: ContentCalendar,
+          as: 'contentCalendar'
+        },
+        {
+          model: require('../models/CampaignAIVersion'),
+          as: 'aiVersions'
+        }
+      ]
+    });
+
+    if (!campaign) {
+      return next(new AppError('Campaign not found or you do not have access', 404));
+    }
+
+    sendSuccess(res, 200, 'Campaign retrieved successfully', { campaign });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete campaign
+// @route   DELETE /api/campaigns/:id
+// @access  Private
+exports.deleteCampaign = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const ownerId = req.user && req.user.id;
+
+    const campaign = await Campaign.findOne({
+      where: { id, userId: ownerId }
+    });
+
+    if (!campaign) {
+      return next(new AppError('Campaign not found or you do not have access', 404));
+    }
+
+    // Delete the campaign (cascade deletes will handle related records)
+    await campaign.destroy();
+
+    // Log the delete action
+    await logAction({
+      userId: ownerId,
+      action: 'DELETE_CAMPAIGN',
+      details: {
+        campaignId: id,
+        campaignName: campaign.campaignName
+      }
+    });
+
+    sendSuccess(res, 200, 'Campaign deleted successfully', {
+      deletedCampaignId: id
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 // @desc    Create a manual campaign
 // @route   POST /api/campaigns
