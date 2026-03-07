@@ -11,7 +11,9 @@ const {
   logoutAll,
   getSessions,
   revokeSession,
-  getProfile
+  getProfile,
+  onboardInfluencer,
+  onboardOwner
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
@@ -80,5 +82,38 @@ router.patch('/profile/influencer', authenticate, require('../controllers/authCo
 // @desc    Update owner profile
 // @access  Private
 router.patch('/profile/owner', authenticate, require('../controllers/authController').updateOwnerProfile);
+
+// =======================
+// PASSWORD MANAGEMENT
+// =======================
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request password reset (send email with token)
+// @access  Public
+router.post('/forgot-password', require('../controllers/authController').forgotPassword);
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset password using token
+// @access  Public
+router.post('/reset-password', require('../controllers/authController').resetPassword);
+
+// @route   POST /api/auth/change-password
+// @desc    Change password (authenticated user)
+// @access  Private
+router.post('/change-password', authenticate, require('../controllers/authController').changePassword);
+
+// =======================
+// ONBOARDING
+// =======================
+
+// @route   PATCH /api/auth/influencer/onboarding
+// @desc    Complete influencer onboarding (one-time setup)
+// @access  Private (requires INFLUENCER role)
+router.patch('/influencer/onboarding', authenticate, onboardInfluencer);
+
+// @route   PATCH /api/auth/owner/onboarding
+// @desc    Complete owner onboarding (one-time setup)
+// @access  Private (requires OWNER role)
+router.patch('/owner/onboarding', authenticate, onboardOwner);
 
 module.exports = router;  

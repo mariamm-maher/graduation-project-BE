@@ -34,6 +34,8 @@ tags:
     description: Influencer Service Listings Management
   - name: Offers
     description: Owner Offers to Influencer Service Listings
+  - name: Chat
+    description: Real-time Chat and Messaging (REST API + WebSocket)
   - name: Admin
     description: Administrative Operations (Admin Only)
   - name: Notifications          
@@ -96,6 +98,21 @@ paths:
   
   /api/auth/profile/owner:
     $ref: './paths/auth.yaml#/paths/~1api~1auth~1profile~1owner'
+  
+  /api/auth/forgot-password:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1forgot-password'
+  
+  /api/auth/reset-password:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1reset-password'
+  
+  /api/auth/change-password:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1change-password'
+  
+  /api/auth/influencer/onboarding:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1influencer~1onboarding'
+  
+  /api/auth/owner/onboarding:
+    $ref: './paths/auth.yaml#/paths/~1api~1auth~1owner~1onboarding'
 
   # ==================== CAMPAIGN ENDPOINTS ====================
   /api/campaigns:
@@ -297,6 +314,26 @@ paths:
 
   # /api/admin/logs/recent:
   #   $ref: './paths/admin.yaml#/paths/~1api~1admin~1logs~1recent'
+
+  # ==================== CHAT ENDPOINTS ====================
+
+  /api/chat/collaboration/{collaborationId}:
+    $ref: './paths/chat.yaml#/paths/~1api~1chat~1collaboration~1{collaborationId}'
+
+  /api/chat/rooms:
+    $ref: './paths/chat.yaml#/paths/~1api~1chat~1rooms'
+
+  /api/chat/rooms/{chatRoomId}:
+    $ref: './paths/chat.yaml#/paths/~1api~1chat~1rooms~1{chatRoomId}'
+
+  /api/chat/rooms/{chatRoomId}/messages:
+    $ref: './paths/chat.yaml#/paths/~1api~1chat~1rooms~1{chatRoomId}~1messages'
+
+  /api/chat/messages/{messageId}:
+    $ref: './paths/chat.yaml#/paths/~1api~1chat~1messages~1{messageId}'
+
+  /api/chat/rooms/{chatRoomId}/read:
+    $ref: './paths/chat.yaml#/paths/~1api~1chat~1rooms~1{chatRoomId}~1read'
 
   # ==================== NOTIFICATIONS ENDPOINTS ====================
 

@@ -91,10 +91,32 @@ paths:
                     properties:
                       userId:
                         type: integer
+                        example: 1
+                      email:
+                        type: string
+                        example: john@example.com
+                      firstName:
+                        type: string
+                        example: John
+                      lastName:
+                        type: string
+                        example: Doe
                       accessToken:
                         type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                       needsRoleSelection:
                         type: boolean
+                        description: True if user hasn't selected a role yet
+                        example: false
+                      needsOnboarding:
+                        type: boolean
+                        description: True if user has a role but hasn't completed onboarding
+                        example: false
+                      roles:
+                        type: array
+                        items:
+                          type: string
+                        example: ["OWNER"]
         '401':
           description: Invalid credentials
   /api/auth/select-role:
@@ -164,7 +186,14 @@ paths:
       tags:
         - Auth
       summary: Google OAuth Callback
-      description: Handles the callback from Google after successful authentication.
+      description: |
+        Handles the callback from Google after successful authentication.
+        Redirects to frontend with user data as URL parameters including:
+        - userId, email, firstName, lastName
+        - accessToken (JWT)
+        - needsRoleSelection (true if user needs to select role)
+        - needsOnboarding (true if user has role but hasn't completed onboarding)
+        - roles (JSON array of user roles)
       parameters:
         - name: code
           in: query
@@ -173,8 +202,8 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: Authentication successful
+        '302':
+          description: Redirects to frontend callback URL with user data
         '401':
           description: Authentication failed
   /api/auth/logout:
@@ -389,3 +418,384 @@ paths:
           description: Owner profile updated
         '401':
           description: Unauthorized
+
+  # =======================
+  # PASSWORD MANAGEMENT
+  # =======================
+
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Request password reset
+      description: Send a password reset email with a token. Returns success even if email doesn't exist (security best practice).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        '200':
+          description: If that email exists, a password reset link has been sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: If that email exists, a password reset link has been sent
+        '400':
+          description: Email is required
+        '500':
+          description: Error sending password reset email
+
+  /api/auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Reset password using token
+      description: Reset user password using the token received via email. All existing sessions will be revoked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                  example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+                  description: Reset token from email link
+                password:
+                  type: string
+                  format: password
+                  example: NewSecurePass123!
+                  description: New password (minimum 6 characters)
+      responses:
+        '200':
+          description: Password has been reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password has been reset successfully. Please login with your new password.
+        '400':
+          description: Invalid or expired reset token / Password validation failed
+        '500':
+          description: Server error
+
+  /api/auth/change-password:
+    post:
+      tags:
+        - Auth
+      summary: Change password (authenticated user)
+      description: Change password for authenticated user. Requires current password verification.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  example: OldPassword123!
+                  description: Current password for verification
+                newPassword:
+                  type: string
+                  format: password
+                  example: NewPassword123!
+                  description: New password (minimum 6 characters, must be different from current)
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          description: Validation error (passwords required, new password must be different, etc.)
+        '401':
+          description: Current password is incorrect / Unauthorized
+        '404':
+          description: User not found
+
+  /api/auth/influencer/onboarding:
+    patch:
+      tags:
+        - Auth
+      summary: Complete influencer onboarding
+      description: |
+        One-time profile setup for influencer after role selection. 
+        Accepts all onboarding form data and sets isOnboarded flag to true.
+        This endpoint can only be used once - subsequent updates should use the profile update endpoint.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bio, location, primaryPlatform]
+              properties:
+                bio:
+                  type: string
+                  description: Tell us about yourself (required)
+                  example: "Fashion and lifestyle content creator passionate about sustainable fashion"
+                location:
+                  type: string
+                  description: Your location - City/Country (required)
+                  example: "New York, USA"
+                image:
+                  type: string
+                  description: Profile picture URL (uploaded via /api/upload/image)
+                  example: "https://example.com/profile.jpg"
+                primaryPlatform:
+                  type: string
+                  description: Your primary social media platform (required)
+                  enum: [Instagram, TikTok, YouTube, Facebook, Other]
+                  example: "Instagram"
+                socialMediaLinks:
+                  type: object
+                  description: Social media profile URLs
+                  example: { "instagram": "https://instagram.com/username", "tiktok": "https://tiktok.com/@username" }
+                followersCount:
+                  type: string
+                  description: Follower range on primary platform
+                  enum: ["0-5K", "5K-10K", "10K-50K", "50K-100K", "100K+"]
+                  example: "10K-50K"
+                engagementRate:
+                  type: string
+                  description: Average engagement rate
+                  enum: ["1%", "2%", "3%", "5%", "10%+"]
+                  example: "3%"
+                categories:
+                  type: array
+                  items:
+                    type: string
+                  description: Content categories (multi-select)
+                  example: ["Beauty", "Fashion", "Lifestyle"]
+                contentTypes:
+                  type: array
+                  items:
+                    type: string
+                  description: Content formats you create (multi-select)
+                  example: ["Post", "Reel", "Story"]
+                collaborationTypes:
+                  type: array
+                  items:
+                    type: string
+                  description: Types of collaborations you're open to (multi-select)
+                  example: ["Sponsored Post", "Product Review", "Brand Ambassador"]
+                audienceAgeRange:
+                  type: string
+                  description: Primary audience age range
+                  enum: ["13-17", "18-24", "25-34", "35-44", "45+"]
+                  example: "18-24"
+                audienceGender:
+                  type: string
+                  description: Audience gender distribution
+                  enum: ["Mostly Male", "Mostly Female", "Mixed"]
+                  example: "Mixed"
+                audienceLocation:
+                  type: string
+                  description: Where most of your audience is located
+                  example: "United States"
+                interests:
+                  type: array
+                  items:
+                    type: string
+                  description: Audience interests (multi-select)
+                  example: ["Fashion", "Technology", "Fitness"]
+      responses:
+        '200':
+          description: Onboarding completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Influencer onboarding completed successfully
+                  data:
+                    type: object
+                    properties:
+                      profile:
+                        $ref: '../components/schemas.yaml#/schemas/InfluencerProfile'
+                      completionPercentage:
+                        type: integer
+                        example: 85
+                      isOnboarded:
+                        type: boolean
+                        example: true
+        '400':
+          description: Validation error (missing required fields, already onboarded, invalid JSON)
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          description: User does not have influencer role
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: User not found
+
+  /api/auth/owner/onboarding:
+    patch:
+      tags:
+        - Auth
+      summary: Complete owner onboarding
+      description: |
+        One-time profile setup for business owner after role selection. 
+        Accepts all onboarding form data and sets isOnboarded flag to true.
+        This endpoint can only be used once - subsequent updates should use the profile update endpoint.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [businessName, businessType, industry, location]
+              properties:
+                businessName:
+                  type: string
+                  description: Your business name (required)
+                  example: "Acme Fashion Co."
+                businessType:
+                  type: string
+                  description: Type of business (required)
+                  enum: [Startup, Small Business, Brand, Agency, E-commerce, Personal Brand]
+                  example: "Brand"
+                industry:
+                  type: string
+                  description: Your industry (required)
+                  enum: [Fashion, Food & Beverage, Technology, Health & Fitness, Beauty & Cosmetics, Education, Travel & Tourism, Gaming, Finance, Other]
+                  example: "Fashion"
+                location:
+                  type: string
+                  description: Business location - City/Country (required)
+                  example: "Los Angeles, USA"
+                description:
+                  type: string
+                  description: Business description
+                  example: "Sustainable fashion brand focused on eco-friendly materials"
+                image:
+                  type: string
+                  description: Brand logo URL (uploaded via /api/upload/image)
+                  example: "https://example.com/logo.jpg"
+                website:
+                  type: string
+                  format: uri
+                  description: Business website URL
+                  example: "https://www.acmefashion.com"
+                phoneNumber:
+                  type: string
+                  description: Business phone number (international format)
+                  example: "+1-555-123-4567"
+                platformsUsed:
+                  type: array
+                  items:
+                    type: string
+                  description: Marketing platforms currently used (multi-select)
+                  example: ["Instagram", "Facebook", "TikTok"]
+                primaryMarketingGoal:
+                  type: string
+                  description: Primary marketing objective
+                  enum: [Brand Awareness, Lead Generation, Increase Sales, App Downloads, Community Growth, Product Launch Promotion]
+                  example: "Brand Awareness"
+                targetAudience:
+                  type: object
+                  description: Target audience demographics (structured object)
+                  properties:
+                    ageRange:
+                      type: string
+                      example: "18-24"
+                    gender:
+                      type: string
+                      example: "All"
+                    location:
+                      type: string
+                      example: "United States"
+                  example: { "ageRange": "18-34", "gender": "All", "location": "United States" }
+      responses:
+        '200':
+          description: Onboarding completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Owner onboarding completed successfully
+                  data:
+                    type: object
+                    properties:
+                      profile:
+                        $ref: '../components/schemas.yaml#/schemas/OwnerProfile'
+                      completionPercentage:
+                        type: integer
+                        example: 90
+                      isOnboarded:
+                        type: boolean
+                        example: true
+        '400':
+          description: Validation error (missing required fields, already onboarded, invalid JSON)
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          description: User does not have owner role
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: User not found

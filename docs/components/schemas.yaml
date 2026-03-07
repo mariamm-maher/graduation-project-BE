@@ -282,3 +282,188 @@ schemas:
         description: Total number of pages
         example: 10
 
+  ChatRoom:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      name:
+        type: string
+        nullable: true
+        example: "Campaign Collaboration Chat"
+      collaborationId:
+        type: integer
+        nullable: true
+        description: ID of the collaboration this chat room belongs to
+        example: 5
+      createdAt:
+        type: string
+        format: date-time
+        example: "2026-03-01T10:00:00Z"
+      updatedAt:
+        type: string
+        format: date-time
+        example: "2026-03-06T14:30:00Z"
+      participants:
+        type: array
+        items:
+          $ref: '#/schemas/ChatParticipant'
+      collaboration:
+        $ref: '#/schemas/Collaboration'
+
+  ChatParticipant:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      chatRoomId:
+        type: integer
+        example: 1
+      userId:
+        type: integer
+        example: 10
+      joinedAt:
+        type: string
+        format: date-time
+        example: "2026-03-01T10:00:00Z"
+      lastReadAt:
+        type: string
+        format: date-time
+        nullable: true
+        example: "2026-03-06T14:25:00Z"
+      user:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 10
+          firstName:
+            type: string
+            example: "John"
+          lastName:
+            type: string
+            example: "Doe"
+          email:
+            type: string
+            format: email
+            example: "john.doe@example.com"
+
+  Message:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 42
+      chatRoomId:
+        type: integer
+        example: 1
+      senderId:
+        type: integer
+        example: 10
+      content:
+        type: string
+        example: "Hello! Looking forward to our collaboration."
+      replyToId:
+        type: integer
+        nullable: true
+        description: ID of the message being replied to
+        example: 40
+      deliveryStatus:
+        type: string
+        enum: [sent, delivered, read]
+        default: sent
+        example: read
+      editedAt:
+        type: string
+        format: date-time
+        nullable: true
+        description: Timestamp when the message was last edited
+        example: "2026-03-06T14:35:00Z"
+      deletedAt:
+        type: string
+        format: date-time
+        nullable: true
+        description: Timestamp when the message was soft deleted
+        example: null
+      createdAt:
+        type: string
+        format: date-time
+        example: "2026-03-06T14:30:00Z"
+      updatedAt:
+        type: string
+        format: date-time
+        example: "2026-03-06T14:35:00Z"
+      sender:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 10
+          firstName:
+            type: string
+            example: "John"
+          lastName:
+            type: string
+            example: "Doe"
+          email:
+            type: string
+            format: email
+            example: "john.doe@example.com"
+      replyTo:
+        nullable: true
+        allOf:
+          - $ref: '#/schemas/Message'
+        description: The message being replied to (if any)
+
+  Notification:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      userId:
+        type: integer
+        example: 10
+      message:
+        type: string
+        example: "Your campaign has been approved"
+      type:
+        type: string
+        enum: [info, warning, error, success]
+        example: success
+      category:
+        type: string
+        enum: [collaboration, task, offer, campaign, message, system]
+        nullable: true
+        example: campaign
+      isRead:
+        type: boolean
+        default: false
+        example: false
+      actionUrl:
+        type: string
+        nullable: true
+        description: URL to navigate to when notification is clicked
+        example: "/campaigns/123"
+      imageUrl:
+        type: string
+        nullable: true
+        description: Optional image URL for the notification
+        example: "https://example.com/images/campaign.jpg"
+      expiresAt:
+        type: string
+        format: date-time
+        nullable: true
+        description: Optional expiration date for time-sensitive notifications
+        example: "2026-03-13T10:00:00Z"
+      createdAt:
+        type: string
+        format: date-time
+        example: "2026-03-06T14:30:00Z"
+      updatedAt:
+        type: string
+        format: date-time
+        example: "2026-03-06T14:30:00Z"
+

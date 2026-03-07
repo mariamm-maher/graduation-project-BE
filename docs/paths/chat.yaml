@@ -1,0 +1,584 @@
+paths:
+  /api/chat/collaboration/{collaborationId}:
+    get:
+      tags:
+        - Chat
+      summary: Get or create a collaboration chat room
+      description: Retrieves the chat room for a specific collaboration. Creates one if it doesn't exist. User must be a participant in the collaboration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: collaborationId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the collaboration
+          example: 1
+      responses:
+        '200':
+          description: Chat room retrieved or created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Chat room retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      chatRoom:
+                        $ref: '../components/schemas.yaml#/schemas/ChatRoom'
+                      recentMessages:
+                        type: array
+                        items:
+                          $ref: '../components/schemas.yaml#/schemas/Message'
+                      unreadCount:
+                        type: integer
+                        example: 5
+        '403':
+          description: User is not a participant in this collaboration
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Collaboration not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/chat/rooms:
+    get:
+      tags:
+        - Chat
+      summary: Get all chat rooms for the authenticated user
+      description: Returns a list of all chat rooms where the user is a participant, with latest message and unread count.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Chat rooms retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Chat rooms retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      chatRooms:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            collaborationId:
+                              type: integer
+                              example: 5
+                            lastMessage:
+                              type: string
+                              example: "Looking forward to working together!"
+                            lastMessageAt:
+                              type: string
+                              format: date-time
+                              example: "2026-03-06T14:30:00Z"
+                            unreadCount:
+                              type: integer
+                              example: 3
+                            participants:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: integer
+                                  firstName:
+                                    type: string
+                                  lastName:
+                                    type: string
+                                  email:
+                                    type: string
+                            collaboration:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                campaignId:
+                                  type: integer
+                                status:
+                                  type: string
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/chat/rooms/{chatRoomId}:
+    get:
+      tags:
+        - Chat
+      summary: Get chat room details
+      description: Retrieves detailed information about a specific chat room including participants and collaboration details.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: chatRoomId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the chat room
+          example: 1
+      responses:
+        '200':
+          description: Chat room details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Chat room details retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      chatRoom:
+                        $ref: '../components/schemas.yaml#/schemas/ChatRoom'
+        '403':
+          description: User is not a participant in this chat room
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Chat room not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/chat/rooms/{chatRoomId}/messages:
+    get:
+      tags:
+        - Chat
+      summary: Get message history for a chat room
+      description: Returns paginated message history for a specific chat room. Most recent messages are returned first.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: chatRoomId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the chat room
+          example: 1
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: Number of messages per page
+          example: 50
+      responses:
+        '200':
+          description: Message history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Message history retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          $ref: '../components/schemas.yaml#/schemas/Message'
+                      pagination:
+                        $ref: '../components/schemas.yaml#/schemas/Pagination'
+        '403':
+          description: User is not a participant in this chat room
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Chat room not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+    post:
+      tags:
+        - Chat
+      summary: Send a message in a chat room
+      description: Sends a new message to a specific chat room. User must be a participant. Message is also broadcast via WebSocket to all connected participants.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: chatRoomId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the chat room
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  description: The message content (max 2000 characters)
+                  example: "Hello! Looking forward to our collaboration."
+                  maxLength: 2000
+                replyToId:
+                  type: integer
+                  nullable: true
+                  description: ID of the message being replied to (optional)
+                  example: 42
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Message sent successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        $ref: '../components/schemas.yaml#/schemas/Message'
+        '400':
+          description: Invalid request body or message too long
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '403':
+          description: User is not a participant in this chat room
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Chat room not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/chat/messages/{messageId}:
+    put:
+      tags:
+        - Chat
+      summary: Edit a message
+      description: Edits an existing message. Only the message sender can edit their own messages. Edit is limited to 15 minutes after sending.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the message to edit
+          example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  description: The updated message content
+                  example: "Updated: Looking forward to our collaboration!"
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Message edited successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Message edited successfully
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        $ref: '../components/schemas.yaml#/schemas/Message'
+        '400':
+          description: Invalid request or edit time limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '403':
+          description: User is not the message sender or not a participant
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Chat
+      summary: Delete a message
+      description: Soft deletes a message by marking it as deleted. Only the message sender can delete their own messages.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the message to delete
+          example: 42
+      responses:
+        '200':
+          description: Message deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Message deleted successfully
+        '403':
+          description: User is not the message sender or not a participant
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/chat/rooms/{chatRoomId}/read:
+    post:
+      tags:
+        - Chat
+      summary: Mark all messages in a chat room as read
+      description: Marks all messages in the specified chat room as read for the authenticated user. Updates the lastReadAt timestamp for the participant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: chatRoomId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the chat room
+          example: 1
+      responses:
+        '200':
+          description: Messages marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Messages marked as read successfully
+        '403':
+          description: User is not a participant in this chat room
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '404':
+          description: Chat room not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas.yaml#/schemas/Error'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+# WebSocket Events Documentation (for reference only - not actual REST endpoints)
+# ================================================================================
+# These events are handled via Socket.io WebSocket connection, not HTTP REST API
+# Connect to the WebSocket server using Socket.io client library
+# Server URL: Same as REST API base URL but with Socket.io protocol
+#
+# Connection Authentication:
+#   - Send JWT access token via query parameter: ?token=<JWT_TOKEN>
+#   - Or via auth object: { auth: { token: '<JWT_TOKEN>' } }
+#
+# Chat Events:
+#   Client -> Server:
+#     - 'join_collaboration_chat': { collaborationId: number }
+#       Response: { chatRoom, recentMessages, unreadCount }
+#     
+#     - 'send_message': { chatRoomId: number, content: string, replyToId?: number }
+#       Broadcast: Sends 'new_message' event to all participants in the room
+#     
+#     - 'typing': { chatRoomId: number }
+#       Broadcast: Sends 'user_typing' event to other participants
+#     
+#     - 'stop_typing': { chatRoomId: number }
+#       Broadcast: Sends 'user_stop_typing' event to other participants
+#     
+#     - 'mark_messages_read': { chatRoomId: number }
+#       Response: { success: true }
+#     
+#     - 'leave_room': { chatRoomId: number }
+#       Leaves the Socket.io room
+#   
+#   Server -> Client:
+#     - 'new_message': { message: Message object, chatRoomId: number }
+#     
+#     - 'message_edited': { message: Message object, chatRoomId: number }
+#     
+#     - 'message_deleted': { messageId: number, chatRoomId: number }
+#     
+#     - 'user_typing': { userId: number, userName: string, chatRoomId: number }
+#     
+#     - 'user_stop_typing': { userId: number, chatRoomId: number }
+#     
+#     - 'messages_read': { userId: number, chatRoomId: number, timestamp: string }
+#
+# Notification Events:
+#   Client -> Server:
+#     - 'subscribe_notifications': Subscribes to personal notification channel
+#       Automatically joins room 'user:<userId>'
+#     
+#     - 'mark_notification_read': { notificationId: number }
+#     
+#     - 'mark_all_notifications_read': No parameters
+#   
+#   Server -> Client:
+#     - 'new_notification': { notification: Notification object }
+#       Sent to user's personal room when new notification is created
+#     
+#     - 'notification_read': { notificationId: number }
+#     
+#     - 'all_notifications_read': { userId: number }
+#
+# Error Events:
+#   Server -> Client:
+#     - 'error': { message: string, code?: string }
+#       Sent when an error occurs during event handling
+#
+# Connection Events:
+#   - 'connect': Fired when connection is established
+#   - 'disconnect': Fired when connection is closed
+#   - 'connect_error': Fired when connection fails
+#
+# Example Client Usage (JavaScript):
+#   const socket = io('http://localhost:5000', {
+#     auth: { token: 'your-jwt-token' }
+#   });
+#   
+#   socket.on('connect', () => {
+#     console.log('Connected to WebSocket server');
+#     socket.emit('join_collaboration_chat', { collaborationId: 1 });
+#   });
+#   
+#   socket.on('new_message', (data) => {
+#     console.log('New message received:', data.message);
+#   });
+#   
+#   socket.emit('send_message', {
+#     chatRoomId: 1,
+#     content: 'Hello from the client!'
+#   });

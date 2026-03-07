@@ -5,6 +5,8 @@ const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../
 const { calculateOwnerProfileCompletion, calculateInfluencerProfileCompletion } = require('../utils/profileCompletion');
 const { Session, UserRole } = require('../models');
 const { logAction } = require('../services/logServices');
+const sendEmail = require('../config/email');
+const crypto = require('crypto');
 const e = require('express');
 // Signup function
 exports.signup = (req, res, next) => {
@@ -172,9 +174,33 @@ exports.login = async (req, res, next) => {
           userId: user.id,
           email: user.email,
           needsRoleSelection: true,
+          needsOnboarding: false,
           accessToken,
           roles
         });
+      }
+
+      // Check if user needs onboarding (based on their role)
+      let needsOnboarding = false;
+      
+      if (roles.includes('INFLUENCER')) {
+        const { InfluencerProfile } = require('../models');
+        const influencerProfile = await InfluencerProfile.findOne({ 
+          where: { userId: user.id },
+          attributes: ['isOnboarded']
+        });
+        if (!influencerProfile || !influencerProfile.isOnboarded) {
+          needsOnboarding = true;
+        }
+      } else if (roles.includes('OWNER')) {
+        const { OwnerProfile } = require('../models');
+        const ownerProfile = await OwnerProfile.findOne({ 
+          where: { userId: user.id },
+          attributes: ['isOnboarded']
+        });
+        if (!ownerProfile || !ownerProfile.isOnboarded) {
+          needsOnboarding = true;
+        }
       }
 
       // 6️ Return success for user with role(s)
@@ -186,6 +212,7 @@ exports.login = async (req, res, next) => {
         lastName: user.lastName,
         accessToken,
         needsRoleSelection: false,
+        needsOnboarding: needsOnboarding,
         roles
       });
 
@@ -529,6 +556,7 @@ exports.googleAuthCallback = (req, res, next) => {
         redirectUrl.searchParams.append('lastName', user.lastName);
         redirectUrl.searchParams.append('accessToken', accessToken);
         redirectUrl.searchParams.append('needsRoleSelection', 'true');
+        redirectUrl.searchParams.append('needsOnboarding', 'false');
         redirectUrl.searchParams.append('roles', JSON.stringify([]));
         
         return res.redirect(redirectUrl.toString());
@@ -567,7 +595,31 @@ exports.googleAuthCallback = (req, res, next) => {
         } catch (e) {}
         
         redirectUrl.searchParams.append('needsRoleSelection', 'true');
+        redirectUrl.searchParams.append('needsOnboarding', 'false');
         return res.redirect(redirectUrl.toString());
+      }
+
+      // Check if user needs onboarding (based on their role)
+      let needsOnboarding = false;
+      
+      if (roles.includes('INFLUENCER')) {
+        const { InfluencerProfile } = require('../models');
+        const influencerProfile = await InfluencerProfile.findOne({ 
+          where: { userId: user.id },
+          attributes: ['isOnboarded']
+        });
+        if (!influencerProfile || !influencerProfile.isOnboarded) {
+          needsOnboarding = true;
+        }
+      } else if (roles.includes('OWNER')) {
+        const { OwnerProfile } = require('../models');
+        const ownerProfile = await OwnerProfile.findOne({ 
+          where: { userId: user.id },
+          attributes: ['isOnboarded']
+        });
+        if (!ownerProfile || !ownerProfile.isOnboarded) {
+          needsOnboarding = true;
+        }
       }
 
       // User has roles - successful sign-in
@@ -576,6 +628,7 @@ exports.googleAuthCallback = (req, res, next) => {
       } catch (e) {}
 
       redirectUrl.searchParams.append('needsRoleSelection', 'false');
+      redirectUrl.searchParams.append('needsOnboarding', needsOnboarding.toString());
       res.redirect(redirectUrl.toString());
     } catch (error) {
       return next(error);
@@ -652,6 +705,471 @@ exports.updateOwnerProfile = async (req, res, next) => {
     await profile.update({ completionPercentage: completion });
 
     sendSuccess(res, 200, 'Owner profile updated', { profile, completionPercentage: completion });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// =======================
+// PASSWORD MANAGEMENT
+// =======================
+
+// Forgot password - request password reset
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(new AppError('Email is required', 400));
+    }
+
+    const { User } = require('../models');
+    const user = await User.findOne({ where: { email } });
+
+    // Don't reveal if email exists or not (security best practice)
+    if (!user) {
+      return sendSuccess(res, 200, 'If that email exists, a password reset link has been sent', null);
+    }
+
+    // Check if user has a password (not OAuth-only user)
+    if (!user.password) {
+      return sendSuccess(res, 200, 'If that email exists, a password reset link has been sent', null);
+    }
+
+    // Generate reset token (plain text)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Hash token before storing in database
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Save hashed token and expiry to database (1 hour expiry)
+    await user.update({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    });
+
+    // Create reset URL
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/reset-password?token=${resetToken}`;
+
+    // Email template
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Password Reset Request</h2>
+        <p>Hello ${user.firstName},</p>
+        <p>You requested to reset your password. Click the button below to proceed:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" 
+             style="background-color: #007bff; color: white; padding: 12px 30px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="color: #666; word-break: break-all;">${resetUrl}</p>
+        <p><strong>This link will expire in 1 hour.</strong></p>
+        <p>If you didn't request this, please ignore this email. Your password will not be changed.</p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #999; font-size: 12px;">This is an automated email. Please do not reply.</p>
+      </div>
+    `;
+
+    const textMessage = `
+Hello ${user.firstName},
+
+You requested to reset your password. Click the link below to proceed:
+
+${resetUrl}
+
+This link will expire in 1 hour.
+
+If you didn't request this, please ignore this email. Your password will not be changed.
+    `;
+
+    // Send email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password Reset Request',
+        html: htmlMessage,
+        text: textMessage
+      });
+
+      // Log the password reset request
+      try {
+        await logAction({ 
+          req, 
+          action: 'REQUEST_PASSWORD_RESET', 
+          entity: 'User', 
+          entityId: user.id, 
+          meta: { email: user.email } 
+        });
+      } catch (logError) {
+        // Non-blocking: log errors are not critical
+      }
+
+      sendSuccess(res, 200, 'If that email exists, a password reset link has been sent', null);
+    } catch (emailError) {
+      // Revert the token if email fails
+      await user.update({
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      });
+
+      console.error('Error sending password reset email:', emailError);
+      return next(new AppError('Error sending password reset email. Please try again later.', 500));
+    }
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Reset password using token
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return next(new AppError('Token and password are required', 400));
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      return next(new AppError('Password must be at least 6 characters long', 400));
+    }
+
+    // Hash the provided token to compare with stored hash
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const { User } = require('../models');
+    
+    // Find user with matching token and non-expired token
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: {
+          [require('sequelize').Op.gt]: new Date() // Token not expired
+        }
+      }
+    });
+
+    if (!user) {
+      return next(new AppError('Invalid or expired reset token', 400));
+    }
+
+    // Update password (will be auto-hashed by User model hook)
+    await user.update({
+      password: password,
+      resetPasswordToken: null,
+      resetPasswordExpires: null
+    });
+
+    // Revoke all existing sessions for security
+    await Session.update(
+      { revokedAt: new Date() },
+      { 
+        where: { 
+          userId: user.id,
+          revokedAt: null
+        } 
+      }
+    );
+
+    // Log the password reset
+    try {
+      await logAction({ 
+        req, 
+        action: 'PASSWORD_RESET', 
+        entity: 'User', 
+        entityId: user.id, 
+        meta: { email: user.email } 
+      });
+    } catch (logError) {
+      // Non-blocking
+    }
+
+    sendSuccess(res, 200, 'Password has been reset successfully. Please login with your new password.', null);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Change password (authenticated user)
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return next(new AppError('Current password and new password are required', 400));
+    }
+
+    // Validate new password strength
+    if (newPassword.length < 6) {
+      return next(new AppError('New password must be at least 6 characters long', 400));
+    }
+
+    // Check if new password is different from current
+    if (currentPassword === newPassword) {
+      return next(new AppError('New password must be different from current password', 400));
+    }
+
+    const { User } = require('../models');
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Check if user has a password (not OAuth-only user)
+    if (!user.password) {
+      return next(new AppError('Cannot change password for OAuth-only accounts. Please set a password first.', 400));
+    }
+
+    // Verify current password
+    const isPasswordValid = await user.comparePassword(currentPassword);
+    if (!isPasswordValid) {
+      return next(new AppError('Current password is incorrect', 401));
+    }
+
+    // Update password (will be auto-hashed by User model hook)
+    await user.update({ password: newPassword });
+
+    // Log the password change
+    try {
+      await logAction({ 
+        req, 
+        action: 'CHANGE_PASSWORD', 
+        entity: 'User', 
+        entityId: user.id, 
+        meta: { email: user.email } 
+      });
+    } catch (logError) {
+      // Non-blocking
+    }
+
+    sendSuccess(res, 200, 'Password changed successfully', null);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// =======================
+// ONBOARDING
+// =======================
+
+// Influencer onboarding - complete profile setup
+exports.onboardInfluencer = async (req, res, next) => {
+  try {
+    const { InfluencerProfile, User, Role } = require('../models');
+    const userId = req.user.id;
+
+    // Verify user has influencer role
+    const user = await User.findByPk(userId, {
+      include: [{
+        model: Role,
+        as: 'roles',
+        attributes: ['name'],
+        through: { attributes: [] }
+      }]
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    const roles = user.roles ? user.roles.map(r => r.name) : [];
+    if (!roles.includes('INFLUENCER')) {
+      return next(new AppError('User does not have influencer role', 403));
+    }
+
+    // Find or create influencer profile
+    let profile = await InfluencerProfile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await InfluencerProfile.create({ userId });
+    }
+
+    // Check if already onboarded
+    if (profile.isOnboarded) {
+      return next(new AppError('Profile is already onboarded. Use the update endpoint to modify your profile.', 400));
+    }
+
+    // Allowed onboarding fields (all fields from onboarding questions)
+    const allowedFields = [
+      'bio', 'location', 'image', 'primaryPlatform', 'socialMediaLinks',
+      'followersCount', 'engagementRate', 'categories', 'contentTypes',
+      'collaborationTypes', 'audienceAgeRange', 'audienceGender',
+      'audienceLocation', 'interests'
+    ];
+
+    // Required fields for onboarding
+    const requiredFields = ['bio', 'location', 'primaryPlatform'];
+
+    // Validate required fields
+    for (const field of requiredFields) {
+      if (!req.body[field]) {
+        return next(new AppError(`${field} is required for onboarding`, 400));
+      }
+    }
+
+    // Build updates object
+    const updates = {};
+    for (const key of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        let val = req.body[key];
+        
+        // Parse JSON strings for complex types
+        const jsonFields = ['socialMediaLinks', 'categories', 'contentTypes', 'collaborationTypes', 'interests'];
+        if (jsonFields.includes(key) && typeof val === 'string') {
+          try { 
+            val = JSON.parse(val); 
+          } catch (e) { 
+            return next(new AppError(`Invalid JSON format for ${key}`, 400));
+          }
+        }
+        
+        updates[key] = val;
+      }
+    }
+
+    // Set onboarding flag
+    updates.isOnboarded = true;
+
+    // Update profile
+    await profile.update(updates);
+
+    // Calculate and update completion percentage
+    const completion = calculateInfluencerProfileCompletion(profile);
+    await profile.update({ completionPercentage: completion });
+
+    // Log onboarding completion
+    try {
+      await logAction({ 
+        req, 
+        action: 'COMPLETE_ONBOARDING', 
+        entity: 'InfluencerProfile', 
+        entityId: profile.id, 
+        meta: { userId, completionPercentage: completion } 
+      });
+    } catch (logError) {
+      // Non-blocking
+    }
+
+    sendSuccess(res, 200, 'Influencer onboarding completed successfully', { 
+      profile, 
+      completionPercentage: completion,
+      isOnboarded: true
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Owner onboarding - complete profile setup
+exports.onboardOwner = async (req, res, next) => {
+  try {
+    const { OwnerProfile, User, Role } = require('../models');
+    const userId = req.user.id;
+
+    // Verify user has owner role
+    const user = await User.findByPk(userId, {
+      include: [{
+        model: Role,
+        as: 'roles',
+        attributes: ['name'],
+        through: { attributes: [] }
+      }]
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    const roles = user.roles ? user.roles.map(r => r.name) : [];
+    if (!roles.includes('OWNER')) {
+      return next(new AppError('User does not have owner role', 403));
+    }
+
+    // Find or create owner profile
+    let profile = await OwnerProfile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await OwnerProfile.create({ userId });
+    }
+
+    // Check if already onboarded
+    if (profile.isOnboarded) {
+      return next(new AppError('Profile is already onboarded. Use the update endpoint to modify your profile.', 400));
+    }
+
+    // Allowed onboarding fields (all fields from onboarding questions)
+    const allowedFields = [
+      'businessName', 'businessType', 'industry', 'location', 'description',
+      'image', 'website', 'phoneNumber', 'platformsUsed', 'primaryMarketingGoal',
+      'targetAudience'
+    ];
+
+    // Required fields for onboarding
+    const requiredFields = ['businessName', 'businessType', 'industry', 'location'];
+
+    // Validate required fields
+    for (const field of requiredFields) {
+      if (!req.body[field]) {
+        return next(new AppError(`${field} is required for onboarding`, 400));
+      }
+    }
+
+    // Build updates object
+    const updates = {};
+    for (const key of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        let val = req.body[key];
+        
+        // Parse JSON strings for complex types
+        const jsonFields = ['platformsUsed', 'targetAudience'];
+        if (jsonFields.includes(key) && typeof val === 'string') {
+          try { 
+            val = JSON.parse(val); 
+          } catch (e) { 
+            return next(new AppError(`Invalid JSON format for ${key}`, 400));
+          }
+        }
+        
+        updates[key] = val;
+      }
+    }
+
+    // Set onboarding flag
+    updates.isOnboarded = true;
+
+    // Update profile
+    await profile.update(updates);
+
+    // Calculate and update completion percentage
+    const completion = calculateOwnerProfileCompletion(profile);
+    await profile.update({ completionPercentage: completion });
+
+    // Log onboarding completion
+    try {
+      await logAction({ 
+        req, 
+        action: 'COMPLETE_ONBOARDING', 
+        entity: 'OwnerProfile', 
+        entityId: profile.id, 
+        meta: { userId, completionPercentage: completion } 
+      });
+    } catch (logError) {
+      // Non-blocking
+    }
+
+    sendSuccess(res, 200, 'Owner onboarding completed successfully', { 
+      profile, 
+      completionPercentage: completion,
+      isOnboarded: true
+    });
   } catch (error) {
     return next(error);
   }

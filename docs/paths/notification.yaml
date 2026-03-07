@@ -45,6 +45,15 @@ paths:
                             isRead:
                               type: boolean
                               example: false
+                            category:
+                              type: string
+                              enum: [collaboration, task, offer, campaign, message, system]
+                              nullable: true
+                              example: campaign
+                            actionUrl:
+                              type: string
+                              nullable: true
+                              example: "/campaigns/123"
                             createdAt:
                               type: string
                               format: date-time
@@ -234,3 +243,94 @@ paths:
             application/json:
               schema:
                 $ref: '../components/schemas.yaml#/schemas/Error'
+
+# ==============================================================================
+# WebSocket Events Documentation (for reference only - not actual REST endpoints)
+# ==============================================================================
+# These events are handled via Socket.io WebSocket connection, not HTTP REST API
+# Connect to the WebSocket server using Socket.io client library
+# Server URL: Same as REST API base URL but with Socket.io protocol
+#
+# Connection Authentication:
+#   - Send JWT access token via query parameter: ?token=<JWT_TOKEN>
+#   - Or via auth object: { auth: { token: '<JWT_TOKEN>' } }
+#   - Connection will be rejected if token is invalid or expired
+#
+# Notification Events:
+#   Client -> Server:
+#     - 'subscribe_notifications': Subscribe to personal notification channel
+#       Parameters: None (uses authenticated user's ID)
+#       Response: Confirmation message
+#       Description: Automatically joins room 'user:<userId>' to receive notifications
+#     
+#     - 'mark_notification_read': { notificationId: number }
+#       Parameters: { notificationId: number }
+#       Response: { success: true }
+#       Description: Marks a single notification as read
+#     
+#     - 'mark_all_notifications_read': No parameters
+#       Parameters: None
+#       Response: { success: true }
+#       Description: Marks all user's notifications as read
+#   
+#   Server -> Client:
+#     - 'new_notification': { notification: Notification }
+#       Sent when: A new notification is created for the user
+#       Payload: { notification: Notification object }
+#       Description: Real-time notification delivery to user's personal room
+#     
+#     - 'notification_read': { notificationId: number }
+#       Sent when: A notification is marked as read
+#       Payload: { notificationId: number }
+#       Description: Confirms notification was marked as read
+#     
+#     - 'all_notifications_read': { userId: number }
+#       Sent when: All notifications are marked as read
+#       Payload: { userId: number }
+#       Description: Confirms all notifications were marked as read
+#
+# Connection Events:
+#   - 'connect': Fired when connection is established
+#   - 'disconnect': Fired when connection is closed
+#   - 'connect_error': Fired when connection fails
+#
+# Error Events:
+#   Server -> Client:
+#     - 'error': { message: string, code?: string }
+#       Sent when: An error occurs during event handling
+#       Payload: { message: string, code?: string }
+#
+# Example Client Usage (JavaScript):
+#   const socket = io('http://localhost:5000', {
+#     auth: { token: 'your-jwt-token' }
+#   });
+#   
+#   socket.on('connect', () => {
+#     console.log('Connected to WebSocket server');
+#     socket.emit('subscribe_notifications');
+#   });
+#   
+#   socket.on('new_notification', (data) => {
+#     console.log('New notification received:', data.notification);
+#     // Display toast/notification in UI
+#   });
+#   
+#   socket.emit('mark_notification_read', { notificationId: 123 });
+#
+# Example Client Usage (TypeScript with React):
+#   import { io, Socket } from 'socket.io-client';
+#   
+#   const socket: Socket = io('http://localhost:5000', {
+#     auth: { token: localStorage.getItem('accessToken') }
+#   });
+#   
+#   useEffect(() => {
+#     socket.on('new_notification', (data) => {
+#       setNotifications(prev => [data.notification, ...prev]);
+#       toast.success(data.notification.message);
+#     });
+#     
+#     return () => {
+#       socket.off('new_notification');
+#     };
+#   }, []);
