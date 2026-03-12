@@ -558,8 +558,16 @@ paths:
         One-time profile setup for influencer after role selection. 
         Accepts all onboarding form data and sets isOnboarded flag to true.
         This endpoint can only be used once - subsequent updates should use the profile update endpoint.
-      security:
-        - bearerAuth: []
+        Pass the user's ID as the `id` query parameter.
+      security: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: The user's ID
+          example: 42
       requestBody:
         required: true
         content:
@@ -688,8 +696,16 @@ paths:
         One-time profile setup for business owner after role selection. 
         Accepts all onboarding form data and sets isOnboarded flag to true.
         This endpoint can only be used once - subsequent updates should use the profile update endpoint.
-      security:
-        - bearerAuth: []
+        Pass the user's ID as the `id` query parameter.
+      security: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: The user's ID
+          example: 7
       requestBody:
         required: true
         content:

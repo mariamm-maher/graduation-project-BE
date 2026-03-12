@@ -966,7 +966,8 @@ exports.changePassword = async (req, res, next) => {
 exports.onboardInfluencer = async (req, res, next) => {
   try {
     const { InfluencerProfile, User, Role } = require('../models');
-    const userId = req.user.id;
+    const userId = req.query.id;
+    if (!userId) return next(new AppError('User id is required as a query parameter (?id=)', 400));
 
     // Verify user has influencer role
     const user = await User.findByPk(userId, {
@@ -1073,7 +1074,8 @@ exports.onboardInfluencer = async (req, res, next) => {
 exports.onboardOwner = async (req, res, next) => {
   try {
     const { OwnerProfile, User, Role } = require('../models');
-    const userId = req.user.id;
+    const userId = req.query.id;
+    if (!userId) return next(new AppError('User id is required as a query parameter (?id=)', 400));
 
     // Verify user has owner role
     const user = await User.findByPk(userId, {

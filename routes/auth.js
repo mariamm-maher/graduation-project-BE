@@ -106,14 +106,14 @@ router.post('/change-password', authenticate, require('../controllers/authContro
 // ONBOARDING
 // =======================
 
-// @route   PATCH /api/auth/influencer/onboarding
+// @route   PATCH /api/auth/influencer/onboarding?id=<userId>
 // @desc    Complete influencer onboarding (one-time setup)
-// @access  Private (requires INFLUENCER role)
-router.patch('/influencer/onboarding', authenticate, onboardInfluencer);
+// @access  Public (userId passed via query param)
+router.patch('/influencer/onboarding', onboardInfluencer);
 
-// @route   PATCH /api/auth/owner/onboarding
+// @route   PATCH /api/auth/owner/onboarding?id=<userId>
 // @desc    Complete owner onboarding (one-time setup)
-// @access  Private (requires OWNER role)
-router.patch('/owner/onboarding', authenticate, onboardOwner);
+// @access  Public (userId passed via query param)
+router.patch('/owner/onboarding', onboardOwner);
 
 module.exports = router;  

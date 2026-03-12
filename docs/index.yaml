@@ -354,14 +354,9 @@ paths:
 
   # ==================== UPLOAD ENDPOINTS ====================
 
-  /api/upload/image:
-    $ref: './paths/upload.yaml#/paths/~1api~1upload~1image'
-  /api/upload/images:
-    $ref: './paths/upload.yaml#/paths/~1api~1upload~1images'
-  /api/upload/document:
-    $ref: './paths/upload.yaml#/paths/~1api~1upload~1document'
-  /api/upload/{fileId}:
-    $ref: './paths/upload.yaml#/paths/~1api~1upload~1{fileId}'
+  /api/upload:
+    $ref: './paths/upload.yaml#/paths/~1api~1upload'
+
 
   # ==================== ANALYTICS ENDPOINTS ====================
 

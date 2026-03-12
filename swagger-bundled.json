@@ -926,10 +926,18 @@
           "Auth"
         ],
         "summary": "Complete influencer onboarding",
-        "description": "One-time profile setup for influencer after role selection. \nAccepts all onboarding form data and sets isOnboarded flag to true.\nThis endpoint can only be used once - subsequent updates should use the profile update endpoint.\n",
-        "security": [
+        "description": "One-time profile setup for influencer after role selection. \nAccepts all onboarding form data and sets isOnboarded flag to true.\nThis endpoint can only be used once - subsequent updates should use the profile update endpoint.\nPass the user's ID as the `id` query parameter.\n",
+        "security": [],
+        "parameters": [
           {
-            "bearerAuth": []
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The user's ID",
+            "example": 42
           }
         ],
         "requestBody": {
@@ -1155,10 +1163,18 @@
           "Auth"
         ],
         "summary": "Complete owner onboarding",
-        "description": "One-time profile setup for business owner after role selection. \nAccepts all onboarding form data and sets isOnboarded flag to true.\nThis endpoint can only be used once - subsequent updates should use the profile update endpoint.\n",
-        "security": [
+        "description": "One-time profile setup for business owner after role selection. \nAccepts all onboarding form data and sets isOnboarded flag to true.\nThis endpoint can only be used once - subsequent updates should use the profile update endpoint.\nPass the user's ID as the `id` query parameter.\n",
+        "security": [],
+        "parameters": [
           {
-            "bearerAuth": []
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The user's ID",
+            "example": 7
           }
         ],
         "requestBody": {
@@ -9257,16 +9273,29 @@
         }
       }
     },
-    "/api/upload/image": {
+    "/api/upload": {
       "post": {
         "tags": [
           "Upload"
         ],
-        "summary": "Upload a single image",
-        "description": "Uploads a single image file (max 10MB). File must be sent as form-data with key 'image'.",
-        "security": [
+        "summary": "Upload image to Cloudinary",
+        "description": "Uploads a single image file to Cloudinary and returns the hosted URL.\nUse the optional `type` query parameter to route the image to the correct folder:\n- `avatar` → `avatars/`\n- `brandLogo` → `brand-logos/`\n- `campaignAsset` → `campaign-assets/`\n- *(omit)* → `general/`\n\n**Constraints:**\n- Field name must be `file`\n- Max file size: 5 MB\n- Allowed types: PNG, JPEG, JPG, WEBP\n",
+        "security": [],
+        "parameters": [
           {
-            "bearerAuth": []
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "avatar",
+                "brandLogo",
+                "campaignAsset"
+              ]
+            },
+            "description": "Upload destination type (controls Cloudinary folder)",
+            "example": "avatar"
           }
         ],
         "requestBody": {
@@ -9275,10 +9304,14 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "file"
+                ],
                 "properties": {
-                  "image": {
+                  "file": {
                     "type": "string",
-                    "format": "binary"
+                    "format": "binary",
+                    "description": "Image file (PNG, JPEG, JPG, WEBP — max 5 MB)"
                   }
                 }
               }
@@ -9287,166 +9320,67 @@
         },
         "responses": {
           "201": {
-            "description": "Image uploaded successfully"
-          },
-          "400": {
-            "description": "Invalid file or no file uploaded"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/upload/images": {
-      "post": {
-        "tags": [
-          "Upload"
-        ],
-        "summary": "Upload multiple images",
-        "description": "Uploads up to 10 images (max 10MB each). Files must be sent as form-data with key 'images'.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "images": {
-                    "type": "array",
-                    "items": {
+            "description": "Image uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
                       "type": "string",
-                      "format": "binary"
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Image uploaded successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri",
+                          "description": "Cloudinary hosted image URL (https)",
+                          "example": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/avatars/abc123.webp"
+                        },
+                        "publicId": {
+                          "type": "string",
+                          "description": "Cloudinary public_id for future deletion or transformation",
+                          "example": "avatars/abc123"
+                        }
+                      }
                     }
                   }
                 }
               }
             }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Images uploaded successfully"
           },
           "400": {
-            "description": "Invalid files or no files uploaded"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/upload/document": {
-      "post": {
-        "tags": [
-          "Upload"
-        ],
-        "summary": "Upload a document (PDF or DOCX)",
-        "description": "Uploads a single document file (PDF or DOCX, max 10MB). File must be sent as form-data with key 'document'.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "document": {
-                    "type": "string",
-                    "format": "binary"
-                  }
+            "description": "Invalid request. Possible reasons:\n- No file uploaded\n- File type not allowed (only PNG, JPEG, JPG, WEBP)\n- File exceeds 5 MB limit\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Document uploaded successfully"
-          },
-          "400": {
-            "description": "Invalid file type or no file uploaded"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/upload/{fileId}": {
-      "get": {
-        "tags": [
-          "Upload"
-        ],
-        "summary": "Get file metadata",
-        "description": "Retrieves metadata and URL of an uploaded file (only if owned by the user).",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "fileId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
+          },
+          "500": {
+            "description": "Cloudinary upload failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File metadata retrieved"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Upload"
-        ],
-        "summary": "Delete uploaded file",
-        "description": "Deletes the file and its record (only if owned by the user).",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "fileId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File deleted successfully"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
           }
         }
       }

@@ -45,7 +45,7 @@ const OwnerProfile = sequelize.define('OwnerProfile', {
   website: {
     type: DataTypes.STRING,
     allowNull: true,
-    validate: { isUrl: true }
+    // validate: { isUrl: true }
   },
   phoneNumber: {
     type: DataTypes.STRING,

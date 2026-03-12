@@ -27,7 +27,7 @@ const Offer = require('./Offer');
 const Proposal = require('./Proposal');
 //const SocialMediaAccount = require('./SocialMediaAccount');
 const Notification = require('./Notification');
-const UploadedFile = require('./UploadedFile');
+// UploadedFile model removed — using Cloudinary only (no local DB model)
 // Define relationships
 
 // User and Role - Many-to-Many
@@ -352,17 +352,7 @@ Notification.belongsTo(User, {
   as: 'user'
 });
 
-// User and UploadedFile - One-to-Many
-User.hasMany(UploadedFile, {
-  foreignKey: 'userId',
-  as: 'uploadedFiles',
-  onDelete: 'CASCADE'
-});
-
-UploadedFile.belongsTo(User, {
-  foreignKey: 'userId',
-  as: 'user'
-});
+// UploadedFile associations removed
 module.exports = {
   sequelize,
   User,
@@ -387,8 +377,6 @@ module.exports = {
   ServiceListing,
   ServiceRequest,
   Offer,
-  Proposal
-  ,
+  Proposal,
   Log,
-  UploadedFile,
 };

@@ -46,14 +46,14 @@ const InfluencerProfile = sequelize.define('InfluencerProfile', {
     allowNull: true
   },
   followersCount: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     allowNull: true,
-    defaultValue: 0
+    defaultValue: ''
   },
   engagementRate: {
-    type: DataTypes.DECIMAL(5,2),
+    type: DataTypes.STRING,
     allowNull: true,
-    defaultValue: 0.0
+    defaultValue: ''
   },
 
   // Content & Niches
