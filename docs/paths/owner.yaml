@@ -1,4 +1,150 @@
 paths:
+  /api/owner/overview:
+    get:
+      tags:
+        - Owner
+      summary: Get Owner Dashboard Overview
+      description: Returns aggregated overview data for the authenticated owner dashboard.
+      operationId: getOwnerOverview
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: dateRange
+          required: false
+          schema:
+            type: string
+            enum: [30d, 90d, 365d]
+            default: 30d
+          description: Date range window used for aggregation.
+      responses:
+        '200':
+          description: Owner dashboard overview retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Owner dashboard overview retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      kpis:
+                        type: object
+                        properties:
+                          totalEngagement:
+                            type: number
+                          totalReach:
+                            type: number
+                          activeCampaigns:
+                            type: integer
+                          pausedCampaigns:
+                            type: integer
+                          pendingCampaigns:
+                            type: integer
+                          avgROI:
+                            type: number
+                          spendToDate:
+                            type: number
+                      performanceSeries:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                              format: date-time
+                            engagement:
+                              type: number
+                            reach:
+                              type: number
+                      activeCampaigns:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            brand:
+                              type: string
+                            status:
+                              type: string
+                            engagement:
+                              type: number
+                            reach:
+                              type: number
+                            budget:
+                              type: number
+                            progress:
+                              type: number
+                            daysLeft:
+                              type: integer
+                            influencersCount:
+                              type: integer
+                            leadInfluencer:
+                              type: string
+                      pendingCampaigns:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            brand:
+                              type: string
+                            status:
+                              type: string
+                            estimatedTime:
+                              type: string
+                              nullable: true
+                            createdAt:
+                              type: string
+                              format: date-time
+                      communicationsFeed:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            influencer:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                avatarUrl:
+                                  type: string
+                                  nullable: true
+                            action:
+                              type: string
+                            platform:
+                              type: string
+                            status:
+                              type: string
+                            occurredAt:
+                              type: string
+                              format: date-time
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+
   /api/owner/influencers:
     get:
       tags:

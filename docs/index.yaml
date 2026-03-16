@@ -36,6 +36,8 @@ tags:
     description: Collaboration Tasks Management
   - name: Owners
     description: Owner Profile and Operations
+  - name: Influencer
+    description: Influencer Profile and Dashboard Operations
   - name: Social Media
     description: Social Media Integrations
   - name: Service Listings
@@ -269,6 +271,22 @@ paths:
 
   /api/owner/influencers/{id}:
     $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers~1{id}'
+
+  /api/owner/overview:
+    $ref: './paths/owner.yaml#/paths/~1api~1owner~1overview'
+
+  # ==================== INFLUENCER ENDPOINTS ====================
+  /api/influencer/campaigns/explore:
+    $ref: './paths/influencer.yaml#/paths/~1api~1influencer~1campaigns~1explore'
+
+  /api/influencer/campaigns/{id}:
+    $ref: './paths/influencer.yaml#/paths/~1api~1influencer~1campaigns~1{id}'
+
+  /api/influencer/campaigns/{id}/apply:
+    $ref: './paths/influencer.yaml#/paths/~1api~1influencer~1campaigns~1{id}~1apply'
+
+  /api/influencer/overview:
+    $ref: './paths/influencer.yaml#/paths/~1api~1influencer~1overview'
 
   # ==================== ADMIN ENDPOINTS ====================
   /api/admin/analytics:

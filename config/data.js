@@ -159,7 +159,11 @@ async function seedData() {
         ],
         startDate: new Date(),
         endDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-        status: 'sent'
+        status: 'signed',
+        ownerSigned: true,
+        influencerSigned: true,
+        ownerSignedAt: new Date(),
+        influencerSignedAt: new Date()
       }
     });
 

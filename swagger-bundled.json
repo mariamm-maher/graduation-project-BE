@@ -53,6 +53,10 @@
       "description": "Owner Profile and Operations"
     },
     {
+      "name": "Influencer",
+      "description": "Influencer Profile and Dashboard Operations"
+    },
+    {
       "name": "Social Media",
       "description": "Social Media Integrations"
     },
@@ -6869,6 +6873,967 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/api/owner/overview": {
+      "get": {
+        "tags": [
+          "Owner"
+        ],
+        "summary": "Get Owner Dashboard Overview",
+        "description": "Returns aggregated overview data for the authenticated owner dashboard.",
+        "operationId": "getOwnerOverview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "30d",
+                "90d",
+                "365d"
+              ],
+              "default": "30d"
+            },
+            "description": "Date range window used for aggregation."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner dashboard overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Owner dashboard overview retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "kpis": {
+                          "type": "object",
+                          "properties": {
+                            "totalEngagement": {
+                              "type": "number"
+                            },
+                            "totalReach": {
+                              "type": "number"
+                            },
+                            "activeCampaigns": {
+                              "type": "integer"
+                            },
+                            "pausedCampaigns": {
+                              "type": "integer"
+                            },
+                            "pendingCampaigns": {
+                              "type": "integer"
+                            },
+                            "avgROI": {
+                              "type": "number"
+                            },
+                            "spendToDate": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "performanceSeries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "engagement": {
+                                "type": "number"
+                              },
+                              "reach": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "activeCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "engagement": {
+                                "type": "number"
+                              },
+                              "reach": {
+                                "type": "number"
+                              },
+                              "budget": {
+                                "type": "number"
+                              },
+                              "progress": {
+                                "type": "number"
+                              },
+                              "daysLeft": {
+                                "type": "integer"
+                              },
+                              "influencersCount": {
+                                "type": "integer"
+                              },
+                              "leadInfluencer": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "pendingCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "estimatedTime": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "communicationsFeed": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "influencer": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "avatarUrl": {
+                                    "type": "string",
+                                    "nullable": true
+                                  }
+                                }
+                              },
+                              "action": {
+                                "type": "string"
+                              },
+                              "platform": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "occurredAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
+        }
+      }
+    },
+    "/api/influencer/campaigns/explore": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Explore campaigns open for application",
+        "description": "Returns published campaigns that are currently open for influencer applications.",
+        "operationId": "exploreInfluencerCampaigns",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional platform filter (e.g. Instagram, TikTok)."
+          },
+          {
+            "in": "query",
+            "name": "minPayment",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Optional minimum campaign budget."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Pagination page number."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "description": "Number of campaigns per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaigns explored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaigns explored successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "budget": {
+                                "type": "object",
+                                "properties": {
+                                  "total": {
+                                    "type": "number"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "lifecycleStage": {
+                                "type": "string"
+                              },
+                              "isPublished": {
+                                "type": "boolean"
+                              },
+                              "startDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "platforms": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "applied": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "page": {
+                              "type": "integer"
+                            },
+                            "limit": {
+                              "type": "integer"
+                            },
+                            "totalItems": {
+                              "type": "integer"
+                            },
+                            "totalPages": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
+        }
+      }
+    },
+    "/api/influencer/campaigns/{id}": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Get campaign details for influencer",
+        "description": "Returns one published campaign with influencer-specific application/collaboration state.",
+        "operationId": "getInfluencerCampaignById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Campaign ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "brand": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "budget": {
+                              "type": "object",
+                              "properties": {
+                                "total": {
+                                  "type": "number"
+                                },
+                                "currency": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "lifecycleStage": {
+                              "type": "string"
+                            },
+                            "isPublished": {
+                              "type": "boolean"
+                            },
+                            "startDate": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "endDate": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "platforms": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "applied": {
+                              "type": "boolean"
+                            },
+                            "application": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "collaboration": {
+                              "type": "object",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/api/influencer/campaigns/{id}/apply": {
+      "post": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Apply to a campaign",
+        "description": "Sends an influencer application (stored as collaboration request) for the selected campaign.",
+        "operationId": "applyToInfluencerCampaign",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Campaign ID"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "proposedBudget": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Application submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 201
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Application submitted successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "request": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "campaignId": {
+                              "type": "string"
+                            },
+                            "ownerId": {
+                              "type": "string"
+                            },
+                            "influencerId": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "proposedBudget": {
+                              "type": "number"
+                            },
+                            "message": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "409": {
+            "description": "Already applied or already collaborating on this campaign"
+          }
+        }
+      }
+    },
+    "/api/influencer/overview": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Get Influencer Dashboard Overview",
+        "description": "Returns aggregated overview data for the authenticated influencer dashboard.",
+        "operationId": "getInfluencerOverview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "365d"
+              ],
+              "default": "30d"
+            },
+            "description": "Date range window used for aggregation."
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional platform filter for available campaigns."
+          },
+          {
+            "in": "query",
+            "name": "minPayment",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Optional minimum payment filter for available campaigns."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Pagination page for available campaigns."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "description": "Number of available campaigns to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencer dashboard overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Influencer dashboard overview retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "kpis": {
+                          "type": "object",
+                          "properties": {
+                            "totalEngagement": {
+                              "type": "number"
+                            },
+                            "totalReach": {
+                              "type": "number"
+                            },
+                            "activeCollaborations": {
+                              "type": "integer"
+                            },
+                            "pendingActions": {
+                              "type": "integer"
+                            },
+                            "monthlyEarnings": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "performanceSeries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "engagement": {
+                                "type": "number"
+                              },
+                              "reach": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "activeCollaborations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "campaignName": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "earnings": {
+                                "type": "number"
+                              },
+                              "deliverables": {
+                                "type": "object",
+                                "properties": {
+                                  "completed": {
+                                    "type": "integer"
+                                  },
+                                  "total": {
+                                    "type": "integer"
+                                  }
+                                }
+                              },
+                              "progress": {
+                                "type": "number"
+                              },
+                              "daysLeft": {
+                                "type": "integer"
+                              },
+                              "platforms": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "availableCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "payment": {
+                                "type": "object",
+                                "properties": {
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "deadline": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "platforms": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "applied": {
+                                "type": "boolean"
+                              },
+                              "saved": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "activityFeed": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "action": {
+                                "type": "string"
+                              },
+                              "campaign": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "brand": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "platform": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "occurredAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "requiresAction": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "profileCompletion": {
+                          "type": "object",
+                          "properties": {
+                            "completionPercentage": {
+                              "type": "integer"
+                            },
+                            "missingFields": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
           }
         }
       }

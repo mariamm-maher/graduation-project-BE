@@ -47,6 +47,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/influencer', require('./routes/influencerOverviewRoutes'));
 
 
 // Documentation Route

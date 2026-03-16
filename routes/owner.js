@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const ownerController = require('../controllers/ownerController');
+const ownerOverviewRoutes = require('./ownerOverviewRoutes');
 const { authenticate, authorize } = require('../middleware/auth');
+
+router.use('/', ownerOverviewRoutes);
 
 /**
  * @route   GET /api/owner/influencers
