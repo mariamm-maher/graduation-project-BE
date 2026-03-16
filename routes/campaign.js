@@ -11,12 +11,17 @@ const {
   cancelCampaign,
   getCampaigns,
   getCampaignById,
+  getCampaignsOverview,
   deleteCampaign
 } = require('../controllers/compaginController');
 
 // @route   GET /api/campaigns
 // @desc    Get all campaigns for authenticated user
 router.get('/', authenticate, authorize('OWNER'), getCampaigns);
+
+// @route   GET /api/campaigns/overview
+// @desc    Get campaigns overview (totals and recent campaigns)
+router.get('/overview', authenticate, authorize('OWNER'), getCampaignsOverview);
 
 // @route   GET /api/campaigns/:id
 // @desc    Get single campaign with all relations

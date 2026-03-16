@@ -8,26 +8,20 @@ class NotificationService {
    */
   async createNotification({
     userId,
-    category,
     type,
-    title,
     message,
-    relatedId = null,
-    actionUrl = null,
-    imageUrl = null,
-    expiresAt = null
+    entityType = null,
+    entityId = null,
+    metadata = {}
   }) {
     try {
       const notification = await Notification.create({
         userId,
-        category,
         type,
-        title,
         message,
-        relatedId,
-        actionUrl,
-        imageUrl,
-        expiresAt,
+        entityType,
+        entityId,
+        metadata,
         isRead: false
       });
 
@@ -35,13 +29,11 @@ class NotificationService {
       try {
         emitToUser(userId, 'notification', {
           id: notification.id,
-          category: notification.category,
           type: notification.type,
-          title: notification.title,
           message: notification.message,
-          relatedId: notification.relatedId,
-          actionUrl: notification.actionUrl,
-          imageUrl: notification.imageUrl,
+          entityType: notification.entityType,
+          entityId: notification.entityId,
+          metadata: notification.metadata,
           isRead: false,
           createdAt: notification.createdAt
         });
@@ -73,13 +65,11 @@ class NotificationService {
         try {
           emitToUser(notification.userId, 'notification', {
             id: notification.id,
-            category: notification.category,
             type: notification.type,
-            title: notification.title,
             message: notification.message,
-            relatedId: notification.relatedId,
-            actionUrl: notification.actionUrl,
-            imageUrl: notification.imageUrl,
+            entityType: notification.entityType,
+            entityId: notification.entityId,
+            metadata: notification.metadata,
             isRead: false,
             createdAt: notification.createdAt
           });
@@ -105,27 +95,19 @@ class NotificationService {
     const {
       page = 1,
       limit = 20,
-      category = null,
-      isRead = null,
-      includeExpired = false
+      type = null,
+      isRead = null
     } = options;
 
     const offset = (page - 1) * limit;
     const where = { userId };
 
-    if (category) {
-      where.category = category;
+    if (type) {
+      where.type = type;
     }
 
     if (isRead !== null) {
       where.isRead = isRead;
-    }
-
-    if (!includeExpired) {
-      where[Op.or] = [
-        { expiresAt: null },
-        { expiresAt: { [Op.gt]: new Date() } }
-      ];
     }
 
     const { count, rows: notifications } = await Notification.findAndCountAll({
@@ -154,11 +136,7 @@ class NotificationService {
       const count = await Notification.count({
         where: {
           userId,
-          isRead: false,
-          [Op.or]: [
-            { expiresAt: null },
-            { expiresAt: { [Op.gt]: new Date() } }
-          ]
+          isRead: false
         }
       });
 
@@ -182,7 +160,7 @@ class NotificationService {
         return false;
       }
 
-      await notification.update({ isRead: true });
+      await notification.update({ isRead: true, readAt: new Date() });
 
       // Emit update via Socket.io
       try {
@@ -206,7 +184,7 @@ class NotificationService {
   async markAllAsRead(userId) {
     try {
       await Notification.update(
-        { isRead: true },
+        { isRead: true, readAt: new Date() },
         {
           where: {
             userId,

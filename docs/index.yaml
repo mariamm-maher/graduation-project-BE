@@ -23,13 +23,21 @@ servers:
 
 tags:
   - name: Auth
-    description: Authentication and User Management
+    description: Authentication and Session Management
   - name: Campaigns
-    description: Campaign Management and AI Generation
-  - name: Owner
-    description: Owner Operations (Browse Influencers, Manage Campaigns)
+    description: Campaign Management
+  - name: Collaboration Requests
+    description: Requests & Negotiation
   - name: Collaborations
-    description: Influencer Collaboration Management
+    description: Core Collaborations
+  - name: Collaboration Contracts
+    description: Collaboration Contracts
+  - name: Collaboration Tasks
+    description: Collaboration Tasks Management
+  - name: Owners
+    description: Owner Profile and Operations
+  - name: Social Media
+    description: Social Media Integrations
   - name: Service Listings
     description: Influencer Service Listings Management
   - name: Offers
@@ -38,7 +46,7 @@ tags:
     description: Real-time Chat and Messaging (REST API + WebSocket)
   - name: Admin
     description: Administrative Operations (Admin Only)
-  - name: Notifications          
+  - name: Notifications
     description: User Notifications Management
   - name: Upload
     description: File Upload and Management
@@ -117,6 +125,8 @@ paths:
   # ==================== CAMPAIGN ENDPOINTS ====================
   /api/campaigns:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns'
+  /api/campaigns/overview:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1overview'
   
   /api/campaigns/ai/generate:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1ai~1generate'
@@ -140,26 +150,23 @@ paths:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1{id}~1cancel'
 
   # ==================== COLLABORATION ENDPOINTS ====================
-  /api/collaborations:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations'
+  /api/collaboration-requests:
+    $ref: './paths/collaborationRequests.yaml#/paths/~1api~1collaboration-requests'
 
-  /api/collaborations/requests:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1requests'
+  /api/collaboration-requests/mine/sent:
+    $ref: './paths/collaborationRequests.yaml#/paths/~1api~1collaboration-requests~1mine~1sent'
 
-  /api/collaborations/requests/mine/sent:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1requests~1mine~1sent'
+  /api/collaboration-requests/mine/received:
+    $ref: './paths/collaborationRequests.yaml#/paths/~1api~1collaboration-requests~1mine~1received'
 
-  /api/collaborations/requests/mine/received:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1requests~1mine~1received'
+  /api/collaboration-requests/{id}:
+    $ref: './paths/collaborationRequests.yaml#/paths/~1api~1collaboration-requests~1{id}'
 
-  /api/collaborations/requests/{id}:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1requests~1{id}'
+  /api/collaboration-requests/{id}/respond:
+    $ref: './paths/collaborationRequests.yaml#/paths/~1api~1collaboration-requests~1{id}~1respond'
 
-  /api/collaborations/requests/{id}/respond:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1requests~1{id}~1respond'
-
-  /api/collaborations/requests/{id}/cancel:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1requests~1{id}~1cancel'
+  /api/collaboration-requests/{id}/cancel:
+    $ref: './paths/collaborationRequests.yaml#/paths/~1api~1collaboration-requests~1{id}~1cancel'
 
   /api/collaborations/mine/owner:
     $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1mine~1owner'
@@ -176,38 +183,41 @@ paths:
   /api/collaborations/{id}/complete:
     $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1{id}~1complete'
 
-  /api/collaborations/{collaborationId}/contract:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1{collaborationId}~1contract'
+  /api/collaboration-contracts/collaboration/{collaborationId}:
+    $ref: './paths/collaborationContracts.yaml#/paths/~1api~1collaboration-contracts~1collaboration~1{collaborationId}'
 
-  /api/collaborations/contracts/{id}:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1contracts~1{id}'
+  /api/collaboration-contracts/mine/owner:
+    $ref: './paths/collaborationContracts.yaml#/paths/~1api~1collaboration-contracts~1mine~1owner'
 
-  /api/collaborations/contracts/{id}/send:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1contracts~1{id}~1send'
+  /api/collaboration-contracts/mine/influencer:
+    $ref: './paths/collaborationContracts.yaml#/paths/~1api~1collaboration-contracts~1mine~1influencer'
 
-  /api/collaborations/contracts/{id}/sign:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1contracts~1{id}~1sign'
+  /api/collaboration-contracts/{id}/sign/owner:
+    $ref: './paths/collaborationContracts.yaml#/paths/~1api~1collaboration-contracts~1{id}~1sign~1owner'
 
-  /api/collaborations/{collaborationId}/tasks:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1{collaborationId}~1tasks'
+  /api/collaboration-contracts/{id}/sign/influencer:
+    $ref: './paths/collaborationContracts.yaml#/paths/~1api~1collaboration-contracts~1{id}~1sign~1influencer'
 
-  /api/collaborations/tasks/{id}:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1tasks~1{id}'
+  /api/collaboration-tasks/collaboration/{collaborationId}:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1collaboration~1{collaborationId}'
 
-  /api/collaborations/tasks/{id}/start:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1tasks~1{id}~1start'
+  /api/collaboration-tasks/{id}:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}'
 
-  /api/collaborations/tasks/{id}/submit:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1tasks~1{id}~1submit'
+  /api/collaboration-tasks/{id}/start:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}~1start'
 
-  /api/collaborations/tasks/{id}/approve:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1tasks~1{id}~1approve'
+  /api/collaboration-tasks/{id}/submit:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}~1submit'
 
-  /api/collaborations/tasks/{id}/reject:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1tasks~1{id}~1reject'
+  /api/collaboration-tasks/{id}/approve:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}~1approve'
 
-  /api/collaborations/tasks/{id}/reject-final:
-    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1tasks~1{id}~1reject-final'
+  /api/collaboration-tasks/{id}/reject:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}~1reject'
+
+  /api/collaboration-tasks/{id}/reject-final:
+    $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}~1reject-final'
 
   # ==================== SERVICE LISTINGS ENDPOINTS ====================
   /api/service-listings/browse:

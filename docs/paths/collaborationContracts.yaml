@@ -1,0 +1,266 @@
+paths:
+ 
+
+  /api/collaboration-contracts/collaboration/{collaborationId}:
+    post:
+      tags:
+        - Collaboration Contracts
+      summary: Create a contract for a collaboration
+      description: Create a contract with terms and conditions for the collaboration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: collaborationId
+          in: path
+          required: true
+          description: Collaboration ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - terms
+              properties:
+                terms:
+                  type: string
+                  example: "Contract terms and conditions"
+                amount:
+                  type: number
+                  example: 1000.00
+                milestones:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      amount:
+                        type: number
+                      dueDate:
+                        type: string
+                        format: date
+      responses:
+        '201':
+          description: Contract created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Contract created successfully
+                  data:
+                    type: object
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+    get:
+      tags:
+        - Collaboration Contracts
+      summary: Get contract for a collaboration
+      description: Retrieve the contract associated with a collaboration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: collaborationId
+          in: path
+          required: true
+          description: Collaboration ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Contract retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Contract retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      contract:
+                        type: object
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-contracts/mine/owner:
+    get:
+      tags:
+        - Collaboration Contracts
+      summary: Get my contracts (owner)
+      description: Retrieve all contracts where the authenticated user is the owner
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Contracts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: My contracts (as owner)
+                  data:
+                    type: object
+                    properties:
+                      contracts:
+                        type: array
+                        items:
+                          type: object
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-contracts/mine/influencer:
+    get:
+      tags:
+        - Collaboration Contracts
+      summary: Get my contracts (influencer)
+      description: Retrieve all contracts where the authenticated user is the influencer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Contracts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: My contracts (as influencer)
+                  data:
+                    type: object
+                    properties:
+                      contracts:
+                        type: array
+                        items:
+                          type: object
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-contracts/{id}/sign/owner:
+    patch:
+      tags:
+        - Collaboration Contracts
+      summary: Owner signs a contract
+      description: Owner signs a sent contract
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Contract ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Contract signed by owner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Contract signed by owner
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-contracts/{id}/sign/influencer:
+    patch:
+      tags:
+        - Collaboration Contracts
+      summary: Influencer signs a contract
+      description: Influencer signs a sent contract
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Contract ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Contract signed by influencer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Contract signed by influencer
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+
+

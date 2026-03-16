@@ -39,6 +39,14 @@ const CollaborationRequest = sequelize.define('CollaborationRequest', {
     type: DataTypes.DECIMAL(12, 2),
     allowNull: true
   },
+  lastCounteredBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
+  },
   message: {
     type: DataTypes.TEXT,
     allowNull: true
@@ -52,14 +60,7 @@ const CollaborationRequest = sequelize.define('CollaborationRequest', {
     allowNull: true
   }
 }, {
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['campaignId', 'influencerId'],
-      name: 'unique_active_collab_request'
-    }
-  ]
+  timestamps: true
 });
 
 module.exports = CollaborationRequest;

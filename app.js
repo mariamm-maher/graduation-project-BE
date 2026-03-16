@@ -32,6 +32,10 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
 
 app.use('/api/collaborations', require('./routes/collaboration'));
+app.use('/api/collaboration-requests', require('./routes/collaborationRequest'));
+app.use('/api/collaboration-contracts', require('./routes/collaborationContract'));
+app.use('/api/collaboration-tasks', require('./routes/collaborationTask'));
+
 app.use('/api/owner', require('./routes/owner'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/service-listings', require('./routes/serviceListings'));

@@ -369,7 +369,7 @@ exports.saveCampaign = async (req, res, next) => {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
-    // Create campaign with saved stage
+    // Create campaign with saved stage (do NOT publish by default)
     const campaign = await Campaign.create({
       userId: req.user?.id || 1,
       campaignName,
@@ -381,7 +381,7 @@ exports.saveCampaign = async (req, res, next) => {
       startDate: start,
       endDate: end,
       lifecycleStage: 'saved',
-      isPublished: isPublished !== undefined ? isPublished : true
+      isPublished: isPublished !== undefined ? isPublished : false
     }, { transaction: t });
 
     // Create Target Audience if provided
@@ -563,20 +563,80 @@ exports.getCampaigns = async (req, res, next) => {
 
     const { count, rows: campaigns } = await Campaign.findAndCountAll({
       where: whereClause,
-      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'totalBudget', 'currency', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'totalBudget', 'currency', 'startDate', 'endDate', 'goalType', 'createdAt', 'updatedAt'],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']]
     });
 
+    // Add `goals` (from goalType) and computed `duration` (days between startDate and endDate)
+    const campaignsWithExtras = campaigns.map(c => {
+      const camp = c && typeof c.toJSON === 'function' ? c.toJSON() : c;
+      const goals = camp.goalType || null;
+      let duration = null;
+      if (camp.startDate && camp.endDate) {
+        const start = new Date(camp.startDate);
+        const end = new Date(camp.endDate);
+        duration = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+      }
+      return { ...camp, goals, duration };
+    });
+
     sendSuccess(res, 200, 'Campaigns retrieved successfully', {
-      campaigns,
+      campaigns: campaignsWithExtras,
       pagination: {
         total: count,
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / limit)
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get overview for authenticated user's campaigns
+// @route   GET /api/campaigns/overview
+// @access  Private
+exports.getCampaignsOverview = async (req, res, next) => {
+  try {
+    const ownerId = req.user && req.user.id;
+
+    if (!ownerId) {
+      return sendSuccess(res, 200, 'Overview retrieved successfully', {
+        totalCampaigns: 0,
+        totalSaved: 0,
+        recentCampaigns: []
+      });
+    }
+
+    const totalCampaigns = await Campaign.count({ where: { userId: ownerId } });
+    const totalSaved = await Campaign.count({ where: { userId: ownerId, lifecycleStage: 'saved' } });
+
+    const recent = await Campaign.findAll({
+      where: { userId: ownerId },
+      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'startDate', 'endDate', 'goalType', 'isPublished', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: 2
+    });
+
+    const recentWithExtras = recent.map(c => {
+      const camp = c && typeof c.toJSON === 'function' ? c.toJSON() : c;
+      const goals = camp.goalType || null;
+      let duration = null;
+      if (camp.startDate && camp.endDate) {
+        const start = new Date(camp.startDate);
+        const end = new Date(camp.endDate);
+        duration = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+      }
+      return { ...camp, goals, duration };
+    });
+
+    sendSuccess(res, 200, 'Overview retrieved successfully', {
+      totalCampaigns,
+      totalSaved,
+      recentCampaigns: recentWithExtras
     });
   } catch (error) {
     next(error);

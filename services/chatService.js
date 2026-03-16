@@ -43,11 +43,9 @@ class ChatService {
       // Create if doesn't exist
       if (!chatRoom) {
         chatRoom = await ChatRoom.create({
-          type: 'direct',
+          type: 'one_to_one',
           collaborationId,
-          metadata: {
-            campaignName: 'Collaboration Chat'
-          }
+          name: `Collaboration #${collaborationId}`
         });
 
         // Add participants
@@ -55,11 +53,13 @@ class ChatService {
           {
             chatRoomId: chatRoom.id,
             userId: collaboration.ownerId,
+            role: 'owner',
             joinedAt: new Date()
           },
           {
             chatRoomId: chatRoom.id,
             userId: collaboration.influencerId,
+            role: 'influencer',
             joinedAt: new Date()
           }
         ]);
@@ -102,8 +102,21 @@ class ChatService {
             required: true
           },
           {
-            model: ChatParticipant,
-            as: 'participants',
+            model: Collaboration,
+            as: 'collaboration',
+            attributes: ['id', 'status']
+          }
+        ]
+      });
+
+      // Calculate unread count for each room
+      const roomsWithUnread = await Promise.all(
+        chatRooms.map(async (room) => {
+          const otherParticipants = await ChatParticipant.findAll({
+            where: {
+              chatRoomId: room.id,
+              userId: { [Op.ne]: userId }
+            },
             include: [
               {
                 model: User,
@@ -111,40 +124,25 @@ class ChatService {
                 attributes: ['id', 'firstName', 'lastName', 'email']
               }
             ]
-          },
-          {
-            model: Message,
-            as: 'messages',
-            limit: 1,
-            order: [['createdAt', 'DESC']],
+          });
+
+          const lastMessage = await Message.findOne({
+            where: { chatRoomId: room.id },
             include: [
               {
                 model: User,
                 as: 'sender',
                 attributes: ['id', 'firstName', 'lastName']
               }
-            ]
-          },
-          {
-            model: Collaboration,
-            as: 'collaboration',
-            attributes: ['id', 'status']
-          }
-        ],
-        order: [['updatedAt', 'DESC']]
-      });
-
-      // Calculate unread count for each room
-      const roomsWithUnread = await Promise.all(
-        chatRooms.map(async (room) => {
-          const participant = room.participants.find(p => p.userId === userId);
+            ],
+            order: [['sentAt', 'DESC']]
+          });
           
           const unreadCount = await Message.count({
             where: {
               chatRoomId: room.id,
               senderId: { [Op.ne]: userId },
-              createdAt: { [Op.gt]: participant.lastReadAt || new Date(0) },
-              deletedAt: null
+              status: { [Op.ne]: 'read' }
             }
           });
 
@@ -154,16 +152,15 @@ class ChatService {
             name: room.name,
             collaborationId: room.collaborationId,
             collaboration: room.collaboration,
-            participants: room.participants
-              .filter(p => p.userId !== userId)
+            participants: otherParticipants
               .map(p => ({
                 id: p.user.id,
                 name: `${p.user.firstName} ${p.user.lastName}`,
                 email: p.user.email
               })),
-            lastMessage: room.messages[0] || null,
+            lastMessage,
             unreadCount,
-            updatedAt: room.updatedAt
+            updatedAt: room.createdAt || null
           };
         })
       );
@@ -191,30 +188,15 @@ class ChatService {
       const offset = (page - 1) * limit;
 
       const { count, rows: messages } = await Message.findAndCountAll({
-        where: {
-          chatRoomId,
-          deletedAt: null
-        },
+        where: { chatRoomId },
         include: [
           {
             model: User,
             as: 'sender',
             attributes: ['id', 'firstName', 'lastName', 'email']
-          },
-          {
-            model: Message,
-            as: 'replyTo',
-            attributes: ['id', 'content', 'senderId'],
-            include: [
-              {
-                model: User,
-                as: 'sender',
-                attributes: ['id', 'firstName', 'lastName']
-              }
-            ]
           }
         ],
-        order: [['createdAt', 'DESC']],
+        order: [['sentAt', 'DESC']],
         limit,
         offset
       });
@@ -252,14 +234,18 @@ class ChatService {
         throw new AppError('Message content or media is required', 400);
       }
 
+      const normalizedContent = content?.trim() || (mediaUrl ? '[Media]' : null);
+      if (!normalizedContent) {
+        throw new AppError('Message content is required', 400);
+      }
+
       // Create message
       const message = await Message.create({
         chatRoomId,
         senderId: userId,
-        content: content?.trim() || null,
-        mediaUrl: mediaUrl || null,
-        replyToId: replyToId || null,
-        deliveryStatus: 'sent'
+        content: normalizedContent,
+        status: 'sent',
+        sentAt: new Date()
       });
 
       // Load with relations
@@ -269,27 +255,9 @@ class ChatService {
             model: User,
             as: 'sender',
             attributes: ['id', 'firstName', 'lastName', 'email']
-          },
-          {
-            model: Message,
-            as: 'replyTo',
-            attributes: ['id', 'content', 'senderId'],
-            include: [
-              {
-                model: User,
-                as: 'sender',
-                attributes: ['id', 'firstName', 'lastName']
-              }
-            ]
           }
         ]
       });
-
-      // Update chat room timestamp
-      await ChatRoom.update(
-        { updatedAt: new Date() },
-        { where: { id: chatRoomId } }
-      );
 
       return fullMessage;
     } catch (error) {
@@ -312,14 +280,7 @@ class ChatService {
         throw new AppError('Unauthorized: You can only edit your own messages', 403);
       }
 
-      if (message.deletedAt) {
-        throw new AppError('Cannot edit deleted message', 400);
-      }
-
-      await message.update({
-        content: newContent.trim(),
-        editedAt: new Date()
-      });
+      await message.update({ content: newContent.trim() });
 
       return message;
     } catch (error) {
@@ -342,16 +303,9 @@ class ChatService {
         throw new AppError('Unauthorized: You can only delete your own messages', 403);
       }
 
-      if (message.deletedAt) {
-        throw new AppError('Message already deleted', 400);
-      }
-
-      await message.update({
-        deletedAt: new Date(),
-        content: '[Message deleted]'
-      });
-
-      return true;
+      const chatRoomId = message.chatRoomId;
+      await message.destroy();
+      return { chatRoomId };
     } catch (error) {
       throw error;
     }
@@ -374,20 +328,16 @@ class ChatService {
       // Update messages
       await Message.update(
         {
-          isRead: true,
-          deliveryStatus: 'read'
+          status: 'read'
         },
         {
           where: {
             chatRoomId,
             senderId: { [Op.ne]: userId },
-            isRead: false
+            status: { [Op.ne]: 'read' }
           }
         }
       );
-
-      // Update participant last read time
-      await participant.update({ lastReadAt: new Date() });
 
       return true;
     } catch (error) {

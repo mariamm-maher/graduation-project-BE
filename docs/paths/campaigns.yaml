@@ -146,6 +146,72 @@ paths:
         '400':
           description: Validation error
 
+  /api/campaigns/overview:
+    get:
+      tags:
+        - Campaigns
+      summary: Campaigns Overview
+      description: Returns totals for campaigns attached to the authenticated user, number of saved campaigns, and the two most recent campaigns.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Overview retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Overview retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      totalCampaigns:
+                        type: integer
+                        example: 12
+                      totalSaved:
+                        type: integer
+                        example: 3
+                      recentCampaigns:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            campaignName:
+                              type: string
+                            lifecycleStage:
+                              type: string
+                            UserDescription:
+                              type: string
+                            startDate:
+                              type: string
+                              format: date-time
+                            endDate:
+                              type: string
+                              format: date-time
+                            goalType:
+                              type: string
+                            isPublished:
+                              type: boolean
+                            createdAt:
+                              type: string
+                              format: date-time
+                            goals:
+                              type: string
+                              description: Same value as goalType for convenience
+                            duration:
+                              type: integer
+                              description: Duration in days (endDate - startDate)
+        '400':
+          description: Validation error
+
   /api/campaigns/ai/generate:
     post:
       tags:

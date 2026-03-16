@@ -81,15 +81,11 @@ exports.sendMessage = async (req, res, next) => {
         chatRoomId: message.chatRoomId,
         sender: {
           id: message.sender.id,
-          name: message.sender.name,
-          avatar: message.sender.avatar
+          name: `${message.sender.firstName} ${message.sender.lastName}`
         },
         content: message.content,
-        mediaUrl: message.mediaUrl,
-        replyTo: message.replyTo || null,
-        deliveryStatus: 'delivered',
-        isEdited: false,
-        createdAt: message.createdAt
+        status: message.status,
+        sentAt: message.sentAt
       });
     } catch (socketError) {
       console.error('Socket emission failed:', socketError);
@@ -122,8 +118,7 @@ exports.editMessage = async (req, res, next) => {
     try {
       emitToRoom(message.chatRoomId, 'message_edited', {
         messageId: message.id,
-        content: message.content,
-        editedAt: message.editedAt
+        content: message.content
       });
     } catch (socketError) {
       console.error('Socket emission failed:', socketError);
@@ -148,14 +143,9 @@ exports.deleteMessage = async (req, res, next) => {
 
     // Emit deletion to room via Socket.io
     try {
-      const { Message } = require('../models');
-      const message = await Message.findByPk(id);
-      
-      if (message) {
-        emitToRoom(message.chatRoomId, 'message_deleted', {
-          messageId: id
-        });
-      }
+      emitToRoom(result.chatRoomId, 'message_deleted', {
+        messageId: id
+      });
     } catch (socketError) {
       console.error('Socket emission failed:', socketError);
     }
