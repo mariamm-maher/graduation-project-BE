@@ -40,10 +40,6 @@ tags:
     description: Influencer Profile and Dashboard Operations
   - name: Social Media
     description: Social Media Integrations
-  - name: Service Listings
-    description: Influencer Service Listings Management
-  - name: Offers
-    description: Owner Offers to Influencer Service Listings
   - name: Chat
     description: Real-time Chat and Messaging (REST API + WebSocket)
   - name: Admin
@@ -52,8 +48,6 @@ tags:
     description: User Notifications Management
   - name: Upload
     description: File Upload and Management
-  - name: Analytics
-    description: Platform Analytics and Reports
   - name: Profile
     description: User Profile Management (Owner & Influencer)
 
@@ -221,50 +215,6 @@ paths:
   /api/collaboration-tasks/{id}/reject-final:
     $ref: './paths/collaborationTasks.yaml#/paths/~1api~1collaboration-tasks~1{id}~1reject-final'
 
-  # ==================== SERVICE LISTINGS ENDPOINTS ====================
-  /api/service-listings/browse:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings~1browse'
-
-  /api/service-listings/search:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings~1search'
-
-  /api/service-listings/categories:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings~1categories'
-
-  /api/service-listings:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings'
-
-  /api/service-listings/my-listings:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings~1my-listings'
-
-  /api/service-listings/{id}:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings~1{id}'
-
-  /api/service-listings/{id}/status:
-    $ref: './paths/serviceListings.yaml#/paths/~1api~1service-listings~1{id}~1status'
-
-  # ==================== OFFERS ENDPOINTS ====================
-  /api/service-listings/{id}/offers:
-    $ref: './paths/offers.yaml#/paths/~1api~1service-listings~1{id}~1offers'
-
-  /api/offers:
-    $ref: './paths/offers.yaml#/paths/~1api~1offers'
-
-  /api/offers/incoming:
-    $ref: './paths/offers.yaml#/paths/~1api~1offers~1incoming'
-
-  /api/offers/{id}:
-    $ref: './paths/offers.yaml#/paths/~1api~1offers~1{id}'
-
-  /api/offers/{id}/accept:
-    $ref: './paths/offers.yaml#/paths/~1api~1offers~1{id}~1accept'
-
-  /api/offers/{id}/reject:
-    $ref: './paths/offers.yaml#/paths/~1api~1offers~1{id}~1reject'
-
-  /api/offers/{id}/counter:
-    $ref: './paths/offers.yaml#/paths/~1api~1offers~1{id}~1counter'
-
   # ==================== OWNER ENDPOINTS ====================
   /api/owner/influencers:
     $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers'
@@ -386,23 +336,6 @@ paths:
     $ref: './paths/upload.yaml#/paths/~1api~1upload'
 
 
-  # ==================== ANALYTICS ENDPOINTS ====================
-
-  /api/analytics:
-    $ref: './paths/analytics.yaml#/paths/~1api~1analytics'
-
-  /api/analytics/campaigns:
-    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1campaigns'
-
-  /api/analytics/earnings:
-    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1earnings'
-
-  /api/analytics/collaborations:
-    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1collaborations'
-
-  /api/analytics/roi:
-    $ref: './paths/analytics.yaml#/paths/~1api~1analytics~1roi'
-    
   # ==================== PROFILE ENDPOINTS ====================
 
   /api/profile/owner:

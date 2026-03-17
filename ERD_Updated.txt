@@ -2,75 +2,68 @@ erDiagram
     %% ========================================
     %% CORE USER & AUTHENTICATION
     %% ========================================
-    
+
     User ||--o{ UserRole : has
+    Role ||--o{ UserRole : has
+
     User ||--o{ Session : has
     User ||--o{ Log : acts
-    User ||--o| InfluencerProfile : has
+
     User ||--o| OwnerProfile : has
+    User ||--o| InfluencerProfile : has
+    User ||--o{ Brand : owns
+
     User ||--o{ Notification : receives
-    User ||--o{ UploadedFile : uploads
-    
-    Role ||--o{ UserRole : has
-    
+
     %% ========================================
     %% CAMPAIGNS & AI
     %% ========================================
-    
+
     User ||--o{ Campaign : owns
     Campaign ||--o{ KPI : has
     Campaign ||--|| TargetAudience : has
     Campaign ||--o{ ContentCalendar : has
     Campaign ||--o{ CampaignAIVersion : has
-    
+
     %% ========================================
     %% COLLABORATIONS WORKFLOW
     %% ========================================
-    
+
     Campaign ||--o{ CollaborationRequest : has
     User ||--o{ CollaborationRequest : "sends (as owner)"
     User ||--o{ CollaborationRequest : "receives (as influencer)"
-    
-    CollaborationRequest ||--o| Collaboration : "creates when accepted"
-    
+
+    CollaborationRequest ||--o| Collaboration : createsWhenAccepted
+
     Campaign ||--o{ Collaboration : has
     User ||--o{ Collaboration : "participates (as owner)"
     User ||--o{ Collaboration : "participates (as influencer)"
-    
+
     Collaboration ||--o| CollaborationContract : has
     Collaboration ||--o{ CollaborationTask : has
-    Collaboration ||--o| ChatRoom : "may have"
-    
+    Collaboration ||--o| ChatRoom : mayHave
+
     %% ========================================
     %% CHAT SYSTEM
     %% ========================================
-    
+
     ChatRoom ||--o{ ChatParticipant : has
     ChatRoom ||--o{ Message : contains
     User ||--o{ ChatParticipant : participates
     User ||--o{ Message : sends
-    
-    %% ========================================
-    %% SERVICE MARKETPLACE
-    %% ========================================
-    
-    User ||--o{ ServiceListing : "posts (as influencer)"
-    User ||--o{ ServiceRequest : "posts (as owner)"
-    
-    ServiceListing ||--o{ Offer : receives
-    ServiceRequest ||--o{ Proposal : receives
-    
-    User ||--o{ Offer : "makes (as owner)"
-    User ||--o{ Proposal : "makes (as influencer)"
-    
-    %% ========================================
-    %% BRANDS (OPTIONAL)
-    %% ========================================
-    
-    User ||--o{ Brand : owns
 
     %% ========================================
-    %% TABLE DEFINITIONS
+    %% SOCIAL INTEGRATIONS & SCHEDULING
+    %% ========================================
+
+    User ||--o{ SocialMediaAccount : connects
+    User ||--o{ ScheduledPost : schedules
+    SocialMediaAccount ||--o{ ScheduledPost : publishes
+    Campaign ||--o{ ScheduledPost : relatesTo
+    ContentCalendar ||--o{ ScheduledPost : optionalSource
+
+    %% ========================================
+    %% TABLE DEFINITIONS (SYNCED WITH MODELS)
     %% ========================================
 
     User {
@@ -116,7 +109,7 @@ erDiagram
     Log {
         int id PK
         int actorId FK "nullable"
-        string actor
+        string actor "nullable"
         string action
         string entity
         int entityId "nullable"
@@ -133,8 +126,8 @@ erDiagram
         boolean isCompleted "default false"
         jsonb socialMediaLinks "default {}"
         string primaryPlatform "nullable"
-        int followersCount "default 0"
-        decimal engagementRate "default 0.0"
+        string followersCount "nullable"
+        string engagementRate "nullable"
         array categories "nullable"
         array contentTypes "nullable"
         array collaborationTypes "nullable"
@@ -176,9 +169,10 @@ erDiagram
         string slug UK
         text mission "nullable"
         text vision "nullable"
-        json values "default []"
-        json targetAudience "default {}"
-        json productsAndServices "default []"
+        json values "nullable"
+        json targetAudience "nullable"
+        json productsAndServices "nullable"
+        boolean isActive "default true"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -205,19 +199,15 @@ erDiagram
         int campaignId FK
         enum metric "impressions reach engagement_rate conversions ROAS CPA CTR"
         string targetValue
-        timestamp createdAt
-        timestamp updatedAt
     }
 
     TargetAudience {
         int id PK
         int campaignId FK
-        string ageRange "nullable"
+        string ageRange
         enum gender "all male female custom"
-        array interests "nullable"
-        array platformsUsed "nullable"
-        timestamp createdAt
-        timestamp updatedAt
+        array interests
+        array platformsUsed
     }
 
     ContentCalendar {
@@ -227,25 +217,21 @@ erDiagram
         date date
         string platform
         enum contentType "video carousel story reel post article"
-        text caption "nullable"
+        text caption
         string mediaUrl "nullable"
-        string task "nullable"
+        string task
         enum status "scheduled posted failed"
-        timestamp createdAt
-        timestamp updatedAt
     }
 
     CampaignAIVersion {
-        uuid id PK
+        int id PK
         int campaignId FK
         int versionNumber
-        timestamp generatedAt
-        json strategy "nullable"
-        json execution "nullable"
-        json estimations "nullable"
+        timestamp generatedAt "nullable"
+        jsonb strategy "nullable"
+        jsonb execution "nullable"
+        jsonb estimations "nullable"
         boolean isActive "default false"
-        timestamp createdAt
-        timestamp updatedAt
     }
 
     CollaborationRequest {
@@ -256,6 +242,7 @@ erDiagram
         enum status "pending negotiating accepted rejected cancelled expired"
         decimal proposedBudget "nullable"
         decimal counterPrice "nullable"
+        int lastCounteredBy "nullable"
         text message "nullable"
         text responseMessage "nullable"
         date expiresAt "nullable"
@@ -272,8 +259,8 @@ erDiagram
         enum status "pending_contract_sign live in_progress completed cancelled"
         date startDate "nullable"
         date endDate "nullable"
-        date completedAt "nullable"
-        date cancelledAt "nullable"
+        timestamp completedAt "nullable"
+        timestamp cancelledAt "nullable"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -285,7 +272,12 @@ erDiagram
         json deliverables "default []"
         date startDate "nullable"
         date endDate "nullable"
-        enum status "draft sent signed"
+        enum status "sent partially_signed signed cancelled"
+        boolean ownerSigned "default false"
+        boolean influencerSigned "default false"
+        timestamp ownerSignedAt "nullable"
+        timestamp influencerSignedAt "nullable"
+        string contractFileUrl "nullable"
         text notes "nullable"
         timestamp createdAt
         timestamp updatedAt
@@ -299,11 +291,11 @@ erDiagram
         enum status "todo in_progress in_review approved rejected"
         int sortOrder "default 0"
         date dueDate "nullable"
-        date completedAt "nullable"
+        timestamp completedAt "nullable"
         enum platform "instagram tiktok youtube facebook twitter linkedin snapchat whatsapp other"
         enum contentType "post story reel video carousel article tweet poll"
         text submissionNote "nullable"
-        date submittedAt "nullable"
+        timestamp submittedAt "nullable"
         text reviewNote "nullable"
         timestamp createdAt
         timestamp updatedAt
@@ -322,9 +314,7 @@ erDiagram
         int chatRoomId FK
         int userId FK
         enum role "owner influencer admin"
-        date joinedAt
-        timestamp createdAt
-        timestamp updatedAt
+        timestamp joinedAt
     }
 
     Message {
@@ -332,83 +322,59 @@ erDiagram
         int chatRoomId FK
         int senderId FK
         text content
-        date sentAt
+        timestamp sentAt
         enum status "sent delivered read"
-        timestamp createdAt
-        timestamp updatedAt
-    }
-
-    ServiceListing {
-        int id PK
-        int influencerId FK
-        string title
-        text description
-        array categories "default []"
-        array platforms "default []"
-        string location "nullable"
-        decimal price
-        enum status "draft published archived"
-        timestamp createdAt
-        timestamp updatedAt
-    }
-
-    ServiceRequest {
-        int id PK
-        int ownerId FK
-        string title
-        text description
-        array requiredCategories "nullable"
-        array requiredPlatforms "nullable"
-        string location "nullable"
-        decimal budget
-        enum status "draft published closed cancelled"
-        timestamp createdAt
-        timestamp updatedAt
-    }
-
-    Offer {
-        int id PK
-        int serviceListingId FK
-        int ownerId FK
-        decimal offerPrice
-        text message "nullable"
-        enum status "pending negotiated accepted rejected expired withdrawn"
-        timestamp createdAt
-        timestamp updatedAt
-    }
-
-    Proposal {
-        int id PK
-        int serviceRequestId FK
-        int influencerId FK
-        decimal proposedPrice
-        text message "nullable"
-        enum status "pending accepted rejected"
-        timestamp createdAt
-        timestamp updatedAt
     }
 
     Notification {
         int id PK
         int userId FK
-        string message
-        enum type "info warning error"
+        enum type "CAMPAIGN_INVITATION CAMPAIGN_PUBLISHED CAMPAIGN_APPROVED CAMPAIGN_REJECTED AI_CAMPAIGN_READY CONTRACT_CREATED CONTRACT_SENT CONTRACT_SIGNED OFFER_MADE OFFER_ACCEPTED OFFER_REJECTED PROPOSAL_SUBMITTED PROPOSAL_ACCEPTED PROPOSAL_REJECTED TASK_ASSIGNED TASK_STARTED TASK_SUBMITTED TASK_APPROVED TASK_REJECTED TASK_FINAL_REJECTED FILE_UPLOADED MESSAGE_RECEIVED"
+        text message
+        string entityType "nullable"
+        int entityId "nullable"
+        jsonb metadata "nullable"
         boolean isRead "default false"
+        timestamp readAt "nullable"
         timestamp createdAt
         timestamp updatedAt
     }
 
-    UploadedFile {
+    SocialMediaAccount {
         int id PK
         int userId FK
-        string fileName
-        string originalName
-        string mimeType
-        int size
-        string path
-        string url "nullable"
-        enum type "image document"
-        boolean isPublic "default false"
+        enum platform "instagram facebook twitter linkedin tiktok youtube"
+        string accountId
+        string accountName "nullable"
+        string accountUsername "nullable"
+        string profilePicture "nullable"
+        text accessToken
+        text refreshToken "nullable"
+        timestamp tokenExpiresAt "nullable"
+        jsonb platformData "default {}"
+        boolean isActive "default true"
+        timestamp lastSyncAt "nullable"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    ScheduledPost {
+        int id PK
+        int userId FK
+        int socialMediaAccountId FK
+        int campaignId FK "nullable"
+        int contentCalendarId FK "nullable"
+        enum platform "instagram facebook twitter linkedin tiktok youtube"
+        enum contentType "post story reel video carousel article tweet poll"
+        text content
+        array mediaUrls "default []"
+        timestamp scheduledAt
+        enum status "draft scheduled publishing published failed"
+        timestamp publishedAt "nullable"
+        string platformPostId "nullable"
+        text errorMessage "nullable"
+        int retryCount "default 0"
+        jsonb options "default {}"
         timestamp createdAt
         timestamp updatedAt
     }

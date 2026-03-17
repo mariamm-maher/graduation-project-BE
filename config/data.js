@@ -82,26 +82,69 @@ async function seedData() {
       console.log('ℹ️ Influencer already exists.');
     }
 
-    // 4. Create a Campaign for the Owner
-    const [campaign, campaignCreated] = await Campaign.findOrCreate({
-      where: { campaignName: 'Summer Tech Launch' },
-      defaults: {
-        userId: ownerUser.id,
-        UserDescription: 'Promoting our new summer software suite.',
-        lifecycleStage: 'draft', 
-        startDate: new Date(),
-        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-        totalBudget: 5000.00,
-        goalType: 'awareness',
-        currency: 'USD'
-      }
-    });
+    // 4. Create 5 Campaigns for 5 different Owner users (all published)
+    const ownerEmails = [
+      'owner@example.com',
+      'owner1@example.com',
+      'owner2@example.com',
+      'owner3@example.com',
+      'owner4@example.com'
+    ];
 
-    if (campaignCreated) {
-      console.log('✅ Campaign created successfully.');
-    } else {
-      console.log('ℹ️ Campaign already exists.');
+    for (const [index, email] of ownerEmails.entries()) {
+      const [user, userCreated] = await User.findOrCreate({
+        where: { email },
+        defaults: {
+          firstName: `Owner${index + 1}`,
+          lastName: 'User',
+          password: 'password123',
+          status: 'ACTIVE'
+        }
+      });
+
+      if (userCreated) {
+        await user.addRole(ownerRole);
+        await OwnerProfile.create({
+          userId: user.id,
+          businessName: `Business ${index + 1}`,
+          industry: 'Technology',
+          location: 'City, Country',
+          description: 'Seeded owner account',
+          isOnboarded: true,
+          isCompleted: true,
+          completionPercentage: 100
+        });
+        console.log(`✅ Owner ${email} created.`);
+      } else {
+        console.log(`ℹ️ Owner ${email} already exists.`);
+      }
+
+      const campaignName = `Seeded Campaign ${index + 1} - ${email.split('@')[0]}`;
+      const [campaign, campaignCreated] = await Campaign.findOrCreate({
+        where: { campaignName },
+        defaults: {
+          userId: user.id,
+          UserDescription: `Campaign for ${email}`,
+          lifecycleStage: 'saved',
+          isPublished: true,
+          startDate: new Date(),
+          endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          totalBudget: 1000 + index * 500,
+          goalType: 'awareness',
+          currency: 'USD'
+        }
+      });
+
+      if (campaignCreated) {
+        console.log(`✅ Campaign "${campaignName}" created for ${email}.`);
+      } else {
+        console.log(`ℹ️ Campaign "${campaignName}" already exists.`);
+      }
     }
+
+    // Pick one seeded campaign to use for the collaboration request below
+    const primaryCampaign = await Campaign.findOne({ where: { campaignName: 'Seeded Campaign 1 - owner' } });
+    const campaign = primaryCampaign || (await Campaign.findOne());
 
     // 5. Create a Collaboration Request from Owner to Influencer
     const [request, requestCreated] = await CollaborationRequest.findOrCreate({

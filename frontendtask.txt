@@ -1,19 +1,23 @@
-=== FRONTEND API STRUCTURE ===
+=== ACTUAL BACKEND ROUTE INVENTORY (verified from app.js + routes/*.js) ===
 
-For each tag, create:
-  - API file: src/api/{tagName}Api.ts
-  - Store file: src/stores/{tagName}Store.ts
+Base Mounts in app.js:
+  - /api/auth
+  - /api/campaigns
+  - /api/collaborations
+  - /api/collaboration-requests
+  - /api/collaboration-contracts
+  - /api/collaboration-tasks
+  - /api/owner
+  - /api/profile
+  - /api/admin
+  - /api/notifications
+  - /api/upload
+  - /api/chat
+  - /api/influencer
 
 ==============================================
 
-
 TAG: Auth
-Description: Authentication and Session Management
-
-Files to create:
-  - API: src/api/AuthApi.ts
-  - Store: src/stores/AuthStore.ts
-
 Endpoints (18):
   - POST /api/auth/signup
   - POST /api/auth/login
@@ -24,7 +28,7 @@ Endpoints (18):
   - POST /api/auth/logout
   - POST /api/auth/logout-all
   - GET /api/auth/sessions
-  - DELETE /api/auth/sessions/{sessionId}
+  - DELETE /api/auth/sessions/:sessionId
   - GET /api/auth/profile
   - PATCH /api/auth/profile/influencer
   - PATCH /api/auth/profile/owner
@@ -35,234 +39,125 @@ Endpoints (18):
   - PATCH /api/auth/owner/onboarding
 
 TAG: Campaigns
-Description: Campaign Management
-
-Files to create:
-  - API: src/api/CampaignsApi.ts
-  - Store: src/stores/CampaignsStore.ts
-
 Endpoints (11):
   - GET /api/campaigns
-  - POST /api/campaigns
   - GET /api/campaigns/overview
+  - GET /api/campaigns/:id
   - POST /api/campaigns/ai/generate
   - POST /api/campaigns/draft
   - POST /api/campaigns/save-and-publish
   - POST /api/campaigns/save
-  - GET /api/campaigns/{id}
-  - DELETE /api/campaigns/{id}
-  - POST /api/campaigns/{id}/complete
-  - POST /api/campaigns/{id}/cancel
+  - POST /api/campaigns/create
+  - POST /api/campaigns/:id/complete
+  - POST /api/campaigns/:id/cancel
+  - DELETE /api/campaigns/:id
 
 TAG: Collaboration Requests
-Description: Requests & Negotiation
-
-Files to create:
-  - API: src/api/CollaborationRequestsApi.ts
-  - Store: src/stores/CollaborationRequestsStore.ts
-
 Endpoints (7):
   - POST /api/collaboration-requests
   - GET /api/collaboration-requests
   - GET /api/collaboration-requests/mine/sent
   - GET /api/collaboration-requests/mine/received
-  - GET /api/collaboration-requests/{id}
-  - PATCH /api/collaboration-requests/{id}/respond
-  - PATCH /api/collaboration-requests/{id}/cancel
+  - GET /api/collaboration-requests/:id
+  - PATCH /api/collaboration-requests/:id/respond
+  - PATCH /api/collaboration-requests/:id/cancel
 
 TAG: Collaborations
-Description: Core Collaborations
-
-Files to create:
-  - API: src/api/CollaborationsApi.ts
-  - Store: src/stores/CollaborationsStore.ts
-
 Endpoints (5):
   - GET /api/collaborations/mine/owner
   - GET /api/collaborations/mine/influencer
-  - GET /api/collaborations/{id}
-  - PATCH /api/collaborations/{id}/cancel
-  - PATCH /api/collaborations/{id}/complete
+  - GET /api/collaborations/:id
+  - PATCH /api/collaborations/:id/cancel
+  - PATCH /api/collaborations/:id/complete
 
 TAG: Collaboration Contracts
-Description: Collaboration Contracts
-
-Files to create:
-  - API: src/api/CollaborationContractsApi.ts
-  - Store: src/stores/CollaborationContractsStore.ts
-
 Endpoints (6):
- POST /api/collaboration-contracts/collaboration/{collaborationId}
-GET /api/collaboration-contracts/collaboration/{collaborationId}
-GET /api/collaboration-contracts/mine/owner
-GET /api/collaboration-contracts/mine/influencer
-PATCH /api/collaboration-contracts/{id}/sign/owner
-PATCH /api/collaboration-contracts/{id}/sign/influencer
+  - POST /api/collaboration-contracts/collaboration/:collaborationId
+  - GET /api/collaboration-contracts/collaboration/:collaborationId
+  - GET /api/collaboration-contracts/mine/owner
+  - GET /api/collaboration-contracts/mine/influencer
+  - PATCH /api/collaboration-contracts/:id/sign/owner
+  - PATCH /api/collaboration-contracts/:id/sign/influencer
 
 TAG: Collaboration Tasks
-Description: Collaboration Tasks Management
-
-Files to create:
-  - API: src/api/CollaborationTasksApi.ts
-  - Store: src/stores/CollaborationTasksStore.ts
-
 Endpoints (8):
-  - GET /api/collaboration-tasks/collaboration/{collaborationId}
-  - GET /api/collaboration-tasks/{id}
-  - PATCH /api/collaboration-tasks/{id}
-  - PATCH /api/collaboration-tasks/{id}/start
-  - PATCH /api/collaboration-tasks/{id}/submit
-  - PATCH /api/collaboration-tasks/{id}/approve
-  - PATCH /api/collaboration-tasks/{id}/reject
-  - PATCH /api/collaboration-tasks/{id}/reject-final
+  - GET /api/collaboration-tasks/collaboration/:collaborationId
+  - GET /api/collaboration-tasks/:id
+  - PATCH /api/collaboration-tasks/:id
+  - PATCH /api/collaboration-tasks/:id/start
+  - PATCH /api/collaboration-tasks/:id/submit
+  - PATCH /api/collaboration-tasks/:id/approve
+  - PATCH /api/collaboration-tasks/:id/reject
+  - PATCH /api/collaboration-tasks/:id/reject-final
 
-TAG: Owners
-Description: Owner Profile and Operations
+TAG: Owner
+Endpoints (3):
+  - GET /api/owner/overview
+  - GET /api/owner/influencers
+  - GET /api/owner/influencers/:id
 
-Files to create:
-  - API: src/api/OwnersApi.ts
-  - Store: src/stores/OwnersStore.ts
-
-Endpoints: None
-
-TAG: Social Media
-Description: Social Media Integrations
-
-Files to create:
-  - API: src/api/SocialMediaApi.ts
-  - Store: src/stores/SocialMediaStore.ts
-
-Endpoints: None
-
-TAG: Service Listings
-Description: Influencer Service Listings Management
-
-Files to create:
-  - API: src/api/ServiceListingsApi.ts
-  - Store: src/stores/ServiceListingsStore.ts
-
-Endpoints (9):
-  - GET /api/service-listings/browse
-  - GET /api/service-listings/search
-  - GET /api/service-listings/categories
-  - POST /api/service-listings
-  - GET /api/service-listings/my-listings
-  - GET /api/service-listings/{id}
-  - PUT /api/service-listings/{id}
-  - DELETE /api/service-listings/{id}
-  - PATCH /api/service-listings/{id}/status
-
-TAG: Offers
-Description: Owner Offers to Influencer Service Listings
-
-Files to create:
-  - API: src/api/OffersApi.ts
-  - Store: src/stores/OffersStore.ts
-
-Endpoints (9):
-  - POST /api/service-listings/{id}/offers
-  - GET /api/offers
-  - GET /api/offers/incoming
-  - GET /api/offers/{id}
-  - PUT /api/offers/{id}
-  - DELETE /api/offers/{id}
-  - POST /api/offers/{id}/accept
-  - POST /api/offers/{id}/reject
-  - POST /api/offers/{id}/counter
+TAG: Influencer
+Endpoints (4):
+  - GET /api/influencer/overview
+  - GET /api/influencer/campaigns/explore
+  - GET /api/influencer/campaigns/:id
+  - POST /api/influencer/campaigns/:id/apply
 
 TAG: Chat
-Description: Real-time Chat and Messaging (REST API + WebSocket)
-
-Files to create:
-  - API: src/api/ChatApi.ts
-  - Store: src/stores/ChatStore.ts
-
 Endpoints (8):
-  - GET /api/chat/collaboration/{collaborationId}
+  - GET /api/chat/collaborations/:collaborationId/room
   - GET /api/chat/rooms
-  - GET /api/chat/rooms/{chatRoomId}
-  - GET /api/chat/rooms/{chatRoomId}/messages
-  - POST /api/chat/rooms/{chatRoomId}/messages
-  - PUT /api/chat/messages/{messageId}
-  - DELETE /api/chat/messages/{messageId}
-  - POST /api/chat/rooms/{chatRoomId}/read
+  - GET /api/chat/rooms/:roomId
+  - GET /api/chat/rooms/:roomId/messages
+  - POST /api/chat/rooms/:roomId/messages
+  - PATCH /api/chat/messages/:id
+  - DELETE /api/chat/messages/:id
+  - PATCH /api/chat/rooms/:roomId/read
 
 TAG: Admin
-Description: Administrative Operations (Admin Only)
-
-Files to create:
-  - API: src/api/AdminApi.ts
-  - Store: src/stores/AdminStore.ts
-
-Endpoints (16):
+Endpoints (18):
   - GET /api/admin/analytics
   - GET /api/admin/users
-  - GET /api/admin/users/{id}
-  - PATCH /api/admin/users/{id}/role
-  - PATCH /api/admin/users/{id}/status
+  - GET /api/admin/users/:id
+  - PATCH /api/admin/users/:id/role
+  - PATCH /api/admin/users/:id/status
+  - DELETE /api/admin/users/:id
   - GET /api/admin/sessions
-  - GET /api/admin/chatrooms
-  - GET /api/admin/chatrooms/{id}/messages
-  - GET /api/admin/collaborations
-  - GET /api/admin/collaborations/{id}
-  - PATCH /api/admin/collaborations/{id}/status
-  - GET /api/admin/collaboration-requests
-  - PATCH /api/admin/collaboration-requests/{id}/status
   - GET /api/admin/campaigns
-  - GET /api/admin/campaigns/{id}
-  - PATCH /api/admin/campaigns/{id}/status
+  - GET /api/admin/campaigns/:id
+  - PATCH /api/admin/campaigns/:id/status
+  - DELETE /api/admin/campaigns/:id
+  - GET /api/admin/collaborations
+  - GET /api/admin/collaborations/:id
+  - PATCH /api/admin/collaborations/:id/status
+  - GET /api/admin/collaboration-requests
+  - PATCH /api/admin/collaboration-requests/:id/status
+  - GET /api/admin/logs
+  - GET /api/admin/recent-activity
 
 TAG: Notifications
-Description: User Notifications Management
-
-Files to create:
-  - API: src/api/NotificationsApi.ts
-  - Store: src/stores/NotificationsStore.ts
-
 Endpoints (5):
   - GET /api/notifications
   - GET /api/notifications/unread
-  - PATCH /api/notifications/{id}/read
+  - PATCH /api/notifications/:id/read
   - PATCH /api/notifications/read-all
-  - DELETE /api/notifications/{id}
+  - DELETE /api/notifications/:id
 
 TAG: Upload
-Description: File Upload and Management
-
-Files to create:
-  - API: src/api/UploadApi.ts
-  - Store: src/stores/UploadStore.ts
-
 Endpoints (1):
   - POST /api/upload
 
-TAG: Analytics
-Description: Platform Analytics and Reports
-
-Files to create:
-  - API: src/api/AnalyticsApi.ts
-  - Store: src/stores/AnalyticsStore.ts
-
-Endpoints (5):
-  - GET /api/analytics
-  - GET /api/analytics/campaigns
-  - GET /api/analytics/earnings
-  - GET /api/analytics/collaborations
-  - GET /api/analytics/roi
-
 TAG: Profile
-Description: User Profile Management (Owner & Influencer)
-
-Files to create:
-  - API: src/api/ProfileApi.ts
-  - Store: src/stores/ProfileStore.ts
-
 Endpoints (8):
   - GET /api/profile/owner
   - PUT /api/profile/owner
   - DELETE /api/profile/owner
+  - GET /api/profile/owner/completion
   - GET /api/profile/influencer
   - PUT /api/profile/influencer
   - DELETE /api/profile/influencer
-  - GET /api/profile/owner/completion
   - GET /api/profile/influencer/completion
+
+NOT MOUNTED (present file but disabled in app.js):
+  - routes/socialMedia.js is commented out in app.js
+  - If re-enabled, base would be /api/social-media
