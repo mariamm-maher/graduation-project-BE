@@ -226,10 +226,17 @@ exports.login = async (req, res, next) => {
 exports.refreshAccessToken = async (req, res, next) => {
   try {
     // Get refresh token from cookie
-    const refreshToken = req.cookies?.refreshToken;
+    const rawRefreshToken = req.cookies?.refreshToken;
+    const refreshToken = typeof rawRefreshToken === 'string'
+      ? rawRefreshToken.trim().replace(/^["']|["']$/g, '')
+      : '';
 
     if (!refreshToken) {
       return next(new AppError('Refresh token is required', 401));
+    }
+
+    if (refreshToken.split('.').length !== 3) {
+      return next(new AppError('Invalid refresh token format', 401));
     }
 
     // Verify refresh token JWT
@@ -251,7 +258,8 @@ exports.refreshAccessToken = async (req, res, next) => {
     const session = await Session.findOne({
       where: {
         userId: result.decoded.id,
-        refreshTokenHash
+        refreshTokenHash,
+        revokedAt: null
       },
       include: [{
         model: User,
@@ -261,6 +269,14 @@ exports.refreshAccessToken = async (req, res, next) => {
 
     if (!session) {
       return next(new AppError('Session not found. Please login again', 401));
+    }
+
+    if (!session.user) {
+      return next(new AppError('Invalid session user. Please login again', 401));
+    }
+
+    if (session.user.id !== result.decoded.id) {
+      return next(new AppError('Invalid session binding. Please login again', 401));
     }
 
     // Check if session is expired

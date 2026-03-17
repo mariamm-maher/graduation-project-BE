@@ -1,224 +1,515 @@
 const sequelize = require('./db');
-const { 
-  User, 
-  Role, 
-  OwnerProfile, 
-  InfluencerProfile, 
+const {
+  User,
+  Role,
+  OwnerProfile,
+  InfluencerProfile,
   Campaign,
   CollaborationRequest,
   Collaboration,
-  CollaborationContract
+  CollaborationContract,
+  CollaborationTask,
+  ChatRoom,
+  ChatParticipant,
+  Message,
+  Notification
 } = require('../models');
+
+async function ensureUserRole(user, role) {
+  const roles = await user.getRoles({ where: { id: role.id } });
+  if (!roles.length) {
+    await user.addRole(role);
+    console.log(`✅ Role ${role.name} assigned to ${user.email}`);
+  } else {
+    console.log(`ℹ️ Role ${role.name} already assigned to ${user.email}`);
+  }
+}
 
 async function seedData() {
   try {
     await sequelize.authenticate();
-    console.log('Database connected. Starting seed...');
+    console.log('Database connected. Starting comprehensive seed...');
 
-    // 1. Ensure Roles exist
-    const [ownerRole] = await Role.findOrCreate({ where: { name: 'OWNER' } });
-    const [influencerRole] = await Role.findOrCreate({ where: { name: 'INFLUENCER' } });
+    // -----------------------------------------------------------------------
+    // 1) ROLES (enum-constrained to 3 values)
+    // -----------------------------------------------------------------------
+    const roleNames = ['OWNER', 'INFLUENCER', 'ADMIN'];
+    const roleMap = {};
 
-    // 2. Create Owner User (if not exists)
-    const [ownerUser, ownerCreated] = await User.findOrCreate({
-      where: { email: 'owner@example.com' },
-      defaults: {
-        firstName: 'John',
-        lastName: 'Doe',
-        password: 'password123', // Assuming User model has a hook to hash the password
-        status: 'ACTIVE'
-      }
-    });
-
-    if (ownerCreated) {
-      // Assign Role
-      await ownerUser.addRole(ownerRole);
-      
-      // Create Owner Profile
-      await OwnerProfile.create({
-        userId: ownerUser.id,
-        businessName: 'Tech Innovators',
-        industry: 'Technology',
-        location: 'New York, US',
-        description: 'Leading software platform.',
-        isOnboarded: true,
-        isCompleted: true,
-        completionPercentage: 100
-      });
-      console.log('✅ Owner created successfully.');
-    } else {
-      console.log('ℹ️ Owner already exists.');
+    for (const roleName of roleNames) {
+      const [role, created] = await Role.findOrCreate({ where: { name: roleName } });
+      roleMap[roleName] = role;
+      console.log(created ? `✅ Role ${roleName} created.` : `ℹ️ Role ${roleName} already exists.`);
     }
 
-    // 3. Create Influencer User (if not exists)
-    const [influencerUser, influencerCreated] = await User.findOrCreate({
-      where: { email: 'influencer@example.com' },
-      defaults: {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        password: 'password123', 
-        status: 'ACTIVE'
-      }
-    });
+    console.log('ℹ️ Role table is enum-limited to 3 unique roles (OWNER, INFLUENCER, ADMIN).');
 
-    if (influencerCreated) {
-      // Assign Role
-      await influencerUser.addRole(influencerRole);
-      
-      // Create Influencer Profile
-      await InfluencerProfile.create({
-        userId: influencerUser.id,
-        bio: 'Tech and lifestyle creator.',
-        location: 'Los Angeles, US',
-        primaryPlatform: 'Instagram',
-        followersCount: 50000,
-        engagementRate: 5.2,
-        isOnboarded: true,
-        isCompleted: true,
-        completionPercentage: 100
-      });
-      console.log('✅ Influencer created successfully.');
-    } else {
-      console.log('ℹ️ Influencer already exists.');
-    }
-
-    // 4. Create 5 Campaigns for 5 different Owner users (all published)
-    const ownerEmails = [
-      'owner@example.com',
-      'owner1@example.com',
-      'owner2@example.com',
-      'owner3@example.com',
-      'owner4@example.com'
+    // -----------------------------------------------------------------------
+    // 2) USERS (5 owners + 5 influencers + 1 admin)
+    // -----------------------------------------------------------------------
+    const ownerSeeds = [
+      { firstName: 'John', lastName: 'Doe', email: 'owner1@example.com', status: 'ACTIVE' },
+      { firstName: 'Sarah', lastName: 'Miller', email: 'owner2@example.com', status: 'ACTIVE' },
+      { firstName: 'Ahmed', lastName: 'Khaled', email: 'owner3@example.com', status: 'ACTIVE' },
+      { firstName: 'Lina', lastName: 'Nassar', email: 'owner4@example.com', status: 'ACTIVE' },
+      { firstName: 'Michael', lastName: 'Brown', email: 'owner5@example.com', status: 'ACTIVE' }
     ];
 
-    for (const [index, email] of ownerEmails.entries()) {
-      const [user, userCreated] = await User.findOrCreate({
-        where: { email },
+    const influencerSeeds = [
+      { firstName: 'Jane', lastName: 'Smith', email: 'influencer1@example.com', status: 'ACTIVE' },
+      { firstName: 'Omar', lastName: 'Ali', email: 'influencer2@example.com', status: 'ACTIVE' },
+      { firstName: 'Maya', lastName: 'Adel', email: 'influencer3@example.com', status: 'ACTIVE' },
+      { firstName: 'Noah', lastName: 'Wilson', email: 'influencer4@example.com', status: 'ACTIVE' },
+      { firstName: 'Emma', lastName: 'Taylor', email: 'influencer5@example.com', status: 'ACTIVE' }
+    ];
+
+    const ownerUsers = [];
+    const influencerUsers = [];
+
+    for (const seed of ownerSeeds) {
+      const [user, created] = await User.findOrCreate({
+        where: { email: seed.email },
         defaults: {
-          firstName: `Owner${index + 1}`,
-          lastName: 'User',
+          firstName: seed.firstName,
+          lastName: seed.lastName,
+          email: seed.email,
           password: 'password123',
-          status: 'ACTIVE'
+          status: seed.status
         }
       });
 
-      if (userCreated) {
-        await user.addRole(ownerRole);
-        await OwnerProfile.create({
-          userId: user.id,
-          businessName: `Business ${index + 1}`,
-          industry: 'Technology',
-          location: 'City, Country',
-          description: 'Seeded owner account',
-          isOnboarded: true,
-          isCompleted: true,
-          completionPercentage: 100
-        });
-        console.log(`✅ Owner ${email} created.`);
-      } else {
-        console.log(`ℹ️ Owner ${email} already exists.`);
-      }
+      ownerUsers.push(user);
+      console.log(created ? `✅ Owner user ${seed.email} created.` : `ℹ️ Owner user ${seed.email} already exists.`);
+      await ensureUserRole(user, roleMap.OWNER);
+    }
 
-      const campaignName = `Seeded Campaign ${index + 1} - ${email.split('@')[0]}`;
-      const [campaign, campaignCreated] = await Campaign.findOrCreate({
-        where: { campaignName },
+    for (const seed of influencerSeeds) {
+      const [user, created] = await User.findOrCreate({
+        where: { email: seed.email },
+        defaults: {
+          firstName: seed.firstName,
+          lastName: seed.lastName,
+          email: seed.email,
+          password: 'password123',
+          status: seed.status
+        }
+      });
+
+      influencerUsers.push(user);
+      console.log(created ? `✅ Influencer user ${seed.email} created.` : `ℹ️ Influencer user ${seed.email} already exists.`);
+      await ensureUserRole(user, roleMap.INFLUENCER);
+    }
+
+    const [adminUser, adminCreated] = await User.findOrCreate({
+      where: { email: 'admin@example.com' },
+      defaults: {
+        firstName: 'System',
+        lastName: 'Admin',
+        email: 'admin@example.com',
+        password: 'Admin@1234',
+        status: 'ACTIVE'
+      }
+    });
+    console.log(adminCreated ? '✅ Admin user created.' : 'ℹ️ Admin user already exists.');
+    await ensureUserRole(adminUser, roleMap.ADMIN);
+
+    // -----------------------------------------------------------------------
+    // 3) OWNER PROFILES (5)
+    // -----------------------------------------------------------------------
+    const ownerProfileSeeds = [
+      { businessName: 'Tech Innovators', businessType: 'Startup', industry: 'Technology', location: 'New York, US', description: 'Leading software and AI solutions.', website: 'https://techinnovators.example.com', phoneNumber: '+1-555-0101' },
+      { businessName: 'Green Horizon', businessType: 'SME', industry: 'Sustainability', location: 'Berlin, DE', description: 'Eco-friendly consumer products.', website: 'https://greenhorizon.example.com', phoneNumber: '+49-30-555-0102' },
+      { businessName: 'FitNation', businessType: 'Enterprise', industry: 'Health & Fitness', location: 'London, UK', description: 'Wellness and fitness brand.', website: 'https://fitnation.example.com', phoneNumber: '+44-20-555-0103' },
+      { businessName: 'StylePulse', businessType: 'SME', industry: 'Fashion', location: 'Paris, FR', description: 'Modern lifestyle and apparel.', website: 'https://stylepulse.example.com', phoneNumber: '+33-1-555-0104' },
+      { businessName: 'FoodTrail', businessType: 'Startup', industry: 'Food & Beverage', location: 'Toronto, CA', description: 'Premium snacks and healthy meals.', website: 'https://foodtrail.example.com', phoneNumber: '+1-416-555-0105' }
+    ];
+
+    for (let index = 0; index < ownerUsers.length; index += 1) {
+      const user = ownerUsers[index];
+      const profileSeed = ownerProfileSeeds[index];
+
+      const [profile, created] = await OwnerProfile.findOrCreate({
+        where: { userId: user.id },
         defaults: {
           userId: user.id,
-          UserDescription: `Campaign for ${email}`,
-          lifecycleStage: 'saved',
-          isPublished: true,
-          startDate: new Date(),
-          endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-          totalBudget: 1000 + index * 500,
-          goalType: 'awareness',
-          currency: 'USD'
+          businessName: profileSeed.businessName,
+          businessType: profileSeed.businessType,
+          industry: profileSeed.industry,
+          location: profileSeed.location,
+          description: profileSeed.description,
+          website: profileSeed.website,
+          phoneNumber: profileSeed.phoneNumber,
+          platformsUsed: ['Instagram', 'TikTok', 'YouTube'],
+          primaryMarketingGoal: 'awareness',
+          targetAudience: { ageRange: '18-34', gender: 'all', location: profileSeed.location },
+          completionPercentage: 100,
+          isOnboarded: true,
+          isCompleted: true
         }
       });
 
-      if (campaignCreated) {
-        console.log(`✅ Campaign "${campaignName}" created for ${email}.`);
-      } else {
-        console.log(`ℹ️ Campaign "${campaignName}" already exists.`);
-      }
+      console.log(created ? `✅ OwnerProfile created for ${user.email}.` : `ℹ️ OwnerProfile already exists for ${user.email}.`);
+      void profile;
     }
 
-    // Pick one seeded campaign to use for the collaboration request below
-    const primaryCampaign = await Campaign.findOne({ where: { campaignName: 'Seeded Campaign 1 - owner' } });
-    const campaign = primaryCampaign || (await Campaign.findOne());
+    // -----------------------------------------------------------------------
+    // 4) INFLUENCER PROFILES (5)
+    // -----------------------------------------------------------------------
+    const influencerProfileSeeds = [
+      { bio: 'Tech reviewer and startup storyteller.', location: 'Los Angeles, US', primaryPlatform: 'YouTube', followersCount: '120000', engagementRate: '6.1', categories: ['Technology', 'Business'] },
+      { bio: 'Fitness creator focused on home workouts.', location: 'Madrid, ES', primaryPlatform: 'Instagram', followersCount: '95000', engagementRate: '5.4', categories: ['Fitness', 'Health'] },
+      { bio: 'Fashion and beauty trend creator.', location: 'Milan, IT', primaryPlatform: 'TikTok', followersCount: '210000', engagementRate: '7.2', categories: ['Fashion', 'Beauty'] },
+      { bio: 'Food vlogger and recipe storyteller.', location: 'Cairo, EG', primaryPlatform: 'Instagram', followersCount: '88000', engagementRate: '4.9', categories: ['Food', 'Lifestyle'] },
+      { bio: 'Travel filmmaker and culture explorer.', location: 'Istanbul, TR', primaryPlatform: 'YouTube', followersCount: '150000', engagementRate: '6.8', categories: ['Travel', 'Lifestyle'] }
+    ];
 
-    // 5. Create a Collaboration Request from Owner to Influencer
-    const [request, requestCreated] = await CollaborationRequest.findOrCreate({
-      where: { 
-        campaignId: campaign.id, 
-        influencerId: influencerUser.id 
-      },
-      defaults: {
-        ownerId: ownerUser.id,
-        proposedBudget: 1500.00,
-        message: 'We would love to collaborate with you on this campaign!',
-        status: 'accepted',
-        responseMessage: 'Sounds great! I accept.'
-      }
-    });
+    for (let index = 0; index < influencerUsers.length; index += 1) {
+      const user = influencerUsers[index];
+      const profileSeed = influencerProfileSeeds[index];
 
-    if (requestCreated) {
-      console.log('✅ Collaboration Request created and accepted.');
-    } else {
-      console.log('ℹ️ Collaboration Request already exists.');
+      const [profile, created] = await InfluencerProfile.findOrCreate({
+        where: { userId: user.id },
+        defaults: {
+          userId: user.id,
+          bio: profileSeed.bio,
+          location: profileSeed.location,
+          socialMediaLinks: {
+            instagram: `https://instagram.com/${user.firstName.toLowerCase()}${index + 1}`,
+            tiktok: `https://tiktok.com/@${user.firstName.toLowerCase()}${index + 1}`,
+            youtube: `https://youtube.com/@${user.firstName.toLowerCase()}${index + 1}`
+          },
+          primaryPlatform: profileSeed.primaryPlatform,
+          followersCount: profileSeed.followersCount,
+          engagementRate: profileSeed.engagementRate,
+          categories: profileSeed.categories,
+          contentTypes: ['post', 'reel', 'video'],
+          collaborationTypes: ['sponsored_post', 'product_review'],
+          audienceAgeRange: '18-34',
+          audienceGender: 'all',
+          audienceLocation: profileSeed.location,
+          interests: ['tech', 'fitness', 'fashion', 'food', 'travel'],
+          completionPercentage: 100,
+          isOnboarded: true,
+          isCompleted: true
+        }
+      });
+
+      console.log(created ? `✅ InfluencerProfile created for ${user.email}.` : `ℹ️ InfluencerProfile already exists for ${user.email}.`);
+      void profile;
     }
 
-    // 6. Create the resulting Collaboration (Because the request is 'accepted')
-    const [collaboration, collabCreated] = await Collaboration.findOrCreate({
-      where: { collaborationRequestId: request.id },
-      defaults: {
-        campaignId: campaign.id,
-        ownerId: ownerUser.id,
-        influencerId: influencerUser.id,
-        // Using the precise enum value
-        status: 'pending_contract_sign'
-      }
-    });
+    // -----------------------------------------------------------------------
+    // 5) CAMPAIGNS (5)
+    // -----------------------------------------------------------------------
+    const campaignSeeds = [
+      { campaignName: 'AI Product Launch 2026', UserDescription: 'Promote our AI product launch with educational influencer content.', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'Eco Summer Challenge', UserDescription: 'Drive engagement around sustainable lifestyle habits.', lifecycleStage: 'completed', goalType: 'consideration', totalBudget: 6200, currency: 'EUR', budgetFlexibility: 'strict', isPublished: true },
+      { campaignName: 'Fit in 30 Days', UserDescription: 'Promote a 30-day fitness challenge and app trial.', lifecycleStage: 'saved', goalType: 'conversion', totalBudget: 7000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'Style Capsule Collection', UserDescription: 'Launch seasonal fashion capsule with creator collabs.', lifecycleStage: 'draft', goalType: 'lead_generation', totalBudget: 5800, currency: 'EUR', budgetFlexibility: 'strict', isPublished: false },
+      { campaignName: 'Healthy Snack Awareness', UserDescription: 'Increase awareness for healthy snack product line.', lifecycleStage: 'ai_generated', goalType: 'retention', totalBudget: 6400, currency: 'CAD', budgetFlexibility: 'flexible', isPublished: false }
+    ];
 
-    if (collabCreated) {
-      console.log('✅ Collaboration generated (Pending Contract Sign).');
-    } else {
-      console.log('ℹ️ Collaboration already exists.');
+    const campaigns = [];
+    for (let index = 0; index < campaignSeeds.length; index += 1) {
+      const owner = ownerUsers[index % ownerUsers.length];
+      const seed = campaignSeeds[index];
+
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() + index);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 30 + (index * 5));
+
+      const [campaign, created] = await Campaign.findOrCreate({
+        where: { campaignName: seed.campaignName },
+        defaults: {
+          userId: owner.id,
+          campaignName: seed.campaignName,
+          UserDescription: seed.UserDescription,
+          lifecycleStage: seed.lifecycleStage,
+          goalType: seed.goalType,
+          totalBudget: seed.totalBudget,
+          currency: seed.currency,
+          budgetFlexibility: seed.budgetFlexibility,
+          isPublished: seed.isPublished,
+          startDate,
+          endDate
+        }
+      });
+
+      campaigns.push(campaign);
+      console.log(created ? `✅ Campaign ${seed.campaignName} created.` : `ℹ️ Campaign ${seed.campaignName} already exists.`);
     }
 
-    // 7. Create a Contract from Owner (draft -> sent)
-    const [contract, contractCreated] = await CollaborationContract.findOrCreate({
-      where: { collaborationId: collaboration.id },
-      defaults: {
-        collaborationId: collaboration.id,
-        agreedPrice: request.proposedBudget || 1500.00,
-        deliverables: [
-          {
-            title: 'Instagram product promotion',
-            description: 'One post + one story mention',
-            platform: 'Instagram',
-            contentType: 'post',
-            dueDate: new Date(new Date().setDate(new Date().getDate() + 10))
-          }
-        ],
-        startDate: new Date(),
-        endDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-        status: 'signed',
-        ownerSigned: true,
-        influencerSigned: true,
-        ownerSignedAt: new Date(),
-        influencerSignedAt: new Date()
-      }
-    });
+    // -----------------------------------------------------------------------
+    // 6) COLLABORATION REQUESTS (5)
+    // -----------------------------------------------------------------------
+    const requestStatuses = ['pending', 'negotiating', 'accepted', 'rejected', 'cancelled'];
+    const requests = [];
 
-    if (contractCreated) {
-      console.log('✅ Contract created and sent by owner.');
-    } else {
-      console.log('ℹ️ Contract already exists.');
+    for (let index = 0; index < 5; index += 1) {
+      const campaign = campaigns[index];
+      const owner = ownerUsers[index];
+      const influencer = influencerUsers[index];
+      const status = requestStatuses[index];
+
+      const [request, created] = await CollaborationRequest.findOrCreate({
+        where: {
+          campaignId: campaign.id,
+          ownerId: owner.id,
+          influencerId: influencer.id
+        },
+        defaults: {
+          campaignId: campaign.id,
+          ownerId: owner.id,
+          influencerId: influencer.id,
+          status,
+          proposedBudget: 1000 + (index * 300),
+          counterPrice: status === 'negotiating' ? 1200 + (index * 200) : null,
+          lastCounteredBy: status === 'negotiating' ? influencer.id : null,
+          message: `Invitation to collaborate on ${campaign.campaignName}`,
+          responseMessage: status === 'accepted'
+            ? 'Happy to collaborate!'
+            : status === 'rejected'
+              ? 'Not aligned at this time.'
+              : null,
+          expiresAt: new Date(Date.now() + (7 + index) * 24 * 60 * 60 * 1000)
+        }
+      });
+
+      requests.push(request);
+      console.log(created ? `✅ CollaborationRequest #${request.id} created.` : `ℹ️ CollaborationRequest #${request.id} already exists.`);
     }
 
-    console.log('🌱 Seeding finished!');
+    // -----------------------------------------------------------------------
+    // 7) COLLABORATIONS (5)
+    // -----------------------------------------------------------------------
+    const collaborationStatuses = ['pending_contract_sign', 'live', 'in_progress', 'completed', 'cancelled'];
+    const collaborations = [];
+
+    for (let index = 0; index < 5; index += 1) {
+      const request = requests[index];
+      const campaign = campaigns[index];
+      const owner = ownerUsers[index];
+      const influencer = influencerUsers[index];
+      const status = collaborationStatuses[index];
+
+      const [collaboration, created] = await Collaboration.findOrCreate({
+        where: { collaborationRequestId: request.id },
+        defaults: {
+          collaborationRequestId: request.id,
+          campaignId: campaign.id,
+          ownerId: owner.id,
+          influencerId: influencer.id,
+          status,
+          startDate: index > 0 ? new Date(Date.now() - (index * 2) * 24 * 60 * 60 * 1000) : null,
+          endDate: index > 0 ? new Date(Date.now() + (20 - index) * 24 * 60 * 60 * 1000) : null,
+          completedAt: status === 'completed' ? new Date() : null,
+          cancelledAt: status === 'cancelled' ? new Date() : null
+        }
+      });
+
+      collaborations.push(collaboration);
+      console.log(created ? `✅ Collaboration #${collaboration.id} created.` : `ℹ️ Collaboration #${collaboration.id} already exists.`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 8) COLLABORATION CONTRACTS (5)
+    // -----------------------------------------------------------------------
+    const contractStatuses = ['sent', 'partially_signed', 'signed', 'cancelled', 'sent'];
+    const contracts = [];
+
+    for (let index = 0; index < 5; index += 1) {
+      const collaboration = collaborations[index];
+      const request = requests[index];
+      const status = contractStatuses[index];
+      const now = new Date();
+
+      const [contract, created] = await CollaborationContract.findOrCreate({
+        where: { collaborationId: collaboration.id },
+        defaults: {
+          collaborationId: collaboration.id,
+          agreedPrice: request.proposedBudget || 1500,
+          deliverables: [
+            {
+              title: `Deliverable ${index + 1}`,
+              description: 'One feed post + one story mention',
+              platform: influencerProfileSeeds[index].primaryPlatform,
+              contentType: 'post',
+              dueDate: new Date(now.getTime() + (10 + index) * 24 * 60 * 60 * 1000)
+            }
+          ],
+          startDate: now,
+          endDate: new Date(now.getTime() + (30 + index) * 24 * 60 * 60 * 1000),
+          status,
+          ownerSigned: status === 'partially_signed' || status === 'signed',
+          influencerSigned: status === 'signed',
+          ownerSignedAt: status === 'partially_signed' || status === 'signed' ? now : null,
+          influencerSignedAt: status === 'signed' ? now : null,
+          notes: `Auto-seeded contract with status ${status}`
+        }
+      });
+
+      contracts.push(contract);
+      console.log(created ? `✅ CollaborationContract #${contract.id} created.` : `ℹ️ CollaborationContract #${contract.id} already exists.`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 9) TASKS (if exists) — 5+ entries
+    // -----------------------------------------------------------------------
+    const taskStatusCycle = ['todo', 'in_progress', 'in_review', 'approved', 'rejected'];
+    const tasks = [];
+
+    for (let index = 0; index < 5; index += 1) {
+      const collaboration = collaborations[index];
+      const status = taskStatusCycle[index];
+      const [task, created] = await CollaborationTask.findOrCreate({
+        where: {
+          collaborationId: collaboration.id,
+          taskName: `Seed Task ${index + 1} for Collab ${collaboration.id}`
+        },
+        defaults: {
+          collaborationId: collaboration.id,
+          taskName: `Seed Task ${index + 1} for Collab ${collaboration.id}`,
+          description: 'Create sponsored content and submit for review.',
+          status,
+          sortOrder: index,
+          dueDate: new Date(Date.now() + (7 + index) * 24 * 60 * 60 * 1000),
+          completedAt: status === 'approved' ? new Date() : null,
+          platform: 'instagram',
+          contentType: 'post',
+          submissionNote: status === 'in_review' || status === 'approved' ? 'Submitted from seeded script' : null,
+          submittedAt: status === 'in_review' || status === 'approved' ? new Date() : null,
+          reviewNote: status === 'rejected' ? 'Needs content quality improvements.' : null
+        }
+      });
+
+      tasks.push(task);
+      console.log(created ? `✅ CollaborationTask #${task.id} created.` : `ℹ️ CollaborationTask #${task.id} already exists.`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 10) CHAT (if exists) — ChatRoom + ChatParticipant + Message
+    // -----------------------------------------------------------------------
+    const chatRooms = [];
+
+    for (let index = 0; index < 5; index += 1) {
+      const collaboration = collaborations[index];
+      const owner = ownerUsers[index];
+      const influencer = influencerUsers[index];
+
+      const [room, roomCreated] = await ChatRoom.findOrCreate({
+        where: { collaborationId: collaboration.id },
+        defaults: {
+          collaborationId: collaboration.id,
+          type: 'one_to_one',
+          name: `Collab Chat ${collaboration.id}`
+        }
+      });
+
+      chatRooms.push(room);
+      console.log(roomCreated ? `✅ ChatRoom #${room.id} created.` : `ℹ️ ChatRoom #${room.id} already exists.`);
+
+      const [ownerParticipant, ownerParticipantCreated] = await ChatParticipant.findOrCreate({
+        where: { chatRoomId: room.id, userId: owner.id },
+        defaults: {
+          chatRoomId: room.id,
+          userId: owner.id,
+          role: 'owner',
+          joinedAt: new Date()
+        }
+      });
+      console.log(ownerParticipantCreated
+        ? `✅ ChatParticipant(owner) created for room #${room.id}.`
+        : `ℹ️ ChatParticipant(owner) already exists for room #${room.id}.`);
+      void ownerParticipant;
+
+      const [influencerParticipant, influencerParticipantCreated] = await ChatParticipant.findOrCreate({
+        where: { chatRoomId: room.id, userId: influencer.id },
+        defaults: {
+          chatRoomId: room.id,
+          userId: influencer.id,
+          role: 'influencer',
+          joinedAt: new Date()
+        }
+      });
+      console.log(influencerParticipantCreated
+        ? `✅ ChatParticipant(influencer) created for room #${room.id}.`
+        : `ℹ️ ChatParticipant(influencer) already exists for room #${room.id}.`);
+      void influencerParticipant;
+
+      const [messageA, messageACreated] = await Message.findOrCreate({
+        where: {
+          chatRoomId: room.id,
+          senderId: owner.id,
+          content: `Hello from owner ${owner.firstName} in room ${room.id}`
+        },
+        defaults: {
+          chatRoomId: room.id,
+          senderId: owner.id,
+          content: `Hello from owner ${owner.firstName} in room ${room.id}`,
+          status: 'sent',
+          sentAt: new Date()
+        }
+      });
+      console.log(messageACreated ? `✅ Message #${messageA.id} created.` : `ℹ️ Message #${messageA.id} already exists.`);
+
+      const [messageB, messageBCreated] = await Message.findOrCreate({
+        where: {
+          chatRoomId: room.id,
+          senderId: influencer.id,
+          content: `Reply from influencer ${influencer.firstName} in room ${room.id}`
+        },
+        defaults: {
+          chatRoomId: room.id,
+          senderId: influencer.id,
+          content: `Reply from influencer ${influencer.firstName} in room ${room.id}`,
+          status: 'delivered',
+          sentAt: new Date()
+        }
+      });
+      console.log(messageBCreated ? `✅ Message #${messageB.id} created.` : `ℹ️ Message #${messageB.id} already exists.`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 11) NOTIFICATIONS (if exists) — 5+ entries
+    // -----------------------------------------------------------------------
+    const notificationSeeds = [
+      { userId: influencerUsers[0].id, type: 'CAMPAIGN_INVITATION', message: 'You have a new campaign invitation.', entityType: 'Campaign', entityId: campaigns[0].id },
+      { userId: ownerUsers[0].id, type: 'CAMPAIGN_PUBLISHED', message: 'Your campaign was published successfully.', entityType: 'Campaign', entityId: campaigns[0].id },
+      { userId: ownerUsers[1].id, type: 'CONTRACT_SENT', message: 'Contract was sent to influencer.', entityType: 'CollaborationContract', entityId: contracts[1].id },
+      { userId: influencerUsers[2].id, type: 'TASK_ASSIGNED', message: 'A new task has been assigned to you.', entityType: 'CollaborationTask', entityId: tasks[2].id },
+      { userId: ownerUsers[3].id, type: 'MESSAGE_RECEIVED', message: 'You received a new chat message.', entityType: 'Message', entityId: 1 },
+      { userId: influencerUsers[4].id, type: 'AI_CAMPAIGN_READY', message: 'AI campaign draft is ready for review.', entityType: 'Campaign', entityId: campaigns[4].id },
+      { userId: ownerUsers[2].id, type: 'CONTRACT_SIGNED', message: 'Contract has been fully signed.', entityType: 'CollaborationContract', entityId: contracts[2].id },
+      { userId: influencerUsers[1].id, type: 'TASK_SUBMITTED', message: 'Task submitted and awaiting review.', entityType: 'CollaborationTask', entityId: tasks[1].id }
+    ];
+
+    for (const seed of notificationSeeds) {
+      const [notification, created] = await Notification.findOrCreate({
+        where: {
+          userId: seed.userId,
+          type: seed.type,
+          message: seed.message,
+          entityType: seed.entityType,
+          entityId: seed.entityId
+        },
+        defaults: {
+          userId: seed.userId,
+          type: seed.type,
+          message: seed.message,
+          entityType: seed.entityType,
+          entityId: seed.entityId,
+          metadata: { seeded: true },
+          isRead: false,
+          readAt: null
+        }
+      });
+
+      console.log(created ? `✅ Notification #${notification.id} created (${seed.type}).` : `ℹ️ Notification already exists (${seed.type}).`);
+    }
+
+    console.log('🌱 Comprehensive seeding finished successfully!');
     process.exit(0);
-
   } catch (error) {
     console.error('❌ Error seeding data:', error);
     process.exit(1);

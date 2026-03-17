@@ -7,6 +7,7 @@ const {
   ChatParticipant,
 } = require('../../models');
 const AppError = require('../../utils/AppError');
+const notificationService = require('../notificationService');
 
 const CONTRACT_STATUSES = {
   DRAFT:  'draft',
@@ -48,6 +49,31 @@ async function finalizeSignedContract({ contract, collaboration, transaction }) 
       { chatRoomId: chatRoom.id, userId: collaboration.ownerId,      role: 'owner' },
       { chatRoomId: chatRoom.id, userId: collaboration.influencerId, role: 'influencer' },
     ], { transaction });
+  }
+
+  try {
+    await notificationService.createBulkNotifications([
+      {
+        userId: collaboration.ownerId,
+        type: 'CONTRACT_SIGNED',
+        message: `Contract #${contract.id} has been fully signed`,
+        entityType: 'CollaborationContract',
+        entityId: contract.id,
+        metadata: { collaborationId: collaboration.id },
+        isRead: false
+      },
+      {
+        userId: collaboration.influencerId,
+        type: 'CONTRACT_SIGNED',
+        message: `Contract #${contract.id} has been fully signed`,
+        entityType: 'CollaborationContract',
+        entityId: contract.id,
+        metadata: { collaborationId: collaboration.id },
+        isRead: false
+      }
+    ]);
+  } catch (err) {
+    console.error('Failed to send CONTRACT_SIGNED notifications:', err);
   }
 
   return { contract, collaboration, chatRoom };
@@ -118,6 +144,28 @@ async function createContract({ collaborationId, ownerId, startDate, endDate, de
     deliverables,
     status:      CONTRACT_STATUSES.SENT,
   });
+
+  try {
+    await notificationService.createNotification({
+      userId: ownerId,
+      type: 'CONTRACT_CREATED',
+      message: `Contract #${contract.id} was created`,
+      entityType: 'CollaborationContract',
+      entityId: contract.id,
+      metadata: { collaborationId: collaboration.id }
+    });
+
+    await notificationService.createNotification({
+      userId: collaboration.influencerId,
+      type: 'CONTRACT_SENT',
+      message: 'A contract has been sent to you for signature',
+      entityType: 'CollaborationContract',
+      entityId: contract.id,
+      metadata: { collaborationId: collaboration.id }
+    });
+  } catch (err) {
+    console.error('Failed to send contract creation/sent notifications:', err);
+  }
 
   return contract;
 }

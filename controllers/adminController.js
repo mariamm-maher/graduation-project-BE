@@ -2,6 +2,7 @@ const { User, Session, Campaign, Collaboration, CollaborationRequest, Role, Owne
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+const notificationService = require('../services/notificationService');
 
 // @desc    Get admin dashboard analytics
 // @route   GET /api/admin/analytics
@@ -510,7 +511,7 @@ exports.updateCampaignStatus = async (req, res, next) => {
       return next(new AppError('Status is required', 400));
     }
 
-    const validStatuses = ['draft', 'ai_generated', 'active', 'completed'];
+    const validStatuses = ['draft', 'ai_generated', 'saved', 'completed', 'cancelled'];
     if (!validStatuses.includes(lifecycleStage)) {
       return next(new AppError(`Invalid status. Valid values: ${validStatuses.join(', ')}`, 400));
     }
@@ -537,6 +538,32 @@ exports.updateCampaignStatus = async (req, res, next) => {
     }
 
     await campaign.update({ lifecycleStage });
+
+    try {
+      if (lifecycleStage === 'completed') {
+        await notificationService.createNotification({
+          userId: campaign.userId,
+          type: 'CAMPAIGN_APPROVED',
+          message: `Campaign "${campaign.campaignName}" has been approved`,
+          entityType: 'Campaign',
+          entityId: campaign.id,
+          metadata: { lifecycleStage }
+        });
+      }
+
+      if (lifecycleStage === 'cancelled') {
+        await notificationService.createNotification({
+          userId: campaign.userId,
+          type: 'CAMPAIGN_REJECTED',
+          message: `Campaign "${campaign.campaignName}" has been rejected`,
+          entityType: 'Campaign',
+          entityId: campaign.id,
+          metadata: { lifecycleStage }
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send campaign moderation notification:', notifError);
+    }
 
     const updatedCampaign = await Campaign.findOne({
       where: whereClause,

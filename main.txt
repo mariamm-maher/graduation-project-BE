@@ -1,0 +1,10 @@
+-auth 
+-profile
+-compagin
+-collaboration
+-collaboration requests
+-collaboration contracts
+-collaboration tasks
+-chat
+-notifications
+-external (social medial channel mangment , analytics)

@@ -299,5 +299,6 @@ module.exports = {
   ChatParticipant,
   Message,
   Session,
+  Notification,
   Log,
 };

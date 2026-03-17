@@ -4,6 +4,7 @@ const TargetAudience = require('../models/TargetAudience');
 const ContentCalendar = require('../models/ContentCalendar');
 const { generateCampaignWithAI } = require('../services/campaignAIService');
 const { logAction } = require('../services/logServices');
+const notificationService = require('../services/notificationService');
 const AppError = require('../utils/AppError');
 const sendSuccess = require('../utils/sendSuccess');
 
@@ -58,6 +59,24 @@ exports.generateAICampaign = async (req, res, next) => {
 
     // Generate AI campaign preview
     const aiGeneratedCampaign = await generateCampaignWithAI(campaignData);
+
+    if (req.user?.id) {
+      try {
+        await notificationService.createNotification({
+          userId: req.user.id,
+          type: 'AI_CAMPAIGN_READY',
+          message: `AI campaign draft is ready for "${campaignName}"`,
+          entityType: 'Campaign',
+          entityId: null,
+          metadata: {
+            campaignName,
+            goalType
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send AI_CAMPAIGN_READY notification:', notifError);
+      }
+    }
 
     sendSuccess(res, 201, 'AI campaign draft generated successfully.', {
      
@@ -313,6 +332,21 @@ exports.saveAndPublish = async (req, res, next) => {
 
     await t.commit();
 
+    try {
+      await notificationService.createNotification({
+        userId: campaign.userId,
+        type: 'CAMPAIGN_PUBLISHED',
+        message: `Campaign "${campaign.campaignName}" was published`,
+        entityType: 'Campaign',
+        entityId: campaign.id,
+        metadata: {
+          lifecycleStage: campaign.lifecycleStage
+        }
+      });
+    } catch (notifError) {
+      console.error('Failed to send CAMPAIGN_PUBLISHED notification:', notifError);
+    }
+
     sendSuccess(res, 201, 'Campaign saved and published successfully.', {
       campaign: {
         id: campaign.id,
@@ -451,6 +485,23 @@ exports.saveCampaign = async (req, res, next) => {
 
     await t.commit();
 
+    if (campaign.isPublished) {
+      try {
+        await notificationService.createNotification({
+          userId: campaign.userId,
+          type: 'CAMPAIGN_PUBLISHED',
+          message: `Campaign "${campaign.campaignName}" was published`,
+          entityType: 'Campaign',
+          entityId: campaign.id,
+          metadata: {
+            lifecycleStage: campaign.lifecycleStage
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send CAMPAIGN_PUBLISHED notification:', notifError);
+      }
+    }
+
     sendSuccess(res, 201, 'Campaign saved successfully.', {
       campaign: {
         id: campaign.id,
@@ -492,6 +543,21 @@ exports.completeCampaign = async (req, res, next) => {
     campaign.lifecycleStage = 'completed';
     await campaign.save();
 
+    try {
+      await notificationService.createNotification({
+        userId: campaign.userId,
+        type: 'CAMPAIGN_APPROVED',
+        message: `Campaign "${campaign.campaignName}" is marked as completed`,
+        entityType: 'Campaign',
+        entityId: campaign.id,
+        metadata: {
+          lifecycleStage: campaign.lifecycleStage
+        }
+      });
+    } catch (notifError) {
+      console.error('Failed to send CAMPAIGN_APPROVED notification:', notifError);
+    }
+
     sendSuccess(res, 200, 'Campaign completed successfully.', {
       campaign: {
         id: campaign.id,
@@ -529,6 +595,21 @@ exports.cancelCampaign = async (req, res, next) => {
 
     campaign.lifecycleStage = 'cancelled';
     await campaign.save();
+
+    try {
+      await notificationService.createNotification({
+        userId: campaign.userId,
+        type: 'CAMPAIGN_REJECTED',
+        message: `Campaign "${campaign.campaignName}" was cancelled`,
+        entityType: 'Campaign',
+        entityId: campaign.id,
+        metadata: {
+          lifecycleStage: campaign.lifecycleStage
+        }
+      });
+    } catch (notifError) {
+      console.error('Failed to send CAMPAIGN_REJECTED notification:', notifError);
+    }
 
     sendSuccess(res, 200, 'Campaign cancelled successfully.', {
       campaign: {

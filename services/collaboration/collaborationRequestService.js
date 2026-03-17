@@ -157,10 +157,13 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
       try {
         await notificationService.createNotification({
           userId: notifyUserId,
-          type: "COLLAB_REQUEST_ACCEPTED",
-          message: "Your collaboration request was accepted",
+          type: 'CAMPAIGN_APPROVED',
+          message: 'Your collaboration request was accepted',
           entityType: "CollaborationRequest",
-          entityId: request.id
+          entityId: request.id,
+          metadata: {
+            action: 'request_accepted'
+          }
         });
       } catch (err) {
         console.error('Failed to send accept notification:', err);
@@ -198,10 +201,13 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
     try {
       await notificationService.createNotification({
         userId: notifyUserId,
-        type: "COLLAB_REQUEST_REJECTED",
-        message: "Your collaboration request was rejected",
+        type: 'CAMPAIGN_REJECTED',
+        message: 'Your collaboration request was rejected',
         entityType: "CollaborationRequest",
-        entityId: request.id
+        entityId: request.id,
+        metadata: {
+          action: 'request_rejected'
+        }
       });
     } catch (err) {
       console.error('Failed to send reject notification:', err);
@@ -233,10 +239,13 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
     try {
       await notificationService.createNotification({
         userId: notifyUserId,
-        type: "COUNTER_OFFER",
+        type: 'CAMPAIGN_INVITATION',
         message: `New counter offer: $${newBudget}`,
         entityType: "CollaborationRequest",
-        entityId: request.id
+        entityId: request.id,
+        metadata: {
+          action: 'counter_offer'
+        }
       });
     } catch (err) {
       console.error('Failed to send counter notification:', err);

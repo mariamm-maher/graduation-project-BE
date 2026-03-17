@@ -282,13 +282,14 @@ class NotificationService {
     
     return this.createNotification({
       userId: influencerId,
-      category: 'collaboration',
-      type: 'collaboration_request',
-      title: 'New Collaboration Request',
+      type: 'CAMPAIGN_INVITATION',
       message: `${owner.firstName} ${owner.lastName} sent you a collaboration request for "${campaignName}"`,
-      relatedId: collaborationRequestId,
-      actionUrl: `/collaborations/requests/${collaborationRequestId}`,
-      imageUrl: owner.avatar
+      entityType: 'CollaborationRequest',
+      entityId: collaborationRequestId,
+      metadata: {
+        actionUrl: `/collaborations/requests/${collaborationRequestId}`,
+        imageUrl: owner?.avatar || null
+      }
     });
   }
 
@@ -300,13 +301,14 @@ class NotificationService {
     
     return this.createNotification({
       userId: ownerId,
-      category: 'collaboration',
-      type: 'collaboration_accepted',
-      title: 'Collaboration Request Accepted',
+      type: 'CAMPAIGN_APPROVED',
       message: `${influencer.firstName} ${influencer.lastName} accepted your collaboration request for "${campaignName}"`,
-      relatedId: collaborationId,
-      actionUrl: `/collaborations/${collaborationId}`,
-      imageUrl: influencer.avatar
+      entityType: 'Collaboration',
+      entityId: collaborationId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}`,
+        imageUrl: influencer?.avatar || null
+      }
     });
   }
 
@@ -318,12 +320,13 @@ class NotificationService {
     
     return this.createNotification({
       userId: ownerId,
-      category: 'collaboration',
-      type: 'collaboration_rejected',
-      title: 'Collaboration Request Declined',
+      type: 'CAMPAIGN_REJECTED',
       message: `${influencer.firstName} ${influencer.lastName} declined your collaboration request for "${campaignName}"`,
-      relatedId: collaborationRequestId,
-      actionUrl: `/collaborations/requests/${collaborationRequestId}`
+      entityType: 'CollaborationRequest',
+      entityId: collaborationRequestId,
+      metadata: {
+        actionUrl: `/collaborations/requests/${collaborationRequestId}`
+      }
     });
   }
 
@@ -333,12 +336,26 @@ class NotificationService {
   async notifyTaskAssigned(userId, taskId, taskTitle, collaborationId) {
     return this.createNotification({
       userId,
-      category: 'task',
-      type: 'task_assigned',
-      title: 'New Task Assigned',
+      type: 'TASK_ASSIGNED',
       message: `You have been assigned a new task: "${taskTitle}"`,
-      relatedId: taskId,
-      actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      entityType: 'CollaborationTask',
+      entityId: taskId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      }
+    });
+  }
+
+  async notifyTaskStarted(ownerId, taskId, taskTitle, collaborationId) {
+    return this.createNotification({
+      userId: ownerId,
+      type: 'TASK_STARTED',
+      message: `Task "${taskTitle}" has been started`,
+      entityType: 'CollaborationTask',
+      entityId: taskId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      }
     });
   }
 
@@ -348,12 +365,13 @@ class NotificationService {
   async notifyTaskSubmitted(ownerId, taskId, taskTitle, collaborationId, influencerName) {
     return this.createNotification({
       userId: ownerId,
-      category: 'task',
-      type: 'task_submitted',
-      title: 'Task Submitted for Review',
+      type: 'TASK_SUBMITTED',
       message: `${influencerName} submitted "${taskTitle}" for your review`,
-      relatedId: taskId,
-      actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      entityType: 'CollaborationTask',
+      entityId: taskId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      }
     });
   }
 
@@ -363,12 +381,13 @@ class NotificationService {
   async notifyTaskApproved(influencerId, taskId, taskTitle, collaborationId) {
     return this.createNotification({
       userId: influencerId,
-      category: 'task',
-      type: 'task_approved',
-      title: 'Task Approved',
+      type: 'TASK_APPROVED',
       message: `Your task "${taskTitle}" has been approved`,
-      relatedId: taskId,
-      actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      entityType: 'CollaborationTask',
+      entityId: taskId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      }
     });
   }
 
@@ -378,12 +397,53 @@ class NotificationService {
   async notifyTaskRejected(influencerId, taskId, taskTitle, collaborationId, feedback) {
     return this.createNotification({
       userId: influencerId,
-      category: 'task',
-      type: 'task_rejected',
-      title: 'Task Needs Revision',
+      type: 'TASK_REJECTED',
       message: `Your task "${taskTitle}" needs revision. Feedback: ${feedback}`,
-      relatedId: taskId,
-      actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      entityType: 'CollaborationTask',
+      entityId: taskId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      }
+    });
+  }
+
+  async notifyTaskFinalRejected(influencerId, taskId, taskTitle, collaborationId, feedback) {
+    return this.createNotification({
+      userId: influencerId,
+      type: 'TASK_FINAL_REJECTED',
+      message: `Your task "${taskTitle}" was permanently rejected. Feedback: ${feedback}`,
+      entityType: 'CollaborationTask',
+      entityId: taskId,
+      metadata: {
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
+      }
+    });
+  }
+
+  async notifyFileUploaded(userId, entityType, entityId, fileUrl) {
+    return this.createNotification({
+      userId,
+      type: 'FILE_UPLOADED',
+      message: 'File uploaded successfully',
+      entityType: entityType || 'Upload',
+      entityId: entityId || null,
+      metadata: {
+        fileUrl
+      }
+    });
+  }
+
+  async notifyMessageReceived(userId, messageId, chatRoomId, senderName) {
+    return this.createNotification({
+      userId,
+      type: 'MESSAGE_RECEIVED',
+      message: `New message from ${senderName}`,
+      entityType: 'Message',
+      entityId: messageId,
+      metadata: {
+        chatRoomId,
+        actionUrl: `/chat/rooms/${chatRoomId}`
+      }
     });
   }
 
@@ -393,12 +453,14 @@ class NotificationService {
   async notifyNewOffer(influencerId, offerId, serviceListingId, ownerName, amount) {
     return this.createNotification({
       userId: influencerId,
-      category: 'offer',
-      type: 'offer_received',
-      title: 'New Offer Received',
+      type: 'OFFER_MADE',
       message: `${ownerName} sent you an offer of $${amount}`,
-      relatedId: offerId,
-      actionUrl: `/offers/${offerId}`
+      entityType: 'Offer',
+      entityId: offerId,
+      metadata: {
+        serviceListingId,
+        actionUrl: `/offers/${offerId}`
+      }
     });
   }
 
@@ -408,12 +470,13 @@ class NotificationService {
   async notifyOfferAccepted(ownerId, offerId, influencerName) {
     return this.createNotification({
       userId: ownerId,
-      category: 'offer',
-      type: 'offer_accepted',
-      title: 'Offer Accepted',
+      type: 'OFFER_ACCEPTED',
       message: `${influencerName} accepted your offer`,
-      relatedId: offerId,
-      actionUrl: `/offers/${offerId}`
+      entityType: 'Offer',
+      entityId: offerId,
+      metadata: {
+        actionUrl: `/offers/${offerId}`
+      }
     });
   }
 
@@ -423,12 +486,13 @@ class NotificationService {
   async notifyCampaignMilestone(userId, campaignId, campaignName, milestone) {
     return this.createNotification({
       userId,
-      category: 'campaign',
-      type: 'campaign_milestone',
-      title: 'Campaign Milestone Reached',
+      type: 'CAMPAIGN_APPROVED',
       message: `Your campaign "${campaignName}" ${milestone}`,
-      relatedId: campaignId,
-      actionUrl: `/campaigns/${campaignId}`
+      entityType: 'Campaign',
+      entityId: campaignId,
+      metadata: {
+        actionUrl: `/campaigns/${campaignId}`
+      }
     });
   }
 
@@ -438,12 +502,13 @@ class NotificationService {
   async notifyBudgetAlert(userId, campaignId, campaignName, percentage) {
     return this.createNotification({
       userId,
-      category: 'campaign',
-      type: 'budget_alert',
-      title: 'Budget Alert',
+      type: 'CAMPAIGN_REJECTED',
       message: `Your campaign "${campaignName}" has used ${percentage}% of its budget`,
-      relatedId: campaignId,
-      actionUrl: `/campaigns/${campaignId}`
+      entityType: 'Campaign',
+      entityId: campaignId,
+      metadata: {
+        actionUrl: `/campaigns/${campaignId}`
+      }
     });
   }
 
@@ -453,11 +518,14 @@ class NotificationService {
   async notifySystemAnnouncement(userIds, title, message, actionUrl = null) {
     const notifications = userIds.map(userId => ({
       userId,
-      category: 'system',
-      type: 'system_announcement',
-      title,
+      type: 'CAMPAIGN_PUBLISHED',
       message,
-      actionUrl,
+      entityType: 'System',
+      entityId: null,
+      metadata: {
+        title,
+        actionUrl
+      },
       isRead: false
     }));
 

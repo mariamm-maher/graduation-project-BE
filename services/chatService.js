@@ -1,6 +1,7 @@
 const { ChatRoom, ChatParticipant, Message, User, Collaboration } = require('../models');
 const { Op } = require('sequelize');
 const AppError = require('../utils/AppError');
+const notificationService = require('./notificationService');
 
 class ChatService {
   /**
@@ -258,6 +259,28 @@ class ChatService {
           }
         ]
       });
+
+      const recipients = await ChatParticipant.findAll({
+        where: {
+          chatRoomId,
+          userId: { [Op.ne]: userId }
+        },
+        attributes: ['userId']
+      });
+
+      const senderName = `${fullMessage.sender.firstName} ${fullMessage.sender.lastName}`;
+      for (const recipient of recipients) {
+        try {
+          await notificationService.notifyMessageReceived(
+            recipient.userId,
+            fullMessage.id,
+            chatRoomId,
+            senderName
+          );
+        } catch (err) {
+          console.error('Failed to send MESSAGE_RECEIVED notification:', err);
+        }
+      }
 
       return fullMessage;
     } catch (error) {

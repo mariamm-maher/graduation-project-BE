@@ -1,8 +1,20 @@
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { verifyAccessToken } = require('../utils/generateToken');
 
 let io;
+
+const createSocketAuthError = (message, details = {}) => {
+  const error = new Error(message);
+  error.data = {
+    code: details.code || 'SOCKET_AUTH_ERROR',
+    name: details.name || 'AuthError',
+    statusCode: details.statusCode || 401,
+    message,
+    ...(details.expiredAt ? { expiredAt: details.expiredAt } : {})
+  };
+  return error;
+};
 
 // Initialize Socket.io server
 const initializeSocket = (httpServer) => {
@@ -19,22 +31,52 @@ const initializeSocket = (httpServer) => {
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token;
+      const rawToken = socket.handshake.auth?.token;
+      const token = typeof rawToken === 'string'
+        ? rawToken.trim().replace(/^Bearer\s+/i, '').replace(/^["']|["']$/g, '')
+        : '';
 
       if (!token) {
-        return next(new Error('Authentication error: No token provided'));
+        return next(createSocketAuthError('Authentication error: Access token is required', {
+          code: 'ACCESS_TOKEN_REQUIRED',
+          name: 'AuthError'
+        }));
       }
 
-      // Verify JWT token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (token.split('.').length !== 3) {
+        return next(createSocketAuthError('Authentication error: Invalid token format', {
+          code: 'INVALID_TOKEN_FORMAT',
+          name: 'JsonWebTokenError'
+        }));
+      }
+
+      const tokenResult = verifyAccessToken(token);
+
+      if (!tokenResult.valid) {
+        if (tokenResult.error.name === 'TokenExpiredError') {
+          return next(createSocketAuthError('Authentication error: Access token has expired', {
+            code: 'TOKEN_EXPIRED',
+            name: 'TokenExpiredError',
+            expiredAt: tokenResult.error.expiredAt
+          }));
+        }
+
+        return next(createSocketAuthError(`Authentication error: ${tokenResult.error.message}`, {
+          code: 'INVALID_ACCESS_TOKEN',
+          name: tokenResult.error.name || 'JsonWebTokenError'
+        }));
+      }
       
       // Find user
-      const user = await User.findByPk(decoded.id, {
+      const user = await User.findByPk(tokenResult.decoded.id, {
         attributes: ['id', 'firstName', 'lastName', 'email']
       });
 
       if (!user) {
-        return next(new Error('Authentication error: User not found'));
+        return next(createSocketAuthError('Authentication error: User not found', {
+          code: 'USER_NOT_FOUND',
+          name: 'AuthError'
+        }));
       }
 
       // Attach user to socket
@@ -48,7 +90,10 @@ const initializeSocket = (httpServer) => {
       next();
     } catch (error) {
       console.error('Socket authentication error:', error);
-      next(new Error('Authentication error: Invalid token'));
+      next(createSocketAuthError('Authentication error: Invalid token', {
+        code: 'INVALID_ACCESS_TOKEN',
+        name: error.name || 'JsonWebTokenError'
+      }));
     }
   });
 

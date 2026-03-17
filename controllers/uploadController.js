@@ -2,6 +2,7 @@
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { logAction } = require('../services/logServices');
+const notificationService = require('../services/notificationService');
 
 // ─────────────────────────────────────────────────────────
 // Cloudinary Upload
@@ -41,6 +42,17 @@ exports.uploadToCloudinary = [
         req.file.mimetype,
         folder
       );
+
+      try {
+        await notificationService.notifyFileUploaded(
+          req.user.id,
+          'Upload',
+          null,
+          url
+        );
+      } catch (notifError) {
+        console.error('Failed to send FILE_UPLOADED notification:', notifError);
+      }
 
       // Fire-and-forget audit log
       try {
