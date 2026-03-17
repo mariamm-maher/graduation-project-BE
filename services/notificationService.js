@@ -278,7 +278,7 @@ class NotificationService {
    * Notify about new collaboration request
    */
   async notifyCollaborationRequest(influencerId, ownerId, collaborationRequestId, campaignName) {
-    const owner = await User.findByPk(ownerId, { attributes: ['firstName', 'lastName', 'avatar'] });
+    const owner = await User.findByPk(ownerId, { attributes: ['firstName', 'lastName'] });
     
     return this.createNotification({
       userId: influencerId,
@@ -287,8 +287,7 @@ class NotificationService {
       entityType: 'CollaborationRequest',
       entityId: collaborationRequestId,
       metadata: {
-        actionUrl: `/collaborations/requests/${collaborationRequestId}`,
-        imageUrl: owner?.avatar || null
+        actionUrl: `/collaborations/requests/${collaborationRequestId}`
       }
     });
   }
@@ -297,7 +296,7 @@ class NotificationService {
    * Notify about collaboration request accepted
    */
   async notifyCollaborationAccepted(ownerId, influencerId, collaborationId, campaignName) {
-    const influencer = await User.findByPk(influencerId, { attributes: ['firstName', 'lastName', 'avatar'] });
+    const influencer = await User.findByPk(influencerId, { attributes: ['firstName', 'lastName'] });
     
     return this.createNotification({
       userId: ownerId,
@@ -306,8 +305,7 @@ class NotificationService {
       entityType: 'Collaboration',
       entityId: collaborationId,
       metadata: {
-        actionUrl: `/collaborations/${collaborationId}`,
-        imageUrl: influencer?.avatar || null
+        actionUrl: `/collaborations/${collaborationId}`
       }
     });
   }
