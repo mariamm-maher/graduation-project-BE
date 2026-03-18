@@ -13,6 +13,7 @@ router.use(authenticate);
 // These must come BEFORE /:id to avoid Express matching 'mine' as an id
 router.get('/mine/owner',      collabCtrl.listMyOwner);      // owner
 router.get('/mine/influencer', collabCtrl.listMyInfluencer); // influencer
+router.get('/overview',        collabCtrl.getOverview);
 
 router.get('/:id',          collabCtrl.getById);
 router.patch('/:id/cancel', collabCtrl.cancel);

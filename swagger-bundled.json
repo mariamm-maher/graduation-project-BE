@@ -1623,6 +1623,248 @@
         }
       }
     },
+    "/api/campaigns/active": {
+      "get": {
+        "summary": "Get active campaigns",
+        "description": "Retrieve all active campaigns for the authenticated owner (where startDate <= today and endDate >= today)",
+        "tags": [
+          "Campaigns"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active campaigns retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Active campaigns retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaigns": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/Campaign"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kpis": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "integer"
+                                        },
+                                        "metric": {
+                                          "type": "string"
+                                        },
+                                        "targetValue": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "targetAudience": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "id": {
+                                        "type": "integer"
+                                      },
+                                      "ageRange": {
+                                        "type": "string"
+                                      },
+                                      "gender": {
+                                        "type": "string"
+                                      },
+                                      "interests": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "platformsUsed": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "contentCalendar": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "integer"
+                                        },
+                                        "day": {
+                                          "type": "integer"
+                                        },
+                                        "date": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        },
+                                        "platform": {
+                                          "type": "string"
+                                        },
+                                        "contentType": {
+                                          "type": "string"
+                                        },
+                                        "status": {
+                                          "type": "string"
+                                        },
+                                        "task": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "aiVersions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "integer"
+                                        },
+                                        "versionNumber": {
+                                          "type": "integer"
+                                        },
+                                        "generatedAt": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        },
+                                        "isActive": {
+                                          "type": "boolean"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "tracking": {
+                                    "type": "object",
+                                    "properties": {
+                                      "duration": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalDurationDays": {
+                                            "type": "integer"
+                                          },
+                                          "elapsedDurationDays": {
+                                            "type": "integer"
+                                          },
+                                          "remainingDurationDays": {
+                                            "type": "integer"
+                                          },
+                                          "progressPercent": {
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      "kpis": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalKpis": {
+                                            "type": "integer"
+                                          },
+                                          "metrics": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "content": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalItems": {
+                                            "type": "integer"
+                                          },
+                                          "postedContentCount": {
+                                            "type": "integer"
+                                          },
+                                          "scheduledContentCount": {
+                                            "type": "integer"
+                                          },
+                                          "failedContentCount": {
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      "ai": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalVersions": {
+                                            "type": "integer"
+                                          },
+                                          "activeVersion": {
+                                            "type": "object",
+                                            "nullable": true
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "trackingTools": {
+                          "type": "object",
+                          "properties": {
+                            "totalActiveCampaigns": {
+                              "type": "integer"
+                            },
+                            "totalKpis": {
+                              "type": "integer"
+                            },
+                            "totalContentItems": {
+                              "type": "integer"
+                            },
+                            "totalPostedContent": {
+                              "type": "integer"
+                            },
+                            "averageProgressPercent": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/campaigns/overview": {
       "get": {
         "tags": [
@@ -3745,6 +3987,82 @@
           },
           "403": {
             "$ref": "#/components/responses/ForbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/collaborations/overview": {
+      "get": {
+        "tags": [
+          "Collaborations"
+        ],
+        "summary": "Get collaboration overview for current user",
+        "description": "Returns aggregate collaboration counts for the authenticated user (as owner or influencer).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collaboration overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Collaboration overview"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "overview": {
+                          "type": "object",
+                          "properties": {
+                            "totalCollaborations": {
+                              "type": "integer",
+                              "example": 12
+                            },
+                            "liveCollab": {
+                              "type": "integer",
+                              "example": 3
+                            },
+                            "completedCollabs": {
+                              "type": "integer",
+                              "example": 4
+                            },
+                            "pending_contract_signCollab": {
+                              "type": "integer",
+                              "example": 2
+                            },
+                            "in_progressCollab": {
+                              "type": "integer",
+                              "example": 2
+                            },
+                            "cancelledCollab": {
+                              "type": "integer",
+                              "example": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -6264,6 +6582,70 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
+        }
+      }
+    },
+    "/api/influencer/overview/stats": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Get Influencer Overview Stats",
+        "description": "Returns lightweight influencer stats including active collaborations now, total influencers in system, and past collaborations count.",
+        "operationId": "getInfluencerOverviewStats",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencer overview stats retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Influencer overview stats retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "activeCollaboratorNow": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "totalInfluencersInSystem": {
+                          "type": "integer",
+                          "example": 42
+                        },
+                        "pastCollaboratingNumber": {
+                          "type": "integer",
+                          "example": 7
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -9917,6 +10299,20 @@
           }
         }
       },
+      "InternalServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "status": "error",
+              "message": "Internal server error"
+            }
+          }
+        }
+      },
       "BadRequestError": {
         "description": "Bad request - Invalid input or parameters",
         "content": {
@@ -9941,20 +10337,6 @@
             "example": {
               "status": "error",
               "message": "Access denied"
-            }
-          }
-        }
-      },
-      "InternalServerError": {
-        "description": "Internal server error",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "example": {
-              "status": "error",
-              "message": "Internal server error"
             }
           }
         }

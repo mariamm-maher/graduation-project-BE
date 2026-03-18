@@ -2,6 +2,7 @@ const Campaign = require('../models/Campaign');
 const KPI = require('../models/KPI');
 const TargetAudience = require('../models/TargetAudience');
 const ContentCalendar = require('../models/ContentCalendar');
+const CampaignAIVersion = require('../models/CampaignAIVersion');
 const { generateCampaignWithAI } = require('../services/campaignAIService');
 const { logAction } = require('../services/logServices');
 const notificationService = require('../services/notificationService');
@@ -856,6 +857,117 @@ exports.createCampaign = async (req, res, next) => {
         lifecycleStage: campaign.lifecycleStage,
         userId: campaign.userId,
         createdAt: campaign.createdAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get active campaigns for authenticated user
+// @route   GET /api/campaigns/active
+// @access  Private
+exports.getActiveCampaigns = async (req, res, next) => {
+  try {
+    const ownerId = req.user && req.user.id;
+    const { Op } = require('sequelize');
+    const today = new Date();
+
+    const activeCampaigns = await Campaign.findAll({
+      where: {
+        userId: ownerId,
+        startDate: { [Op.lte]: today },
+        endDate: { [Op.gte]: today }
+      },
+      include: [
+        {
+          model: KPI,
+          as: 'kpis',
+          attributes: ['id', 'metric', 'targetValue'],
+          required: false
+        },
+        {
+          model: TargetAudience,
+          as: 'targetAudience',
+          attributes: ['id', 'ageRange', 'gender', 'interests', 'platformsUsed'],
+          required: false
+        },
+        {
+          model: ContentCalendar,
+          as: 'contentCalendar',
+          attributes: ['id', 'day', 'date', 'platform', 'contentType', 'status', 'task'],
+          required: false
+        },
+        {
+          model: CampaignAIVersion,
+          as: 'aiVersions',
+          attributes: ['id', 'versionNumber', 'generatedAt', 'isActive'],
+          required: false
+        }
+      ],
+      order: [['startDate', 'DESC']]
+    });
+
+    const campaignsWithTracking = activeCampaigns.map((campaignModel) => {
+      const campaign = campaignModel.toJSON();
+
+      const start = new Date(campaign.startDate);
+      const end = new Date(campaign.endDate);
+      const totalDurationDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+      const elapsedDurationDays = Math.max(0, Math.min(totalDurationDays, Math.ceil((today - start) / (1000 * 60 * 60 * 24))));
+      const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedDurationDays / totalDurationDays) * 100)));
+
+      const calendarItems = Array.isArray(campaign.contentCalendar) ? campaign.contentCalendar : [];
+      const postedContentCount = calendarItems.filter((item) => item.status === 'posted').length;
+      const failedContentCount = calendarItems.filter((item) => item.status === 'failed').length;
+      const scheduledContentCount = calendarItems.filter((item) => item.status === 'scheduled').length;
+
+      const activeAIVersion = Array.isArray(campaign.aiVersions)
+        ? campaign.aiVersions.find((version) => version.isActive) || null
+        : null;
+
+      return {
+        ...campaign,
+        tracking: {
+          duration: {
+            totalDurationDays,
+            elapsedDurationDays,
+            remainingDurationDays: Math.max(0, totalDurationDays - elapsedDurationDays),
+            progressPercent
+          },
+          kpis: {
+            totalKpis: Array.isArray(campaign.kpis) ? campaign.kpis.length : 0,
+            metrics: Array.isArray(campaign.kpis) ? campaign.kpis.map((item) => item.metric) : []
+          },
+          content: {
+            totalItems: calendarItems.length,
+            postedContentCount,
+            scheduledContentCount,
+            failedContentCount
+          },
+          ai: {
+            totalVersions: Array.isArray(campaign.aiVersions) ? campaign.aiVersions.length : 0,
+            activeVersion: activeAIVersion
+          }
+        }
+      };
+    });
+
+    const totalKpis = campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.kpis.totalKpis, 0);
+    const totalContentItems = campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.content.totalItems, 0);
+    const totalPostedContent = campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.content.postedContentCount, 0);
+    const averageProgressPercent = campaignsWithTracking.length
+      ? Math.round(campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.duration.progressPercent, 0) / campaignsWithTracking.length)
+      : 0;
+
+    sendSuccess(res, 200, 'Active campaigns retrieved successfully', {
+      campaigns: campaignsWithTracking,
+      trackingTools: {
+        totalActiveCampaigns: campaignsWithTracking.length,
+        totalKpis,
+        totalContentItems,
+        totalPostedContent,
+        averageProgressPercent
       }
     });
   } catch (error) {

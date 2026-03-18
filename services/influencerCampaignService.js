@@ -292,3 +292,46 @@ exports.applyToCampaign = async ({ influencerId, campaignId, payload }) => {
     }
   };
 };
+
+exports.getOverviewStats = async ({ influencerId }) => {
+  const today = new Date();
+
+  const [activeCollaboratorNow, totalInfluencersInSystem, pastCollaboratingNumber] = await Promise.all([
+    Collaboration.count({
+      where: {
+        influencerId,
+        status: { [Op.in]: ['live', 'in_progress'] },
+        [Op.and]: [
+          {
+            [Op.or]: [
+              { startDate: null },
+              { startDate: { [Op.lte]: today } }
+            ]
+          },
+          {
+            [Op.or]: [
+              { endDate: null },
+              { endDate: { [Op.gte]: today } }
+            ]
+          }
+        ]
+      }
+    }),
+    InfluencerProfile.count(),
+    Collaboration.count({
+      where: {
+        influencerId,
+        [Op.or]: [
+          { status: { [Op.in]: ['completed', 'cancelled'] } },
+          { endDate: { [Op.lt]: today } }
+        ]
+      }
+    })
+  ]);
+
+  return {
+    activeCollaboratorNow,
+    totalInfluencersInSystem,
+    pastCollaboratingNumber
+  };
+};

@@ -1,6 +1,7 @@
 // services/collaboration/collaborationService.js
 const { Collaboration, CollaborationRequest, CollaborationTask, Campaign, User, InfluencerProfile, OwnerProfile } = require('../../models');
 const AppError = require('../../utils/AppError');
+const { Op } = require('sequelize');
 
 // FIX: import from contractService — single source of truth, no duplication
 const { COLLAB_STATUSES } = require('./contractService');
@@ -152,6 +153,42 @@ async function listByInfluencer({ influencerId, status }) {
   return collabs.map(formatCollabData);
 }
 
+async function getCollaborationOverviewForUser(userId) {
+  const where = {
+    [Op.or]: [
+      { ownerId: userId },
+      { influencerId: userId }
+    ]
+  };
+
+  const [totalCollaborations, groupedCounts] = await Promise.all([
+    Collaboration.count({ where }),
+    Collaboration.findAll({
+      attributes: [
+        'status',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+      ],
+      where,
+      group: ['status'],
+      raw: true
+    })
+  ]);
+
+  const countsByStatus = groupedCounts.reduce((acc, item) => {
+    acc[item.status] = Number(item.count) || 0;
+    return acc;
+  }, {});
+
+  return {
+    totalCollaborations,
+    liveCollab: countsByStatus.live || 0,
+    completedCollabs: countsByStatus.completed || 0,
+    pending_contract_signCollab: countsByStatus.pending_contract_sign || 0,
+    in_progressCollab: countsByStatus.in_progress || 0,
+    cancelledCollab: countsByStatus.cancelled || 0
+  };
+}
+
 // Helper to format the return data including a calculated duration
 function formatCollabData(collab) {
   const data = collab.toJSON ? collab.toJSON() : collab;
@@ -211,4 +248,5 @@ module.exports = {
   completeCollaboration,
   listByOwner,
   listByInfluencer,
+  getCollaborationOverviewForUser,
 };

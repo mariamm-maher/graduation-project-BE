@@ -121,6 +121,8 @@ paths:
   # ==================== CAMPAIGN ENDPOINTS ====================
   /api/campaigns:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns'
+  /api/campaigns/active:
+    $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1active'
   /api/campaigns/overview:
     $ref: './paths/campaigns.yaml#/paths/~1api~1campaigns~1overview'
   
@@ -169,6 +171,9 @@ paths:
 
   /api/collaborations/mine/influencer:
     $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1mine~1influencer'
+
+  /api/collaborations/overview:
+    $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1overview'
 
   /api/collaborations/{id}:
     $ref: './paths/collaboration.yaml#/paths/~1api~1collaborations~1{id}'
@@ -237,6 +242,9 @@ paths:
 
   /api/influencer/overview:
     $ref: './paths/influencer.yaml#/paths/~1api~1influencer~1overview'
+
+  /api/influencer/overview/stats:
+    $ref: './paths/influencer.yaml#/paths/~1api~1influencer~1overview~1stats'
 
   # ==================== ADMIN ENDPOINTS ====================
   /api/admin/analytics:

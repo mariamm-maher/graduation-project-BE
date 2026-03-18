@@ -199,19 +199,24 @@ async function seedData() {
     }
 
     // -----------------------------------------------------------------------
-    // 5) CAMPAIGNS (5)
+    // 5) CAMPAIGNS (10 for owner1)
     // -----------------------------------------------------------------------
     const campaignSeeds = [
-      { campaignName: 'AI Product Launch 2026', UserDescription: 'Promote our AI product launch with educational influencer content.', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
-      { campaignName: 'Eco Summer Challenge', UserDescription: 'Drive engagement around sustainable lifestyle habits.', lifecycleStage: 'completed', goalType: 'consideration', totalBudget: 6200, currency: 'EUR', budgetFlexibility: 'strict', isPublished: true },
-      { campaignName: 'Fit in 30 Days', UserDescription: 'Promote a 30-day fitness challenge and app trial.', lifecycleStage: 'saved', goalType: 'conversion', totalBudget: 7000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
-      { campaignName: 'Style Capsule Collection', UserDescription: 'Launch seasonal fashion capsule with creator collabs.', lifecycleStage: 'draft', goalType: 'lead_generation', totalBudget: 5800, currency: 'EUR', budgetFlexibility: 'strict', isPublished: false },
-      { campaignName: 'Healthy Snack Awareness', UserDescription: 'Increase awareness for healthy snack product line.', lifecycleStage: 'ai_generated', goalType: 'retention', totalBudget: 6400, currency: 'CAD', budgetFlexibility: 'flexible', isPublished: false }
+      { campaignName: 'O1 Campaign 1 - Draft', UserDescription: 'C1', lifecycleStage: 'draft', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: false },
+      { campaignName: 'O1 Campaign 2 - AI Gen', UserDescription: 'C2', lifecycleStage: 'ai_generated', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: false },
+      { campaignName: 'O1 Campaign 3 - Saved', UserDescription: 'C3', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 4 - Pub', UserDescription: 'C4', lifecycleStage: 'published', goalType: 'awareness', totalBudget: 6000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 5 - Pub', UserDescription: 'C5', lifecycleStage: 'published', goalType: 'awareness', totalBudget: 7000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 6 - Completed', UserDescription: 'C6', lifecycleStage: 'completed', goalType: 'awareness', totalBudget: 8000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 7 - Cancelled', UserDescription: 'C7', lifecycleStage: 'cancelled', goalType: 'awareness', totalBudget: 4000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 8 - Draft 2', UserDescription: 'C8', lifecycleStage: 'draft', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: false },
+      { campaignName: 'O1 Campaign 9 - Pub 2', UserDescription: 'C9', lifecycleStage: 'published', goalType: 'awareness', totalBudget: 9000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 10 - Completed 2', UserDescription: 'C10', lifecycleStage: 'completed', goalType: 'awareness', totalBudget: 6000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true }
     ];
 
     const campaigns = [];
     for (let index = 0; index < campaignSeeds.length; index += 1) {
-      const owner = ownerUsers[index % ownerUsers.length];
+      const owner = ownerUsers[0]; // always owner1
       const seed = campaignSeeds[index];
 
       const startDate = new Date();
@@ -237,19 +242,19 @@ async function seedData() {
       });
 
       campaigns.push(campaign);
-      console.log(created ? `✅ Campaign ${seed.campaignName} created.` : `ℹ️ Campaign ${seed.campaignName} already exists.`);
+      console.log(created ? ` Campaign ${seed.campaignName} created.` : `? Campaign ${seed.campaignName} already exists.`);
     }
 
     // -----------------------------------------------------------------------
     // 6) COLLABORATION REQUESTS (5)
     // -----------------------------------------------------------------------
-    const requestStatuses = ['pending', 'negotiating', 'accepted', 'rejected', 'cancelled'];
+    const requestStatuses = ['pending', 'negotiating', 'accepted', 'rejected', 'cancelled', 'accepted', 'accepted', 'accepted', 'accepted', 'accepted'];
     const requests = [];
 
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const campaign = campaigns[index];
-      const owner = ownerUsers[index];
-      const influencer = influencerUsers[index];
+      const owner = ownerUsers[0];
+      const influencer = influencerUsers[0];
       const status = requestStatuses[index];
 
       const [request, created] = await CollaborationRequest.findOrCreate({
@@ -283,14 +288,14 @@ async function seedData() {
     // -----------------------------------------------------------------------
     // 7) COLLABORATIONS (5)
     // -----------------------------------------------------------------------
-    const collaborationStatuses = ['pending_contract_sign', 'live', 'in_progress', 'completed', 'cancelled'];
+    const collaborationStatuses = ['pending_contract_sign', 'live', 'in_progress', 'completed', 'cancelled', 'pending_contract_sign', 'live', 'in_progress', 'completed', 'cancelled'];
     const collaborations = [];
 
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const request = requests[index];
       const campaign = campaigns[index];
-      const owner = ownerUsers[index];
-      const influencer = influencerUsers[index];
+      const owner = ownerUsers[0];
+      const influencer = influencerUsers[0];
       const status = collaborationStatuses[index];
 
       const [collaboration, created] = await Collaboration.findOrCreate({
@@ -315,10 +320,10 @@ async function seedData() {
     // -----------------------------------------------------------------------
     // 8) COLLABORATION CONTRACTS (5)
     // -----------------------------------------------------------------------
-    const contractStatuses = ['sent', 'partially_signed', 'signed', 'cancelled', 'sent'];
+    const contractStatuses = ['sent', 'partially_signed', 'signed', 'cancelled', 'sent', 'partially_signed', 'signed', 'cancelled', 'sent', 'signed'];
     const contracts = [];
 
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const collaboration = collaborations[index];
       const request = requests[index];
       const status = contractStatuses[index];
@@ -333,7 +338,7 @@ async function seedData() {
             {
               title: `Deliverable ${index + 1}`,
               description: 'One feed post + one story mention',
-              platform: influencerProfileSeeds[index].primaryPlatform,
+              platform: influencerProfileSeeds[index % 5].primaryPlatform,
               contentType: 'post',
               dueDate: new Date(now.getTime() + (10 + index) * 24 * 60 * 60 * 1000)
             }
@@ -356,10 +361,10 @@ async function seedData() {
     // -----------------------------------------------------------------------
     // 9) TASKS (if exists) — 5+ entries
     // -----------------------------------------------------------------------
-    const taskStatusCycle = ['todo', 'in_progress', 'in_review', 'approved', 'rejected'];
+    const taskStatusCycle = ['todo', 'in_progress', 'in_review', 'approved', 'rejected', 'todo', 'in_progress', 'in_review', 'approved', 'rejected'];
     const tasks = [];
 
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const collaboration = collaborations[index];
       const status = taskStatusCycle[index];
       const [task, created] = await CollaborationTask.findOrCreate({
@@ -392,10 +397,10 @@ async function seedData() {
     // -----------------------------------------------------------------------
     const chatRooms = [];
 
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       const collaboration = collaborations[index];
-      const owner = ownerUsers[index];
-      const influencer = influencerUsers[index];
+      const owner = ownerUsers[0];
+      const influencer = influencerUsers[0];
 
       const [room, roomCreated] = await ChatRoom.findOrCreate({
         where: { collaborationId: collaboration.id },
