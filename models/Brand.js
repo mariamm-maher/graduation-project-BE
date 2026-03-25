@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
+const { setEngine } = require('crypto');
 
 const Brand = sequelize.define('Brand',{
   id: {
@@ -22,7 +23,11 @@ const Brand = sequelize.define('Brand',{
     unique: true,
     comment: 'Official brand name',
   },
-
+  segment: {
+    type: DataTypes.STRING(150),
+    allowNull: false,
+    comment: 'Brand segment/category (e.g. "Technology", "Fashion")',
+  },
   slug: {
     type: DataTypes.STRING(150),
     allowNull: false,

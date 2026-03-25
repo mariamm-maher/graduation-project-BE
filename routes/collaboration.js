@@ -1,4 +1,4 @@
-// routes/collaborationRoutes.js
+
 const express = require('express');
 const router  = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
@@ -9,12 +9,6 @@ const taskCtrl     = require('../controllers/collaborationTasksController');
 
 router.use(authenticate);
 
-// =============================================================================
-// COLLABORATION REQUESTS
-// Base: /api/collaborations
-// =============================================================================
-
-// Owner sends a request to an influencer
 router.post('/requests', requestCtrl.invite);
 
 // These two must come BEFORE /requests/:id to avoid route conflict
