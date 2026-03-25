@@ -53,42 +53,7 @@ paths:
         '404':
           description: Profile or user not found
 
-    post:
-      tags:
-        - Profile
-      summary: Create or update owner profile (onboarding)
-      description: Creates a new owner profile if none exists, or updates the existing one.
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                businessName: { type: string, example: "Ahmed Tech Solutions" }
-                businessType: { type: string, example: "Software & AI" }
-                industry: { type: string, example: "Technology & Marketing" }
-                location: { type: string, example: "Cairo, Egypt" }
-                description: { type: string }
-                website: { type: string, example: "https://ahmedtech.com" }
-                phoneNumber: { type: string, example: "01234567890" }
-                platformsUsed: { type: array, items: { type: string } }
-                primaryMarketingGoal: { type: string, example: "brand_awareness" }
-                targetAudience: { type: object }
-                firstName: { type: string, example: "Ahmed" }
-                lastName: { type: string, example: "Mohamed" }
-                email: { type: string, format: email }
-      responses:
-        '201':
-          description: Profile created
-        '200':
-          description: Profile updated (already existed)
-        '403':
-          description: Not an owner
-        '401':
-          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+    # POST /api/profile/owner removed — use PUT /api/profile/owner to create or update the owner profile
 
     put:
       tags:
@@ -189,45 +154,7 @@ paths:
         '401':
           $ref: '../components/responses.yaml#/responses/UnauthorizedError'
 
-    post:
-      tags:
-        - Profile
-      summary: Create or update influencer profile (onboarding)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                bio: { type: string }
-                image: { type: string }
-                location: { type: string }
-                socialMediaLinks: { type: object }
-                primaryPlatform: { type: string, example: "instagram" }
-                followersCount: { type: integer, example: 25000 }
-                engagementRate: { type: number, example: 4.5 }
-                categories: { type: array, items: { type: string } }
-                contentTypes: { type: array, items: { type: string } }
-                collaborationTypes: { type: array, items: { type: string } }
-                audienceAgeRange: { type: string, example: "18-34" }
-                audienceGender: { type: string, example: "female" }
-                audienceLocation: { type: string, example: "Egypt" }
-                interests: { type: array, items: { type: string } }
-                firstName: { type: string }
-                lastName: { type: string }
-                email: { type: string, format: email }
-      responses:
-        '201':
-          description: Profile created
-        '200':
-          description: Profile updated (already existed)
-        '403':
-          description: Not an influencer
-        '401':
-          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+    # POST /api/profile/influencer removed — use PUT /api/profile/influencer to create or update the influencer profile
 
     put:
       tags:

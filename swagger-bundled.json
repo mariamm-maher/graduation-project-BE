@@ -26,27 +26,39 @@
   "tags": [
     {
       "name": "Auth",
-      "description": "Authentication and User Management"
+      "description": "Authentication and Session Management"
     },
     {
       "name": "Campaigns",
-      "description": "Campaign Management and AI Generation"
+      "description": "Campaign Management"
     },
     {
-      "name": "Owner",
-      "description": "Owner Operations (Browse Influencers, Manage Campaigns)"
+      "name": "Collaboration Requests",
+      "description": "Requests & Negotiation"
     },
     {
       "name": "Collaborations",
-      "description": "Influencer Collaboration Management"
+      "description": "Core Collaborations"
     },
     {
-      "name": "Service Listings",
-      "description": "Influencer Service Listings Management"
+      "name": "Collaboration Contracts",
+      "description": "Collaboration Contracts"
     },
     {
-      "name": "Offers",
-      "description": "Owner Offers to Influencer Service Listings"
+      "name": "Collaboration Tasks",
+      "description": "Collaboration Tasks Management"
+    },
+    {
+      "name": "Owners",
+      "description": "Owner Profile and Operations"
+    },
+    {
+      "name": "Influencer",
+      "description": "Influencer Profile and Dashboard Operations"
+    },
+    {
+      "name": "Social Media",
+      "description": "Social Media Integrations"
     },
     {
       "name": "Chat",
@@ -63,10 +75,6 @@
     {
       "name": "Upload",
       "description": "File Upload and Management"
-    },
-    {
-      "name": "Analytics",
-      "description": "Platform Analytics and Reports"
     },
     {
       "name": "Profile",
@@ -1615,6 +1623,346 @@
         }
       }
     },
+    "/api/campaigns/active": {
+      "get": {
+        "summary": "Get active campaigns",
+        "description": "Retrieve all active campaigns for the authenticated owner (where startDate <= today and endDate >= today)",
+        "tags": [
+          "Campaigns"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active campaigns retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Active campaigns retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaigns": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/Campaign"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kpis": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "integer"
+                                        },
+                                        "metric": {
+                                          "type": "string"
+                                        },
+                                        "targetValue": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "targetAudience": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "id": {
+                                        "type": "integer"
+                                      },
+                                      "ageRange": {
+                                        "type": "string"
+                                      },
+                                      "gender": {
+                                        "type": "string"
+                                      },
+                                      "interests": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "platformsUsed": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "contentCalendar": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "integer"
+                                        },
+                                        "day": {
+                                          "type": "integer"
+                                        },
+                                        "date": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        },
+                                        "platform": {
+                                          "type": "string"
+                                        },
+                                        "contentType": {
+                                          "type": "string"
+                                        },
+                                        "status": {
+                                          "type": "string"
+                                        },
+                                        "task": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "aiVersions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "integer"
+                                        },
+                                        "versionNumber": {
+                                          "type": "integer"
+                                        },
+                                        "generatedAt": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        },
+                                        "isActive": {
+                                          "type": "boolean"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "tracking": {
+                                    "type": "object",
+                                    "properties": {
+                                      "duration": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalDurationDays": {
+                                            "type": "integer"
+                                          },
+                                          "elapsedDurationDays": {
+                                            "type": "integer"
+                                          },
+                                          "remainingDurationDays": {
+                                            "type": "integer"
+                                          },
+                                          "progressPercent": {
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      "kpis": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalKpis": {
+                                            "type": "integer"
+                                          },
+                                          "metrics": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "content": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalItems": {
+                                            "type": "integer"
+                                          },
+                                          "postedContentCount": {
+                                            "type": "integer"
+                                          },
+                                          "scheduledContentCount": {
+                                            "type": "integer"
+                                          },
+                                          "failedContentCount": {
+                                            "type": "integer"
+                                          }
+                                        }
+                                      },
+                                      "ai": {
+                                        "type": "object",
+                                        "properties": {
+                                          "totalVersions": {
+                                            "type": "integer"
+                                          },
+                                          "activeVersion": {
+                                            "type": "object",
+                                            "nullable": true
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "trackingTools": {
+                          "type": "object",
+                          "properties": {
+                            "totalActiveCampaigns": {
+                              "type": "integer"
+                            },
+                            "totalKpis": {
+                              "type": "integer"
+                            },
+                            "totalContentItems": {
+                              "type": "integer"
+                            },
+                            "totalPostedContent": {
+                              "type": "integer"
+                            },
+                            "averageProgressPercent": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/campaigns/overview": {
+      "get": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Campaigns Overview",
+        "description": "Returns totals for campaigns attached to the authenticated user, number of saved campaigns, and the two most recent campaigns.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Overview retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalCampaigns": {
+                          "type": "integer",
+                          "example": 12
+                        },
+                        "totalSaved": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "recentCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "campaignName": {
+                                "type": "string"
+                              },
+                              "lifecycleStage": {
+                                "type": "string"
+                              },
+                              "UserDescription": {
+                                "type": "string"
+                              },
+                              "startDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "goalType": {
+                                "type": "string"
+                              },
+                              "isPublished": {
+                                "type": "boolean"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "goals": {
+                                "type": "string",
+                                "description": "Same value as goalType for convenience"
+                              },
+                              "duration": {
+                                "type": "integer",
+                                "description": "Duration in days (endDate - startDate)"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
     "/api/campaigns/ai/generate": {
       "post": {
         "tags": [
@@ -3021,14 +3369,13 @@
         }
       }
     },
-    "/api/collaborations": {
+    "/api/collaboration-requests": {
       "post": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
-        "summary": "Owner sends a collaboration request to an influencer",
-        "description": "Create a collaboration request for a campaign and an influencer. Only Owners may perform this action.",
-        "operationId": "sendCollaborationRequest",
+        "summary": "Create (invite) a collaboration request",
+        "description": "Owner sends an invitation/request to an influencer for a campaign",
         "security": [
           {
             "bearerAuth": []
@@ -3046,152 +3393,13 @@
                 ],
                 "properties": {
                   "campaignId": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "integer"
                   },
                   "influencerId": {
-                    "type": "integer",
-                    "example": 2
-                  },
-                  "proposedBudget": {
-                    "type": "number",
-                    "format": "float",
-                    "example": 500
+                    "type": "integer"
                   },
                   "message": {
-                    "type": "string",
-                    "example": "I'd like to invite you to this campaign"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Collaboration request created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Collaboration request created"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "collaborationRequest": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "integer"
-                            },
-                            "campaignId": {
-                              "type": "integer"
-                            },
-                            "influencerId": {
-                              "type": "integer"
-                            },
-                            "proposedBudget": {
-                              "type": "number",
-                              "format": "float",
-                              "nullable": true
-                            },
-                            "message": {
-                              "type": "string",
-                              "nullable": true
-                            },
-                            "status": {
-                              "type": "string"
-                            },
-                            "createdAt": {
-                              "type": "string",
-                              "format": "date-time"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "409": {
-            "description": "Conflict - duplicate pending request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "status": "error",
-                  "message": "A pending request already exists for this influencer and campaign"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/collaborations/requests": {
-      "post": {
-        "tags": [
-          "Collaborations"
-        ],
-        "summary": "Owner sends a collaboration request to an influencer",
-        "description": "Create a collaboration request for a campaign and an influencer. Only Owners may perform this action.",
-        "operationId": "inviteCollaborationRequest",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "campaignId",
-                  "influencerId"
-                ],
-                "properties": {
-                  "campaignId": {
-                    "type": "integer",
-                    "example": 1
-                  },
-                  "influencerId": {
-                    "type": "integer",
-                    "example": 2
-                  },
-                  "proposedBudget": {
-                    "type": "number",
-                    "format": "float",
-                    "example": 500
-                  },
-                  "message": {
-                    "type": "string",
-                    "example": "I'd like to invite you to this campaign"
+                    "type": "string"
                   }
                 }
               }
@@ -3213,9 +3421,6 @@
                     "message": {
                       "type": "string",
                       "example": "Collaboration request created"
-                    },
-                    "data": {
-                      "type": "object"
                     }
                   }
                 }
@@ -3227,24 +3432,15 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
         "summary": "List collaboration requests for a campaign",
-        "description": "Owner sees requests for a specific campaign with optional status filter",
+        "description": "Returns requests filtered by campaign (owner view)",
         "security": [
           {
             "bearerAuth": []
@@ -3255,10 +3451,9 @@
             "name": "campaignId",
             "in": "query",
             "required": false,
-            "description": "Campaign ID to filter by",
+            "description": "Filter by campaign id",
             "schema": {
-              "type": "integer",
-              "example": 1
+              "type": "integer"
             }
           },
           {
@@ -3267,27 +3462,13 @@
             "required": false,
             "description": "Filter by request status",
             "schema": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "accepted",
-                "rejected",
-                "cancelled",
-                "negotiating"
-              ],
-              "example": "pending"
+              "type": "string"
             }
-          },
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
           }
         ],
         "responses": {
           "200": {
-            "description": "Collaboration requests retrieved successfully",
+            "description": "Requests retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -3297,10 +3478,6 @@
                       "type": "string",
                       "example": "success"
                     },
-                    "message": {
-                      "type": "string",
-                      "example": "Collaboration requests retrieved successfully"
-                    },
                     "data": {
                       "type": "object",
                       "properties": {
@@ -3309,9 +3486,6 @@
                           "items": {
                             "type": "object"
                           }
-                        },
-                        "pagination": {
-                          "$ref": "#/components/schemas/Pagination"
                         }
                       }
                     }
@@ -3322,17 +3496,14 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
-    "/api/collaborations/requests/mine/sent": {
+    "/api/collaboration-requests/mine/sent": {
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
         "summary": "Get my sent collaboration requests (Owner)",
         "description": "Returns all collaboration requests sent by the authenticated owner",
@@ -3406,10 +3577,10 @@
         }
       }
     },
-    "/api/collaborations/requests/mine/received": {
+    "/api/collaboration-requests/mine/received": {
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
         "summary": "Get my received collaboration requests (Influencer)",
         "description": "Returns all collaboration requests received by the authenticated influencer",
@@ -3483,10 +3654,10 @@
         }
       }
     },
-    "/api/collaborations/requests/{id}": {
+    "/api/collaboration-requests/{id}": {
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
         "summary": "Get collaboration request by ID",
         "description": "Returns details of a specific collaboration request",
@@ -3548,13 +3719,13 @@
         }
       }
     },
-    "/api/collaborations/requests/{id}/respond": {
+    "/api/collaboration-requests/{id}/respond": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
-        "summary": "Respond to a collaboration request",
-        "description": "Influencer can accept, reject, or counter. Owner can respond during negotiation.",
+        "summary": "Respond to a collaboration request (accept/reject/counter)",
+        "description": "Influencer or owner responds to a request; supports counter offers",
         "security": [
           {
             "bearerAuth": []
@@ -3567,8 +3738,7 @@
             "required": true,
             "description": "Collaboration request ID",
             "schema": {
-              "type": "integer",
-              "example": 1
+              "type": "integer"
             }
           }
         ],
@@ -3578,27 +3748,13 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "action"
-                ],
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": [
-                      "accept",
-                      "reject",
-                      "counter"
-                    ],
-                    "example": "accept"
+                    "description": "accept | reject | counter"
                   },
-                  "counterBudget": {
-                    "type": "number",
-                    "example": 750,
-                    "description": "Required when action is 'counter'"
-                  },
-                  "message": {
-                    "type": "string",
-                    "example": "I'd be happy to accept this collaboration"
+                  "counterPrice": {
+                    "type": "number"
                   }
                 }
               }
@@ -3607,7 +3763,7 @@
         },
         "responses": {
           "200": {
-            "description": "Response submitted successfully",
+            "description": "Request response processed",
             "content": {
               "application/json": {
                 "schema": {
@@ -3616,13 +3772,6 @@
                     "status": {
                       "type": "string",
                       "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Response submitted successfully"
-                    },
-                    "data": {
-                      "type": "object"
                     }
                   }
                 }
@@ -3634,26 +3783,17 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
-    "/api/collaborations/requests/{id}/cancel": {
+    "/api/collaboration-requests/{id}/cancel": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Requests"
         ],
-        "summary": "Cancel a collaboration request (Owner)",
-        "description": "Allows owner to cancel a pending collaboration request",
+        "summary": "Cancel a collaboration request (owner)",
+        "description": "Owner cancels a pending or negotiating request",
         "security": [
           {
             "bearerAuth": []
@@ -3666,14 +3806,13 @@
             "required": true,
             "description": "Collaboration request ID",
             "schema": {
-              "type": "integer",
-              "example": 1
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Collaboration request cancelled successfully",
+            "description": "Request cancelled",
             "content": {
               "application/json": {
                 "schema": {
@@ -3685,7 +3824,7 @@
                     },
                     "message": {
                       "type": "string",
-                      "example": "Collaboration request cancelled successfully"
+                      "example": "Request cancelled"
                     }
                   }
                 }
@@ -3697,12 +3836,6 @@
           },
           "403": {
             "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -3861,6 +3994,82 @@
         }
       }
     },
+    "/api/collaborations/overview": {
+      "get": {
+        "tags": [
+          "Collaborations"
+        ],
+        "summary": "Get collaboration overview for current user",
+        "description": "Returns aggregate collaboration counts for the authenticated user (as owner or influencer).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collaboration overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Collaboration overview"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "overview": {
+                          "type": "object",
+                          "properties": {
+                            "totalCollaborations": {
+                              "type": "integer",
+                              "example": 12
+                            },
+                            "liveCollab": {
+                              "type": "integer",
+                              "example": 3
+                            },
+                            "completedCollabs": {
+                              "type": "integer",
+                              "example": 4
+                            },
+                            "pending_contract_signCollab": {
+                              "type": "integer",
+                              "example": 2
+                            },
+                            "in_progressCollab": {
+                              "type": "integer",
+                              "example": 2
+                            },
+                            "cancelledCollab": {
+                              "type": "integer",
+                              "example": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/collaborations/{id}": {
       "get": {
         "tags": [
@@ -3932,7 +4141,7 @@
           "Collaborations"
         ],
         "summary": "Cancel a collaboration",
-        "description": "Cancel an active collaboration",
+        "description": "Cancel an existing collaboration. Either party may cancel where permitted.",
         "security": [
           {
             "bearerAuth": []
@@ -3950,22 +4159,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reason": {
-                    "type": "string",
-                    "example": "Unable to continue due to scheduling conflicts"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Collaboration cancelled successfully",
@@ -4008,7 +4201,7 @@
           "Collaborations"
         ],
         "summary": "Mark collaboration as complete",
-        "description": "Mark a collaboration as complete when all tasks are done",
+        "description": "Mark a collaboration as complete when all deliverables and payments are fulfilled.",
         "security": [
           {
             "bearerAuth": []
@@ -4028,7 +4221,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Collaboration marked as complete",
+            "description": "Collaboration marked complete successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -4040,7 +4233,7 @@
                     },
                     "message": {
                       "type": "string",
-                      "example": "Collaboration marked as complete"
+                      "example": "Collaboration marked complete successfully"
                     }
                   }
                 }
@@ -4062,10 +4255,10 @@
         }
       }
     },
-    "/api/collaborations/{collaborationId}/contract": {
+    "/api/collaboration-contracts/collaboration/{collaborationId}": {
       "post": {
         "tags": [
-          "Collaborations"
+          "Collaboration Contracts"
         ],
         "summary": "Create a contract for a collaboration",
         "description": "Create a contract with terms and conditions for the collaboration",
@@ -4170,7 +4363,7 @@
       },
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Contracts"
         ],
         "summary": "Get contract for a collaboration",
         "description": "Retrieve the contract associated with a collaboration",
@@ -4232,13 +4425,119 @@
         }
       }
     },
-    "/api/collaborations/contracts/{id}": {
+    "/api/collaboration-contracts/mine/owner": {
+      "get": {
+        "tags": [
+          "Collaboration Contracts"
+        ],
+        "summary": "Get my contracts (owner)",
+        "description": "Retrieve all contracts where the authenticated user is the owner",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contracts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "My contracts (as owner)"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "contracts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/collaboration-contracts/mine/influencer": {
+      "get": {
+        "tags": [
+          "Collaboration Contracts"
+        ],
+        "summary": "Get my contracts (influencer)",
+        "description": "Retrieve all contracts where the authenticated user is the influencer",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contracts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "My contracts (as influencer)"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "contracts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/api/collaboration-contracts/{id}/sign/owner": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Contracts"
         ],
-        "summary": "Update a contract",
-        "description": "Update contract details",
+        "summary": "Owner signs a contract",
+        "description": "Owner signs a sent contract",
         "security": [
           {
             "bearerAuth": []
@@ -4256,29 +4555,9 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "terms": {
-                    "type": "string",
-                    "example": "Updated contract terms"
-                  },
-                  "amount": {
-                    "type": "number",
-                    "example": 1200
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Contract updated successfully",
+            "description": "Contract signed by owner",
             "content": {
               "application/json": {
                 "schema": {
@@ -4290,7 +4569,7 @@
                     },
                     "message": {
                       "type": "string",
-                      "example": "Contract updated successfully"
+                      "example": "Contract signed by owner"
                     }
                   }
                 }
@@ -4315,13 +4594,13 @@
         }
       }
     },
-    "/api/collaborations/contracts/{id}/send": {
+    "/api/collaboration-contracts/{id}/sign/influencer": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Contracts"
         ],
-        "summary": "Send contract for signature",
-        "description": "Send the contract to the other party for review and signature",
+        "summary": "Influencer signs a contract",
+        "description": "Influencer signs a sent contract",
         "security": [
           {
             "bearerAuth": []
@@ -4341,7 +4620,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Contract sent successfully",
+            "description": "Contract signed by influencer",
             "content": {
               "application/json": {
                 "schema": {
@@ -4353,12 +4632,15 @@
                     },
                     "message": {
                       "type": "string",
-                      "example": "Contract sent successfully"
+                      "example": "Contract signed by influencer"
                     }
                   }
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -4375,70 +4657,10 @@
         }
       }
     },
-    "/api/collaborations/contracts/{id}/sign": {
-      "patch": {
-        "tags": [
-          "Collaborations"
-        ],
-        "summary": "Sign a contract",
-        "description": "Sign the contract to accept its terms",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Contract ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Contract signed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Contract signed successfully"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/collaborations/{collaborationId}/tasks": {
+    "/api/collaboration-tasks/collaboration/{collaborationId}": {
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Get tasks for a collaboration",
         "description": "Retrieve all tasks (board view) for a specific collaboration",
@@ -4518,10 +4740,10 @@
         }
       }
     },
-    "/api/collaborations/tasks/{id}": {
+    "/api/collaboration-tasks/{id}": {
       "get": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Get task by ID",
         "description": "Retrieve details of a specific collaboration task",
@@ -4584,7 +4806,7 @@
       },
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Update a task",
         "description": "Update task details such as title, description, or due date",
@@ -4669,10 +4891,10 @@
         }
       }
     },
-    "/api/collaborations/tasks/{id}/start": {
+    "/api/collaboration-tasks/{id}/start": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Mark task as started",
         "description": "Move task to in-progress status",
@@ -4729,10 +4951,10 @@
         }
       }
     },
-    "/api/collaborations/tasks/{id}/submit": {
+    "/api/collaboration-tasks/{id}/submit": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Submit task for review",
         "description": "Submit completed task for owner review",
@@ -4814,10 +5036,10 @@
         }
       }
     },
-    "/api/collaborations/tasks/{id}/approve": {
+    "/api/collaboration-tasks/{id}/approve": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Approve a task",
         "description": "Owner approves the submitted task",
@@ -4890,10 +5112,10 @@
         }
       }
     },
-    "/api/collaborations/tasks/{id}/reject": {
+    "/api/collaboration-tasks/{id}/reject": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Reject a task",
         "description": "Owner rejects the submitted task and requests revisions",
@@ -4972,10 +5194,10 @@
         }
       }
     },
-    "/api/collaborations/tasks/{id}/reject-final": {
+    "/api/collaboration-tasks/{id}/reject-final": {
       "patch": {
         "tags": [
-          "Collaborations"
+          "Collaboration Tasks"
         ],
         "summary": "Terminal reject a task",
         "description": "Finally reject the task without option for revision",
@@ -5030,1558 +5252,6 @@
                     "message": {
                       "type": "string",
                       "example": "Task finally rejected"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/browse": {
-      "get": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Browse published service listings",
-        "description": "Publicly browse all published service listings from influencers",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "category",
-            "in": "query",
-            "required": false,
-            "description": "Filter by category",
-            "schema": {
-              "type": "string",
-              "example": "social-media-management"
-            }
-          },
-          {
-            "name": "minPrice",
-            "in": "query",
-            "required": false,
-            "description": "Minimum price filter",
-            "schema": {
-              "type": "number",
-              "example": 100
-            }
-          },
-          {
-            "name": "maxPrice",
-            "in": "query",
-            "required": false,
-            "description": "Maximum price filter",
-            "schema": {
-              "type": "number",
-              "example": 5000
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Service listings retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Service listings retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listings": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/ServiceListing"
-                          }
-                        },
-                        "pagination": {
-                          "$ref": "#/components/schemas/Pagination"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/search": {
-      "get": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Search service listings with filters",
-        "description": "Search service listings with various filters",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "query",
-            "in": "query",
-            "required": false,
-            "description": "Search query string",
-            "schema": {
-              "type": "string",
-              "example": "instagram content creation"
-            }
-          },
-          {
-            "name": "category",
-            "in": "query",
-            "required": false,
-            "description": "Filter by category",
-            "schema": {
-              "type": "string",
-              "example": "content-creation"
-            }
-          },
-          {
-            "name": "platform",
-            "in": "query",
-            "required": false,
-            "description": "Filter by social media platform",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "instagram",
-                "tiktok",
-                "youtube",
-                "facebook",
-                "twitter"
-              ],
-              "example": "instagram"
-            }
-          },
-          {
-            "name": "minPrice",
-            "in": "query",
-            "required": false,
-            "description": "Minimum price",
-            "schema": {
-              "type": "number",
-              "example": 500
-            }
-          },
-          {
-            "name": "maxPrice",
-            "in": "query",
-            "required": false,
-            "description": "Maximum price",
-            "schema": {
-              "type": "number",
-              "example": 3000
-            }
-          },
-          {
-            "name": "sortBy",
-            "in": "query",
-            "required": false,
-            "description": "Sort field",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "price",
-                "createdAt",
-                "popularity"
-              ],
-              "example": "price"
-            }
-          },
-          {
-            "name": "order",
-            "in": "query",
-            "required": false,
-            "description": "Sort order",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "example": "asc"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Search results retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Search results retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listings": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/ServiceListing"
-                          }
-                        },
-                        "pagination": {
-                          "$ref": "#/components/schemas/Pagination"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/categories": {
-      "get": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Get available categories",
-        "description": "Returns a list of available service listing categories",
-        "responses": {
-          "200": {
-            "description": "Categories retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Categories retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "categories": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          },
-                          "example": [
-                            "content-creation",
-                            "social-media-management",
-                            "brand-partnerships",
-                            "product-reviews"
-                          ]
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings": {
-      "post": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Create a new service listing (Influencer)",
-        "description": "Allows influencers to create a new service listing",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "title",
-                  "description",
-                  "category",
-                  "price"
-                ],
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "example": "Instagram Content Creation Package"
-                  },
-                  "description": {
-                    "type": "string",
-                    "example": "Professional Instagram content creation including photos and reels"
-                  },
-                  "category": {
-                    "type": "string",
-                    "example": "content-creation"
-                  },
-                  "price": {
-                    "type": "number",
-                    "example": 1500
-                  },
-                  "deliveryTime": {
-                    "type": "integer",
-                    "example": 7,
-                    "description": "Delivery time in days"
-                  },
-                  "platforms": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "example": [
-                      "instagram",
-                      "tiktok"
-                    ]
-                  },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "example": [
-                      "fashion",
-                      "lifestyle",
-                      "beauty"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Service listing created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Service listing created successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listing": {
-                          "$ref": "#/components/schemas/ServiceListing"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/my-listings": {
-      "get": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Get my service listings (Influencer)",
-        "description": "Returns all service listings created by the authenticated influencer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Filter by listing status",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "draft",
-                "published",
-                "archived"
-              ],
-              "example": "published"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "My listings retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "My listings retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listings": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/ServiceListing"
-                          }
-                        },
-                        "pagination": {
-                          "$ref": "#/components/schemas/Pagination"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/{id}": {
-      "get": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Get service listing by ID",
-        "description": "Returns details of a specific service listing",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Service listing ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Service listing retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Service listing retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listing": {
-                          "$ref": "#/components/schemas/ServiceListing"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Update service listing (Influencer)",
-        "description": "Allows influencer to update their service listing",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Service listing ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "example": "Updated Instagram Content Creation Package"
-                  },
-                  "description": {
-                    "type": "string",
-                    "example": "Updated description"
-                  },
-                  "category": {
-                    "type": "string",
-                    "example": "content-creation"
-                  },
-                  "price": {
-                    "type": "number",
-                    "example": 1800
-                  },
-                  "deliveryTime": {
-                    "type": "integer",
-                    "example": 5
-                  },
-                  "platforms": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "example": [
-                      "instagram"
-                    ]
-                  },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "example": [
-                      "fashion",
-                      "lifestyle"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Service listing updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Service listing updated successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listing": {
-                          "$ref": "#/components/schemas/ServiceListing"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Delete service listing (Influencer)",
-        "description": "Allows influencer to delete their service listing",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Service listing ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Service listing deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Service listing deleted successfully"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/{id}/status": {
-      "patch": {
-        "tags": [
-          "Service Listings"
-        ],
-        "summary": "Update service listing status (Influencer)",
-        "description": "Allows influencer to update the status of their service listing",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Service listing ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "status"
-                ],
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "draft",
-                      "published",
-                      "archived"
-                    ],
-                    "example": "published"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Service listing status updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Service listing status updated successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "listing": {
-                          "$ref": "#/components/schemas/ServiceListing"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/service-listings/{id}/offers": {
-      "post": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Create an offer for a service listing",
-        "description": "Owners can create offers for service listings posted by influencers",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Service listing ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "amount",
-                  "message"
-                ],
-                "properties": {
-                  "amount": {
-                    "type": "number",
-                    "example": 1500
-                  },
-                  "message": {
-                    "type": "string",
-                    "example": "I'd like to collaborate on this service"
-                  },
-                  "campaignId": {
-                    "type": "integer",
-                    "example": 5
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Offer created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offer created successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offer": {
-                          "$ref": "#/components/schemas/Offer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/offers": {
-      "get": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Get my offers (Owner)",
-        "description": "Returns all offers created by the authenticated owner",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Filter by offer status",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "accepted",
-                "rejected",
-                "countered",
-                "withdrawn"
-              ],
-              "example": "pending"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Offers retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offers retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offers": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/Offer"
-                          }
-                        },
-                        "pagination": {
-                          "$ref": "#/components/schemas/Pagination"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/offers/incoming": {
-      "get": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Get incoming offers (Influencer)",
-        "description": "Returns all offers received by the authenticated influencer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Filter by offer status",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "accepted",
-                "rejected",
-                "countered",
-                "withdrawn"
-              ],
-              "example": "pending"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Incoming offers retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Incoming offers retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offers": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/Offer"
-                          }
-                        },
-                        "pagination": {
-                          "$ref": "#/components/schemas/Pagination"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/offers/{id}": {
-      "get": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Get offer by ID",
-        "description": "Returns details of a specific offer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Offer ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Offer retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offer retrieved successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offer": {
-                          "$ref": "#/components/schemas/Offer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Update an offer (Owner)",
-        "description": "Allows owner to update their offer details",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Offer ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount": {
-                    "type": "number",
-                    "example": 1800
-                  },
-                  "message": {
-                    "type": "string",
-                    "example": "Updated offer details"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Offer updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offer updated successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offer": {
-                          "$ref": "#/components/schemas/Offer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Withdraw an offer (Owner)",
-        "description": "Allows owner to withdraw their offer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Offer ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Offer withdrawn successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offer withdrawn successfully"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/offers/{id}/accept": {
-      "post": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Accept an offer (Influencer)",
-        "description": "Allows influencer to accept an offer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Offer ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Offer accepted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offer accepted successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offer": {
-                          "$ref": "#/components/schemas/Offer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/offers/{id}/reject": {
-      "post": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Reject an offer (Influencer)",
-        "description": "Allows influencer to reject an offer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Offer ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reason": {
-                    "type": "string",
-                    "example": "Not interested at this time"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Offer rejected successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Offer rejected successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offer": {
-                          "$ref": "#/components/schemas/Offer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/api/offers/{id}/counter": {
-      "post": {
-        "tags": [
-          "Offers"
-        ],
-        "summary": "Counter an offer (Influencer)",
-        "description": "Allows influencer to counter an offer with a different amount or terms",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Offer ID",
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "counterAmount"
-                ],
-                "properties": {
-                  "counterAmount": {
-                    "type": "number",
-                    "example": 2000
-                  },
-                  "message": {
-                    "type": "string",
-                    "example": "I'd be happy to work with you at this rate"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Counter offer submitted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Counter offer submitted successfully"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "offer": {
-                          "$ref": "#/components/schemas/Offer"
-                        }
-                      }
                     }
                   }
                 }
@@ -6957,6 +5627,1031 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/api/owner/overview": {
+      "get": {
+        "tags": [
+          "Owner"
+        ],
+        "summary": "Get Owner Dashboard Overview",
+        "description": "Returns aggregated overview data for the authenticated owner dashboard.",
+        "operationId": "getOwnerOverview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "30d",
+                "90d",
+                "365d"
+              ],
+              "default": "30d"
+            },
+            "description": "Date range window used for aggregation."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner dashboard overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Owner dashboard overview retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "kpis": {
+                          "type": "object",
+                          "properties": {
+                            "totalEngagement": {
+                              "type": "number"
+                            },
+                            "totalReach": {
+                              "type": "number"
+                            },
+                            "activeCampaigns": {
+                              "type": "integer"
+                            },
+                            "pausedCampaigns": {
+                              "type": "integer"
+                            },
+                            "pendingCampaigns": {
+                              "type": "integer"
+                            },
+                            "avgROI": {
+                              "type": "number"
+                            },
+                            "spendToDate": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "performanceSeries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "engagement": {
+                                "type": "number"
+                              },
+                              "reach": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "activeCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "engagement": {
+                                "type": "number"
+                              },
+                              "reach": {
+                                "type": "number"
+                              },
+                              "budget": {
+                                "type": "number"
+                              },
+                              "progress": {
+                                "type": "number"
+                              },
+                              "daysLeft": {
+                                "type": "integer"
+                              },
+                              "influencersCount": {
+                                "type": "integer"
+                              },
+                              "leadInfluencer": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "pendingCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "estimatedTime": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "communicationsFeed": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "influencer": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "avatarUrl": {
+                                    "type": "string",
+                                    "nullable": true
+                                  }
+                                }
+                              },
+                              "action": {
+                                "type": "string"
+                              },
+                              "platform": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "occurredAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
+        }
+      }
+    },
+    "/api/influencer/campaigns/explore": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Explore campaigns open for application",
+        "description": "Returns published campaigns that are currently open for influencer applications.",
+        "operationId": "exploreInfluencerCampaigns",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional platform filter (e.g. Instagram, TikTok)."
+          },
+          {
+            "in": "query",
+            "name": "minPayment",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Optional minimum campaign budget."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Pagination page number."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "description": "Number of campaigns per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaigns explored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaigns explored successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "budget": {
+                                "type": "object",
+                                "properties": {
+                                  "total": {
+                                    "type": "number"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "lifecycleStage": {
+                                "type": "string"
+                              },
+                              "isPublished": {
+                                "type": "boolean"
+                              },
+                              "startDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "endDate": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "platforms": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "applied": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "page": {
+                              "type": "integer"
+                            },
+                            "limit": {
+                              "type": "integer"
+                            },
+                            "totalItems": {
+                              "type": "integer"
+                            },
+                            "totalPages": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
+        }
+      }
+    },
+    "/api/influencer/campaigns/{id}": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Get campaign details for influencer",
+        "description": "Returns one published campaign with influencer-specific application/collaboration state.",
+        "operationId": "getInfluencerCampaignById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Campaign ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "campaign": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "brand": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "budget": {
+                              "type": "object",
+                              "properties": {
+                                "total": {
+                                  "type": "number"
+                                },
+                                "currency": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "lifecycleStage": {
+                              "type": "string"
+                            },
+                            "isPublished": {
+                              "type": "boolean"
+                            },
+                            "startDate": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "endDate": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "platforms": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "applied": {
+                              "type": "boolean"
+                            },
+                            "application": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "collaboration": {
+                              "type": "object",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/api/influencer/campaigns/{id}/apply": {
+      "post": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Apply to a campaign",
+        "description": "Sends an influencer application (stored as collaboration request) for the selected campaign.",
+        "operationId": "applyToInfluencerCampaign",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Campaign ID"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "proposedBudget": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Application submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 201
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Application submitted successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "request": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "campaignId": {
+                              "type": "string"
+                            },
+                            "ownerId": {
+                              "type": "string"
+                            },
+                            "influencerId": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "proposedBudget": {
+                              "type": "number"
+                            },
+                            "message": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "409": {
+            "description": "Already applied or already collaborating on this campaign"
+          }
+        }
+      }
+    },
+    "/api/influencer/overview": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Get Influencer Dashboard Overview",
+        "description": "Returns aggregated overview data for the authenticated influencer dashboard.",
+        "operationId": "getInfluencerOverview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dateRange",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "365d"
+              ],
+              "default": "30d"
+            },
+            "description": "Date range window used for aggregation."
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional platform filter for available campaigns."
+          },
+          {
+            "in": "query",
+            "name": "minPayment",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Optional minimum payment filter for available campaigns."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Pagination page for available campaigns."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "description": "Number of available campaigns to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencer dashboard overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Influencer dashboard overview retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "kpis": {
+                          "type": "object",
+                          "properties": {
+                            "totalEngagement": {
+                              "type": "number"
+                            },
+                            "totalReach": {
+                              "type": "number"
+                            },
+                            "activeCollaborations": {
+                              "type": "integer"
+                            },
+                            "pendingActions": {
+                              "type": "integer"
+                            },
+                            "monthlyEarnings": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "performanceSeries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "engagement": {
+                                "type": "number"
+                              },
+                              "reach": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "activeCollaborations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "campaignName": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "earnings": {
+                                "type": "number"
+                              },
+                              "deliverables": {
+                                "type": "object",
+                                "properties": {
+                                  "completed": {
+                                    "type": "integer"
+                                  },
+                                  "total": {
+                                    "type": "integer"
+                                  }
+                                }
+                              },
+                              "progress": {
+                                "type": "number"
+                              },
+                              "daysLeft": {
+                                "type": "integer"
+                              },
+                              "platforms": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "availableCampaigns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "brand": {
+                                "type": "string"
+                              },
+                              "payment": {
+                                "type": "object",
+                                "properties": {
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "deadline": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "platforms": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "applied": {
+                                "type": "boolean"
+                              },
+                              "saved": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "activityFeed": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "action": {
+                                "type": "string"
+                              },
+                              "campaign": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "brand": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "platform": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "occurredAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "requiresAction": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "profileCompletion": {
+                          "type": "object",
+                          "properties": {
+                            "completionPercentage": {
+                              "type": "integer"
+                            },
+                            "missingFields": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
+        }
+      }
+    },
+    "/api/influencer/overview/stats": {
+      "get": {
+        "tags": [
+          "Influencer"
+        ],
+        "summary": "Get Influencer Overview Stats",
+        "description": "Returns lightweight influencer stats including active collaborations now, total influencers in system, and past collaborations count.",
+        "operationId": "getInfluencerOverviewStats",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Influencer overview stats retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Influencer overview stats retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "activeCollaboratorNow": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "totalInfluencersInSystem": {
+                          "type": "integer",
+                          "example": 42
+                        },
+                        "pastCollaboratingNumber": {
+                          "type": "integer",
+                          "example": 7
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
           }
         }
       }
@@ -9385,216 +9080,6 @@
         }
       }
     },
-    "/api/analytics": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "Get dashboard overview",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "role",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "owner",
-                "influencer"
-              ]
-            }
-          },
-          {
-            "name": "dateRange",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "7d",
-                "30d",
-                "monthly",
-                "all"
-              ],
-              "default": "30d"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Dashboard stats"
-          },
-          "400": {
-            "description": "Invalid parameters"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/analytics/campaigns": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "Campaign performance",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "dateRange",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "7d",
-                "30d",
-                "monthly",
-                "all"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign analytics"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/analytics/earnings": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "Earnings overview (influencer)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "period",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "monthly",
-                "yearly",
-                "all"
-              ],
-              "default": "monthly"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Earnings data"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/analytics/collaborations": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "Collaboration analytics",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "dateRange",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "7d",
-                "30d",
-                "monthly",
-                "all"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Collaboration analytics"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
-    "/api/analytics/roi": {
-      "get": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "ROI analysis (owner)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "dateRange",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "7d",
-                "30d",
-                "monthly",
-                "all"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ROI data"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          }
-        }
-      }
-    },
     "/api/profile/owner": {
       "get": {
         "tags": [
@@ -9742,96 +9227,6 @@
           }
         }
       },
-      "post": {
-        "tags": [
-          "Profile"
-        ],
-        "summary": "Create or update owner profile (onboarding)",
-        "description": "Creates a new owner profile if none exists, or updates the existing one.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "businessName": {
-                    "type": "string",
-                    "example": "Ahmed Tech Solutions"
-                  },
-                  "businessType": {
-                    "type": "string",
-                    "example": "Software & AI"
-                  },
-                  "industry": {
-                    "type": "string",
-                    "example": "Technology & Marketing"
-                  },
-                  "location": {
-                    "type": "string",
-                    "example": "Cairo, Egypt"
-                  },
-                  "description": {
-                    "type": "string"
-                  },
-                  "website": {
-                    "type": "string",
-                    "example": "https://ahmedtech.com"
-                  },
-                  "phoneNumber": {
-                    "type": "string",
-                    "example": "01234567890"
-                  },
-                  "platformsUsed": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "primaryMarketingGoal": {
-                    "type": "string",
-                    "example": "brand_awareness"
-                  },
-                  "targetAudience": {
-                    "type": "object"
-                  },
-                  "firstName": {
-                    "type": "string",
-                    "example": "Ahmed"
-                  },
-                  "lastName": {
-                    "type": "string",
-                    "example": "Mohamed"
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Profile updated (already existed)"
-          },
-          "201": {
-            "description": "Profile created"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "description": "Not an owner"
-          }
-        }
-      },
       "put": {
         "tags": [
           "Profile"
@@ -9962,113 +9357,6 @@
           },
           "404": {
             "description": "Profile or user not found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Profile"
-        ],
-        "summary": "Create or update influencer profile (onboarding)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "bio": {
-                    "type": "string"
-                  },
-                  "image": {
-                    "type": "string"
-                  },
-                  "location": {
-                    "type": "string"
-                  },
-                  "socialMediaLinks": {
-                    "type": "object"
-                  },
-                  "primaryPlatform": {
-                    "type": "string",
-                    "example": "instagram"
-                  },
-                  "followersCount": {
-                    "type": "integer",
-                    "example": 25000
-                  },
-                  "engagementRate": {
-                    "type": "number",
-                    "example": 4.5
-                  },
-                  "categories": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "contentTypes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "collaborationTypes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "audienceAgeRange": {
-                    "type": "string",
-                    "example": "18-34"
-                  },
-                  "audienceGender": {
-                    "type": "string",
-                    "example": "female"
-                  },
-                  "audienceLocation": {
-                    "type": "string",
-                    "example": "Egypt"
-                  },
-                  "interests": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "firstName": {
-                    "type": "string"
-                  },
-                  "lastName": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Profile updated (already existed)"
-          },
-          "201": {
-            "description": "Profile created"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "description": "Not an influencer"
           }
         }
       },
@@ -10530,113 +9818,6 @@
           }
         }
       },
-      "ServiceListing": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "influencerId": {
-            "type": "integer"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          },
-          "price": {
-            "type": "number",
-            "format": "decimal"
-          },
-          "deliveryTime": {
-            "type": "integer",
-            "description": "Delivery time in days"
-          },
-          "platforms": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "draft",
-              "published",
-              "archived"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "Offer": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "serviceListingId": {
-            "type": "integer"
-          },
-          "ownerId": {
-            "type": "integer"
-          },
-          "influencerId": {
-            "type": "integer"
-          },
-          "campaignId": {
-            "type": "integer",
-            "nullable": true
-          },
-          "amount": {
-            "type": "number",
-            "format": "decimal"
-          },
-          "counterAmount": {
-            "type": "number",
-            "format": "decimal",
-            "nullable": true
-          },
-          "message": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "accepted",
-              "rejected",
-              "countered",
-              "withdrawn"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "ChatParticipant": {
         "type": "object",
         "properties": {
@@ -10921,6 +10102,113 @@
           }
         }
       },
+      "ServiceListing": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "influencerId": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "deliveryTime": {
+            "type": "integer",
+            "description": "Delivery time in days"
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Offer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "serviceListingId": {
+            "type": "integer"
+          },
+          "ownerId": {
+            "type": "integer"
+          },
+          "influencerId": {
+            "type": "integer"
+          },
+          "campaignId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "counterAmount": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "rejected",
+              "countered",
+              "withdrawn"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Notification": {
         "type": "object",
         "properties": {
@@ -11011,8 +10299,8 @@
           }
         }
       },
-      "ValidationError": {
-        "description": "Invalid input data",
+      "InternalServerError": {
+        "description": "Internal server error",
         "content": {
           "application/json": {
             "schema": {
@@ -11020,7 +10308,21 @@
             },
             "example": {
               "status": "error",
-              "message": "Validation failed"
+              "message": "Internal server error"
+            }
+          }
+        }
+      },
+      "BadRequestError": {
+        "description": "Bad request - Invalid input or parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "status": "error",
+              "message": "Bad request"
             }
           }
         }
@@ -11053,8 +10355,8 @@
           }
         }
       },
-      "InternalServerError": {
-        "description": "Internal server error",
+      "ValidationError": {
+        "description": "Invalid input data",
         "content": {
           "application/json": {
             "schema": {
@@ -11062,21 +10364,7 @@
             },
             "example": {
               "status": "error",
-              "message": "Internal server error"
-            }
-          }
-        }
-      },
-      "BadRequestError": {
-        "description": "Bad request - Invalid input or parameters",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "example": {
-              "status": "error",
-              "message": "Bad request"
+              "message": "Validation failed"
             }
           }
         }

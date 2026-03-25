@@ -1,7 +1,8 @@
-const { User, Session, Campaign, Collaboration, CollaborationRequest, Role, OwnerProfile, InfluencerProfile, ChatRoom, ChatParticipant, Message, Log ,ServiceRequest ,ServiceListing} = require('../models');
+const { User, Session, Campaign, Collaboration, CollaborationRequest, Role, OwnerProfile, InfluencerProfile, ChatRoom, ChatParticipant, Message, Log } = require('../models');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
+const notificationService = require('../services/notificationService');
 
 // @desc    Get admin dashboard analytics
 // @route   GET /api/admin/analytics
@@ -510,7 +511,7 @@ exports.updateCampaignStatus = async (req, res, next) => {
       return next(new AppError('Status is required', 400));
     }
 
-    const validStatuses = ['draft', 'ai_generated', 'active', 'completed'];
+    const validStatuses = ['draft', 'ai_generated', 'saved', 'completed', 'cancelled'];
     if (!validStatuses.includes(lifecycleStage)) {
       return next(new AppError(`Invalid status. Valid values: ${validStatuses.join(', ')}`, 400));
     }
@@ -537,6 +538,32 @@ exports.updateCampaignStatus = async (req, res, next) => {
     }
 
     await campaign.update({ lifecycleStage });
+
+    try {
+      if (lifecycleStage === 'completed') {
+        await notificationService.createNotification({
+          userId: campaign.userId,
+          type: 'CAMPAIGN_APPROVED',
+          message: `Campaign "${campaign.campaignName}" has been approved`,
+          entityType: 'Campaign',
+          entityId: campaign.id,
+          metadata: { lifecycleStage }
+        });
+      }
+
+      if (lifecycleStage === 'cancelled') {
+        await notificationService.createNotification({
+          userId: campaign.userId,
+          type: 'CAMPAIGN_REJECTED',
+          message: `Campaign "${campaign.campaignName}" has been rejected`,
+          entityType: 'Campaign',
+          entityId: campaign.id,
+          metadata: { lifecycleStage }
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send campaign moderation notification:', notifError);
+    }
 
     const updatedCampaign = await Campaign.findOne({
       where: whereClause,
@@ -920,236 +947,3 @@ exports.getSessions = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Get all service listings
- * @route   GET /admin/service-listings
- * @access  Admin
- */
-exports.getServiceListings = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, status, search } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build where clause
-    const whereClause = {};
-    if (status) {
-      whereClause.status = status;
-    }
-
-    if (search) {
-      whereClause[Op.or] = [
-        { title: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } }
-      ];
-    }
-
-    const { count, rows: servicelisting } = await ServiceListing.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          as: 'influencer',
-          attributes: ['id', 'firstName', 'lastName', 'email']
-        }
-      ],
-      attributes: ['id', 'title', 'description', 'categories', 'platforms', 'location', 'price', 'status', 'createdAt', 'updatedAt'],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      distinct: true
-    });
-
-    sendSuccess(res, 200, 'Service listings retrieved successfully', {
-      servicelisting,
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-
-/**
- * @desc    Update service listing status
- * @route   PATCH /admin/service-listings/:id/status
- * @access  Admin
- */
-exports.updateServiceListingStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    // Validate status
-    const validStatuses = ['draft', 'published', 'archived'];
-    if (!status || !validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-      });
-    }
-
-    // Find service listing
-    const serviceListing = await ServiceListing.findByPk(id);
-
-    if (!serviceListing) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service listing not found'
-      });
-    }
-
-    // Update status
-    serviceListing.status = status;
-    await serviceListing.save();
-
-    sendSuccess(res, 200, 'Service listing status updated successfully', {
-      serviceListing,
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-/**
- * @desc    Delete service listing
- * @route   DELETE /admin/service-listings/:id
- * @access  Admin
- */
-exports.deleteServiceListing = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // Find service listing
-    const serviceListing = await ServiceListing.findByPk(id);
-
-    if (!serviceListing) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service listing not found'
-      });
-    }
-
-    // Delete service listing
-    await serviceListing.destroy();
-
-    sendSuccess(res, 200, 'Service listing deleted successfully', {});
-  } catch (error) {
-    return next(error);
-  }
-};
-
-
-/**
- * @desc    Get all service requests
- * @route   GET /admin/service-requests
- * @access  Admin
- */
-exports.getServiceRequests = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, status, search } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Build where clause
-    const whereClause = {};
-
-    if (status) {
-      whereClause.status = status;
-    }
-
-    if (search) {
-      whereClause[Op.or] = [
-        { title: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } }
-      ];
-    }
-
-    const { count, rows: serviceRequests } = await ServiceRequest.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email']
-        }
-      ],
-      attributes: ['id', 'title', 'description', 'requiredCategories', 'requiredPlatforms', 'location', 'budget', 'status', 'createdAt', 'updatedAt'],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      distinct: true
-    });
-
-    sendSuccess(res, 200, 'Service requests retrieved successfully', {
-      serviceRequests,
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-/**
- * @desc    Update service request status (admin)
- * @route   PATCH /admin/service-requests/:id/status
- * @access  Admin
- */
-exports.updateServiceRequestStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    // Validate status
-    const validStatuses = ['draft', 'published', 'closed', 'cancelled'];
-    if (!status || !validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-      });
-    }
-
-    // Find service request
-    const serviceRequest = await ServiceRequest.findByPk(id);
-
-    if (!serviceRequest) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service request not found'
-      });
-    }
-
-    // Update status
-    serviceRequest.status = status;
-    await serviceRequest.save();
-
-    sendSuccess(res, 200, 'Service request status updated successfully', {
-      serviceRequest
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-/**
- * @desc    Delete service request (admin)
- * @route   DELETE /admin/service-requests/:id
- * @access  Admin
- */
-exports.deleteServiceRequest = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // Find service request
-    const serviceRequest = await ServiceRequest.findByPk(id);
-
-    if (!serviceRequest) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service request not found'
-      });
-    }
-
-    // Delete service request
-    await serviceRequest.destroy();
-
-    sendSuccess(res, 200, 'Service request deleted successfully', {});
-  } catch (error) {
-    return next(error);
-  }
-};

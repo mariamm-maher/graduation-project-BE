@@ -94,6 +94,8 @@ exports.getAllInfluencers = async (req, res, next) => {
     console.log(influencers);
     sendSuccess(res, 200, 'Influencers retrieved successfully', {
       influencers: influencers.map(profile => ({
+        id: profile.id,
+        userId: profile.userId,
         // Basic user info
         user: {
           firstName: profile.user.firstName,
@@ -160,6 +162,8 @@ exports.getInfluencerById = async (req, res, next) => {
     
     sendSuccess(res, 200, 'Influencer profile retrieved successfully', {
       influencer: {
+        id: influencer.id,
+        userId: influencer.userId,
         user: {
           firstName: influencer.user.firstName,
           lastName: influencer.user.lastName,

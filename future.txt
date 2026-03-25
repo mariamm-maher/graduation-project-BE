@@ -1,4 +1,0 @@
-1-auto login after sign up- role selection - onboarding
-2- the upload should be for the authentixated users not puplic !!
-2- the onboarding should be for the authentixated users not puplic !!
-IDOR - Insecure Direct Object Reference

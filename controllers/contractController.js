@@ -6,12 +6,11 @@ const sendSuccess     = require('../utils/sendSuccess');
 // Role: Owner — create a draft contract for an accepted collaboration
 exports.createContract = async (req, res, next) => {
   try {
-    const { agreedPrice, startDate, endDate, deliverables } = req.body;
+    const { startDate, endDate, deliverables } = req.body;
 
     const contract = await contractService.createContract({
       collaborationId: req.params.collaborationId,
       ownerId:         req.user.id,
-      agreedPrice,
       startDate,
       endDate,
       deliverables,
@@ -23,47 +22,53 @@ exports.createContract = async (req, res, next) => {
   }
 };
 
-// PATCH /api/contracts/:id
-// Role: Owner — update a draft contract before sending
-exports.updateContract = async (req, res, next) => {
+// GET /api/collaboration-contracts/mine/owner
+// Role: Owner — get all contracts for owner
+exports.getMyOwnerContracts = async (req, res, next) => {
   try {
-    const contract = await contractService.updateContract({
-      contractId: req.params.id,
-      ownerId:    req.user.id,
-      updates:    req.body,
-    });
-
-    sendSuccess(res, 200, 'Contract updated', { contract });
+    const contracts = await contractService.getOwnerContracts(req.user.id);
+    sendSuccess(res, 200, 'My contracts (as owner)', { contracts });
   } catch (err) {
     next(err);
   }
 };
 
-// PATCH /api/contracts/:id/send
-// Role: Owner — send draft contract to influencer for signing
-exports.sendContract = async (req, res, next) => {
+// GET /api/collaboration-contracts/mine/influencer
+// Role: Influencer — get all contracts for influencer
+exports.getMyInfluencerContracts = async (req, res, next) => {
   try {
-    const contract = await contractService.sendContract({
-      contractId: req.params.id,
-      ownerId:    req.user.id,
-    });
-
-    sendSuccess(res, 200, 'Contract sent to influencer', { contract });
+    const contracts = await contractService.getInfluencerContracts(req.user.id);
+    sendSuccess(res, 200, 'My contracts (as influencer)', { contracts });
   } catch (err) {
     next(err);
   }
 };
 
-// PATCH /api/contracts/:id/sign
-// Role: Influencer — sign the contract, triggers task + chat creation
-exports.signContract = async (req, res, next) => {
+// PATCH /api/collaboration-contracts/:id/sign/owner
+// Role: Owner — sign a sent contract
+exports.signContractOwner = async (req, res, next) => {
   try {
-    const result = await contractService.signContract({
-      contractId:   req.params.id,
+    const result = await contractService.signByOwner({
+      contractId: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    sendSuccess(res, 200, 'Contract signed by owner', result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PATCH /api/collaboration-contracts/:id/sign/influencer
+// Role: Influencer — sign a sent contract
+exports.signContractInfluencer = async (req, res, next) => {
+  try {
+    const result = await contractService.signByInfluencer({
+      contractId: req.params.id,
       influencerId: req.user.id,
     });
 
-    sendSuccess(res, 200, 'Contract signed. Collaboration is now live.', result);
+    sendSuccess(res, 200, 'Contract signed by influencer', result);
   } catch (err) {
     next(err);
   }

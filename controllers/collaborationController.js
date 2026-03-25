@@ -79,3 +79,14 @@ exports.getTasks = async (req, res, next) => {
     next(err);
   }
 };
+
+// GET /api/collaborations/overview
+// Role: Authenticated user — all collaborations where user is owner or influencer
+exports.getOverview = async (req, res, next) => {
+  try {
+    const overview = await collaborationService.getCollaborationOverviewForUser(req.user.id);
+    sendSuccess(res, 200, 'Collaboration overview', { overview });
+  } catch (err) {
+    next(err);
+  }
+};

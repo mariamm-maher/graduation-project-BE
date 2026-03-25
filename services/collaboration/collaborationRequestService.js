@@ -1,6 +1,7 @@
 // services/collaboration/collaborationRequestService.js
-const { sequelize, CollaborationRequest, Collaboration } = require('../../models');
+const { sequelize, CollaborationRequest, Collaboration, User, OwnerProfile, Campaign } = require('../../models');
 const AppError = require('../../utils/AppError');
+const notificationService = require('../notificationService');
 
 const REQUEST_STATES = {
   PENDING:     'pending',
@@ -19,6 +20,23 @@ const VALID_TRANSITIONS = {
   [REQUEST_STATES.EXPIRED]:     new Set(),  // terminal
   [REQUEST_STATES.CANCELLED]:   new Set(),  // terminal
 };
+
+// ─── Helpers  ─────────────────────────────────────────────────────────────────
+
+function formatRequest(req) {
+  if (!req) return req;
+  const data = req.toJSON ? req.toJSON() : req;
+  
+  data.lastCounteredByRole = null;
+  if (data.lastCounteredBy) {
+    if (data.lastCounteredBy === data.ownerId) {
+      data.lastCounteredByRole = 'owner';
+    } else if (data.lastCounteredBy === data.influencerId) {
+      data.lastCounteredByRole = 'influencer';
+    }
+  }
+  return data;
+}
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -74,7 +92,7 @@ async function invite({ ownerId, campaignId, influencerId, proposedBudget, messa
     expiresAt:      expiresAt || null,
   });
 
-  return request;
+  return formatRequest(request);
 }
 
 // ─── respond ──────────────────────────────────────────────────────────────────
@@ -114,12 +132,8 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
   }
 
   if (request.status === REQUEST_STATES.NEGOTIATING) {
-    const lastCounteredBy = request.lastCounteredBy; // set on each counter
-    if (lastCounteredBy === request.influencerId && !isOwner) {
-      throw new AppError('It is the owner\'s turn to respond', 403);
-    }
-    if (lastCounteredBy === request.ownerId && !isInfluencer) {
-      throw new AppError('It is the influencer\'s turn to respond', 403);
+    if (request.lastCounteredBy === actorId) {
+      throw new AppError('You must wait for the other party to respond', 400);
     }
   }
 
@@ -130,25 +144,47 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
     return sequelize.transaction(async (t) => {
       request.status          = REQUEST_STATES.ACCEPTED;
       request.responseMessage = responseMessage || null;
+      
+      // If a counter price exists, make it the final agreed budget
+      if (request.counterPrice) {
+        request.proposedBudget = request.counterPrice;
+      }
+
       await request.save({ transaction: t });
+
+      // Notify the other party
+      const notifyUserId = actorId === request.ownerId ? request.influencerId : request.ownerId;
+      try {
+        await notificationService.createNotification({
+          userId: notifyUserId,
+          type: 'CAMPAIGN_APPROVED',
+          message: 'Your collaboration request was accepted',
+          entityType: "CollaborationRequest",
+          entityId: request.id,
+          metadata: {
+            action: 'request_accepted'
+          }
+        });
+      } catch (err) {
+        console.error('Failed to send accept notification:', err);
+      }
 
       // Guard: don't create duplicate collaboration
       const existingCollab = await Collaboration.findOne({
         where: { collaborationRequestId: request.id },
         transaction: t,
       });
-      if (existingCollab) return { request, collaboration: existingCollab };
+      if (existingCollab) return { request: formatRequest(request), collaboration: existingCollab };
 
       const collaboration = await Collaboration.create({
         collaborationRequestId: request.id,
         campaignId:   request.campaignId,
         ownerId:      request.ownerId,
         influencerId: request.influencerId,
-        // FIX: use your original ENUM value exactly
-        status: 'PendingContractSign',
+        status: 'pending_contract_sign',
       }, { transaction: t });
 
-      return { request, collaboration };
+      return { request: formatRequest(request), collaboration };
     });
   }
 
@@ -159,7 +195,25 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
     request.status          = REQUEST_STATES.REJECTED;
     request.responseMessage = responseMessage || null;
     await request.save();
-    return { request };
+
+    // Notify the other party
+    const notifyUserId = actorId === request.ownerId ? request.influencerId : request.ownerId;
+    try {
+      await notificationService.createNotification({
+        userId: notifyUserId,
+        type: 'CAMPAIGN_REJECTED',
+        message: 'Your collaboration request was rejected',
+        entityType: "CollaborationRequest",
+        entityId: request.id,
+        metadata: {
+          action: 'request_rejected'
+        }
+      });
+    } catch (err) {
+      console.error('Failed to send reject notification:', err);
+    }
+
+    return { request: formatRequest(request) };
   }
 
   // ── counter ────────────────────────────────────────────────────────────────
@@ -168,15 +222,36 @@ async function respond({ requestId, actorId, action, newBudget, responseMessage 
 
     assertCanTransition(request.status, REQUEST_STATES.NEGOTIATING);
 
-    // FIX: preserve original proposedBudget, store counter in counterPrice
+    // Ensure they don't counter twice in a row
+    if (request.lastCounteredBy === actorId) {
+      throw new AppError("You must wait for the other party to respond", 400);
+    }
+
     request.counterPrice    = newBudget;
     request.responseMessage = responseMessage || null;
     request.status          = REQUEST_STATES.NEGOTIATING;
-    // FIX: track who countered last so we know whose turn it is next
     request.lastCounteredBy = actorId;
 
     await request.save();
-    return { request };
+
+    // Notify the other party
+    const notifyUserId = actorId === request.ownerId ? request.influencerId : request.ownerId;
+    try {
+      await notificationService.createNotification({
+        userId: notifyUserId,
+        type: 'CAMPAIGN_INVITATION',
+        message: `New counter offer: $${newBudget}`,
+        entityType: "CollaborationRequest",
+        entityId: request.id,
+        metadata: {
+          action: 'counter_offer'
+        }
+      });
+    } catch (err) {
+      console.error('Failed to send counter notification:', err);
+    }
+
+    return { request: formatRequest(request) };
   }
 
   throw new AppError('action must be: accept | reject | counter', 400);
@@ -198,7 +273,7 @@ async function cancel({ requestId, ownerId }) {
 
   request.status = REQUEST_STATES.CANCELLED;
   await request.save();
-  return request;
+  return formatRequest(request);
 }
 
 // ─── queries ──────────────────────────────────────────────────────────────────
@@ -206,27 +281,69 @@ async function cancel({ requestId, ownerId }) {
 async function getById(id) {
   const request = await CollaborationRequest.findByPk(id);
   if (!request) throw new AppError('Request not found', 404);
-  return request;
+  return formatRequest(request);
 }
 
 // FIX: added — owner sees all requests they sent
 async function listByOwner({ ownerId, status }) {
   const where = { ownerId };
   if (status) where.status = status;
-  return CollaborationRequest.findAll({ where, order: [['createdAt', 'DESC']] });
+  const requests = await CollaborationRequest.findAll({ 
+    where, 
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: User,
+        as: 'influencer',
+        attributes: ['id', 'firstName', 'lastName']
+      },
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName']
+      }
+    ]
+  });
+
+  return requests.map(formatRequest);
 }
 
 // FIX: added — influencer sees all requests they received
 async function listByInfluencer({ influencerId, status }) {
   const where = { influencerId };
   if (status) where.status = status;
-  return CollaborationRequest.findAll({ where, order: [['createdAt', 'DESC']] });
+  const requests = await CollaborationRequest.findAll({ 
+    where, 
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: User,
+        as: 'owner',
+        attributes: ['id', 'firstName', 'lastName'],
+        include: [
+          {
+            model: OwnerProfile,
+            as: 'ownerProfile',
+            attributes: ['businessName']
+          }
+        ]
+      },
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName']
+      }
+    ]
+  });
+
+  return requests.map(formatRequest);
 }
 
 async function listByCampaign({ campaignId, status }) {
   const where = { campaignId };
   if (status) where.status = status;
-  return CollaborationRequest.findAll({ where, order: [['createdAt', 'DESC']] });
+  const requests = await CollaborationRequest.findAll({ where, order: [['createdAt', 'DESC']] });
+  return requests.map(formatRequest);
 }
 
 module.exports = {

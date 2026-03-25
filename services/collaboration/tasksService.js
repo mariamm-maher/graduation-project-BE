@@ -1,6 +1,7 @@
 // services/collaboration/taskService.js
 const { CollaborationTask, Collaboration } = require('../../models');
 const AppError = require('../../utils/AppError');
+const notificationService = require('../notificationService');
 
 // FIX: kept your original ENUM values exactly — note 'Approved' with capital A
 const TASK_STATUSES = {
@@ -60,6 +61,18 @@ async function updateTask({ taskId, userId, updates }) {
   }
 
   await task.save();
+
+  try {
+    await notificationService.notifyTaskAssigned(
+      collaboration.influencerId,
+      task.id,
+      task.taskName,
+      collaboration.id
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_ASSIGNED notification:', err);
+  }
+
   return task;
 }
 
@@ -80,6 +93,18 @@ async function startTask({ taskId, userId }) {
 
   task.status = TASK_STATUSES.IN_PROGRESS;
   await task.save();
+
+  try {
+    await notificationService.notifyTaskStarted(
+      collaboration.ownerId,
+      task.id,
+      task.taskName,
+      collaboration.id
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_STARTED notification:', err);
+  }
+
   return task;
 }
 
@@ -105,6 +130,19 @@ async function submitTaskForReview({ taskId, userId, submissionUrl, submissionNo
   task.revisionCount   = (task.revisionCount || 0) + 1;
 
   await task.save();
+
+  try {
+    await notificationService.notifyTaskSubmitted(
+      collaboration.ownerId,
+      task.id,
+      task.taskName,
+      collaboration.id,
+      'Influencer'
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_SUBMITTED notification:', err);
+  }
+
   return task;
 }
 
@@ -126,6 +164,18 @@ async function approveTask({ taskId, userId }) {
   task.completedAt = new Date();
   task.reviewNote  = null; // clear any previous rejection note
   await task.save();
+
+  try {
+    await notificationService.notifyTaskApproved(
+      collaboration.influencerId,
+      task.id,
+      task.taskName,
+      collaboration.id
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_APPROVED notification:', err);
+  }
+
   return task;
 }
 
@@ -148,6 +198,19 @@ async function rejectTask({ taskId, userId, reviewNote }) {
   task.status     = TASK_STATUSES.TODO;
   task.reviewNote = reviewNote || null;
   await task.save();
+
+  try {
+    await notificationService.notifyTaskRejected(
+      collaboration.influencerId,
+      task.id,
+      task.taskName,
+      collaboration.id,
+      task.reviewNote || 'Please revise and resubmit'
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_REJECTED notification:', err);
+  }
+
   return task;
 }
 
@@ -168,6 +231,19 @@ async function terminalRejectTask({ taskId, userId, reviewNote }) {
   task.status     = TASK_STATUSES.REJECTED;
   task.reviewNote = reviewNote || null;
   await task.save();
+
+  try {
+    await notificationService.notifyTaskFinalRejected(
+      collaboration.influencerId,
+      task.id,
+      task.taskName,
+      collaboration.id,
+      task.reviewNote || 'Task permanently rejected'
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_FINAL_REJECTED notification:', err);
+  }
+
   return task;
 }
 

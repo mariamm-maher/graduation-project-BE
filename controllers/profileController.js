@@ -81,39 +81,7 @@ exports.getOwnerProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Create owner profile (onboarding)
-// @route   POST /api/profile/owner
-// @access  Private (owner only)
-exports.createOwnerProfile = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-
-    let profile = await OwnerProfile.findOne({ where: { userId } });
-
-    if (profile) {
-      await profile.update(req.body);
-      const percentage = await calculateAndUpdateCompletion(profile, 'OwnerProfile');
-      return sendSuccess(res, 200, 'Owner profile updated successfully', { 
-        profile,
-        completionPercentage: percentage 
-      });
-    }
-
-    profile = await OwnerProfile.create({
-      userId,
-      ...req.body
-    });
-
-    const percentage = await calculateAndUpdateCompletion(profile, 'OwnerProfile');
-
-    sendSuccess(res, 201, 'Owner profile created successfully', { 
-      profile,
-      completionPercentage: percentage 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// (Owner profile creation endpoint removed - use PUT /api/profile/owner to create or update)
 
 // @desc    Update owner profile
 // @route   PUT /api/profile/owner
@@ -229,39 +197,7 @@ exports.getInfluencerProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Create influencer profile (onboarding)
-// @route   POST /api/profile/influencer
-// @access  Private (influencer only)
-exports.createInfluencerProfile = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-
-    let profile = await InfluencerProfile.findOne({ where: { userId } });
-
-    if (profile) {
-      await profile.update(req.body);
-      const percentage = await calculateAndUpdateCompletion(profile, 'InfluencerProfile');
-      return sendSuccess(res, 200, 'Influencer profile updated successfully', { 
-        profile,
-        completionPercentage: percentage 
-      });
-    }
-
-    profile = await InfluencerProfile.create({
-      userId,
-      ...req.body
-    });
-
-    const percentage = await calculateAndUpdateCompletion(profile, 'InfluencerProfile');
-
-    sendSuccess(res, 201, 'Influencer profile created successfully', { 
-      profile,
-      completionPercentage: percentage 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// (Influencer profile creation endpoint removed - use PUT /api/profile/influencer to create or update)
 
 // @desc    Update influencer profile
 // @route   PUT /api/profile/influencer

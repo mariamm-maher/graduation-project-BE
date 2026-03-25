@@ -1,7 +1,6 @@
-const { Notification, User } = require('../models');
+const notificationService = require('../services/notificationService');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
-const { Op } = require('sequelize');
 const { logAction } = require('../services/logServices'); 
 
 // @desc    Get all user notifications (paginated)
@@ -10,30 +9,26 @@ const { logAction } = require('../services/logServices');
 exports.getNotifications = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-
-    const { count, rows: notifications } = await Notification.findAndCountAll({
-      where: { userId: req.user.id },
-      attributes: ['id', 'message', 'type', 'isRead', 'createdAt'],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
+    
+    const result = await notificationService.getUserNotifications(req.user.id, {
+      page: parseInt(page),
+      limit: parseInt(limit)
     });
 
     // Log the fetch (fire-and-forget, as in authController)
     try {
-      await logAction({ req, action: 'FETCH_NOTIFICATIONS', entity: 'Notification', entityId: null, meta: { userId: req.user.id, count } });
+      await logAction({ req, action: 'FETCH_NOTIFICATIONS', entity: 'Notification', entityId: null, meta: { userId: req.user.id, count: result.pagination.totalNotifications } });
     } catch (e) {
       // non-blocking
     }
 
     sendSuccess(res, 200, 'Notifications retrieved successfully', {
-      notifications,
+      notifications: result.notifications,
       pagination: {
-        total: count,
+        total: result.pagination.totalNotifications,
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
+        totalPages: result.pagination.totalPages
       }
     });
   } catch (error) {
@@ -46,12 +41,7 @@ exports.getNotifications = async (req, res, next) => {
 // @access  Private (authenticated user)
 exports.getUnreadCount = async (req, res, next) => {
   try {
-    const count = await Notification.count({
-      where: {
-        userId: req.user.id,
-        isRead: false
-      }
-    });
+    const count = await notificationService.getUnreadCount(req.user.id);
 
     // Log the fetch
     try {
@@ -79,18 +69,11 @@ exports.markAsRead = async (req, res, next) => {
       return next(new AppError('Notification ID is required', 400));
     }
 
-    const notification = await Notification.findOne({
-      where: {
-        id,
-        userId: req.user.id
-      }
-    });
+    const updated = await notificationService.markAsRead(id, req.user.id);
 
-    if (!notification) {
+    if (!updated) {
       return next(new AppError('Notification not found', 404));
     }
-
-    await notification.update({ isRead: true });
 
     // Log the update
     try {
@@ -99,7 +82,7 @@ exports.markAsRead = async (req, res, next) => {
       // non-blocking
     }
 
-    sendSuccess(res, 200, 'Notification marked as read successfully', { notification });
+    sendSuccess(res, 200, 'Notification marked as read successfully', { notificationId: id });
   } catch (error) {
     return next(error);
   }
@@ -110,15 +93,7 @@ exports.markAsRead = async (req, res, next) => {
 // @access  Private (authenticated user)
 exports.markAllAsRead = async (req, res, next) => {
   try {
-    await Notification.update(
-      { isRead: true },
-      {
-        where: {
-          userId: req.user.id,
-          isRead: false
-        }
-      }
-    );
+    await notificationService.markAllAsRead(req.user.id);
 
     // Log the bulk update
     try {
@@ -144,18 +119,11 @@ exports.deleteNotification = async (req, res, next) => {
       return next(new AppError('Notification ID is required', 400));
     }
 
-    const notification = await Notification.findOne({
-      where: {
-        id,
-        userId: req.user.id
-      }
-    });
+    const deleted = await notificationService.deleteNotification(id, req.user.id);
 
-    if (!notification) {
+    if (!deleted) {
       return next(new AppError('Notification not found', 404));
     }
-
-    await notification.destroy();
 
     // Log the delete
     try {

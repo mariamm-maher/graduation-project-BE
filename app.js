@@ -32,17 +32,19 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
 
 app.use('/api/collaborations', require('./routes/collaboration'));
+app.use('/api/collaboration-requests', require('./routes/collaborationRequest'));
+app.use('/api/collaboration-contracts', require('./routes/collaborationContract'));
+app.use('/api/collaboration-tasks', require('./routes/collaborationTask'));
+
 app.use('/api/owner', require('./routes/owner'));
 app.use('/api/profile', require('./routes/profile'));
-app.use('/api/service-listings', require('./routes/serviceListings'));
-app.use('/api/analytics', require('./routes/analytics')); 
-app.use('/api/offers', require('./routes/offers'));
 // app.use('/api/social-media', require('./routes/socialMedia'));
 
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/influencer', require('./routes/influencerOverviewRoutes'));
 
 
 // Documentation Route

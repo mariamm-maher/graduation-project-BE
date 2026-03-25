@@ -1,5 +1,7 @@
 // controllers/collaborationRequestController.js
 const requestService = require('../services/collaboration/collaborationRequestService');
+const notificationService = require('../services/notificationService');
+const Campaign = require('../models/Campaign');
 const sendSuccess    = require('../utils/sendSuccess');
 
 // POST /api/collaboration-requests
@@ -17,6 +19,21 @@ exports.invite = async (req, res, next) => {
       message,
       expiresAt,
     });
+
+    try {
+      // Get campaign name for the notification
+      const campaign = await Campaign.findByPk(campaignId, { attributes: ['campaignName'] });
+      const campaignName = campaign ? campaign.campaignName : 'a campaign';
+      
+      await notificationService.notifyCollaborationRequest(
+        influencerId, 
+        ownerId, 
+        request.id, 
+        campaignName
+      );
+    } catch (notifErr) {
+      console.error('Failed to send notification for collaboration request:', notifErr);
+    }
 
     sendSuccess(res, 201, 'Collaboration request sent', { request });
   } catch (err) {

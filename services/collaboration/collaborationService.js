@@ -1,6 +1,7 @@
 // services/collaboration/collaborationService.js
-const { Collaboration, CollaborationRequest, CollaborationTask } = require('../../models');
+const { Collaboration, CollaborationRequest, CollaborationTask, Campaign, User, InfluencerProfile, OwnerProfile } = require('../../models');
 const AppError = require('../../utils/AppError');
+const { Op } = require('sequelize');
 
 // FIX: import from contractService — single source of truth, no duplication
 const { COLLAB_STATUSES } = require('./contractService');
@@ -102,13 +103,139 @@ async function completeCollaboration({ collaborationId, userId }) {
 async function listByOwner({ ownerId, status }) {
   const where = { ownerId };
   if (status) where.status = status;
-  return Collaboration.findAll({ where, order: [['createdAt', 'DESC']] });
+  
+  const collabs = await Collaboration.findAll({ 
+    where, 
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName', 'totalBudget', 'startDate', 'endDate']
+      },
+      {
+        model: User,
+        as: 'influencer',
+        attributes: ['id', 'firstName', 'lastName'],
+      }
+    ]
+  });
+
+  return collabs.map(formatCollabData);
 }
 
 async function listByInfluencer({ influencerId, status }) {
   const where = { influencerId };
   if (status) where.status = status;
-  return Collaboration.findAll({ where, order: [['createdAt', 'DESC']] });
+  
+  const collabs = await Collaboration.findAll({ 
+    where, 
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName', 'totalBudget', 'startDate', 'endDate']
+      },
+      {
+        model: User,
+        as: 'owner',
+        attributes: ['id', 'firstName', 'lastName'],
+        include: [{
+          model: OwnerProfile,
+          as: 'ownerProfile',
+          attributes: ['businessName']
+        }]
+      }
+    ]
+  });
+
+  return collabs.map(formatCollabData);
+}
+
+async function getCollaborationOverviewForUser(userId) {
+  const where = {
+    [Op.or]: [
+      { ownerId: userId },
+      { influencerId: userId }
+    ]
+  };
+
+  const [totalCollaborations, groupedCounts] = await Promise.all([
+    Collaboration.count({ where }),
+    Collaboration.findAll({
+      attributes: [
+        'status',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+      ],
+      where,
+      group: ['status'],
+      raw: true
+    })
+  ]);
+
+  const countsByStatus = groupedCounts.reduce((acc, item) => {
+    acc[item.status] = Number(item.count) || 0;
+    return acc;
+  }, {});
+
+  return {
+    totalCollaborations,
+    liveCollab: countsByStatus.live || 0,
+    completedCollabs: countsByStatus.completed || 0,
+    pending_contract_signCollab: countsByStatus.pending_contract_sign || 0,
+    in_progressCollab: countsByStatus.in_progress || 0,
+    cancelledCollab: countsByStatus.cancelled || 0
+  };
+}
+
+// Helper to format the return data including a calculated duration
+function formatCollabData(collab) {
+  const data = collab.toJSON ? collab.toJSON() : collab;
+  
+  if (data.campaign) {
+    if (data.campaign.startDate && data.campaign.endDate) {
+      const start = new Date(data.campaign.startDate);
+      const end = new Date(data.campaign.endDate);
+      const durationMs = end - start;
+      // Calculate duration in days
+      data.campaign.duration = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
+    } else {
+      data.campaign.duration = null;
+    }
+  }
+  
+  // Ensure status is present (from model)
+  data.status = data.status || collab.status || null;
+
+  // Add contact info for both parties (owner and influencer)
+  data.contacts = {
+    owner: null,
+    influencer: null
+  };
+
+  if (data.owner) {
+    data.contacts.owner = {
+      id: data.owner.id,
+      firstName: data.owner.firstName,
+      lastName: data.owner.lastName,
+      name: `${data.owner.firstName || ''} ${data.owner.lastName || ''}`.trim(),
+      email: data.owner.email || null,
+      businessName: data.owner.ownerProfile && data.owner.ownerProfile.businessName ? data.owner.ownerProfile.businessName : null
+    };
+  }
+
+  if (data.influencer) {
+    data.contacts.influencer = {
+      id: data.influencer.id,
+      firstName: data.influencer.firstName,
+      lastName: data.influencer.lastName,
+      name: `${data.influencer.firstName || ''} ${data.influencer.lastName || ''}`.trim(),
+      email: data.influencer.email || null
+    };
+  }
+
+  return data;
 }
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
@@ -121,4 +248,5 @@ module.exports = {
   completeCollaboration,
   listByOwner,
   listByInfluencer,
+  getCollaborationOverviewForUser,
 };

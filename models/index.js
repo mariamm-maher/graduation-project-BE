@@ -21,10 +21,6 @@ const Message = require('./Message');
 
 const Session = require('./Session');
 const Log = require('./Log');
-const ServiceListing = require('./ServiceListing');
-const ServiceRequest = require('./ServiceRequest');
-const Offer = require('./Offer');
-const Proposal = require('./Proposal');
 //const SocialMediaAccount = require('./SocialMediaAccount');
 const Notification = require('./Notification');
 // UploadedFile model removed — using Cloudinary only (no local DB model)
@@ -270,77 +266,6 @@ Log.belongsTo(User, {
   as: 'actorUser'
 });
 
-// User (Influencer) and ServiceListing - One-to-Many
-User.hasMany(ServiceListing, {
-  foreignKey: 'influencerId',
-  as: 'serviceListings',
-  onDelete: 'CASCADE'
-});
-
-ServiceListing.belongsTo(User, {
-  foreignKey: 'influencerId',
-  as: 'influencer'
-});
-
-// User (Owner) and ServiceRequest - One-to-Many
-User.hasMany(ServiceRequest, {
-  foreignKey: 'ownerId',
-  as: 'serviceRequests',
-  onDelete: 'CASCADE'
-});
-
-ServiceRequest.belongsTo(User, {
-  foreignKey: 'ownerId',
-  as: 'owner'
-});
-
-// ServiceListing and Offer - One-to-Many
-ServiceListing.hasMany(Offer, {
-  foreignKey: 'serviceListingId',
-  as: 'offers',
-  onDelete: 'CASCADE'
-});
-
-Offer.belongsTo(ServiceListing, {
-  foreignKey: 'serviceListingId',
-  as: 'serviceListing'
-});
-
-// User (Owner) and Offer - One-to-Many
-User.hasMany(Offer, {
-  foreignKey: 'ownerId',
-  as: 'madeOffers',
-  onDelete: 'CASCADE'
-});
-
-Offer.belongsTo(User, {
-  foreignKey: 'ownerId',
-  as: 'owner'
-});
-
-// ServiceRequest and Proposal - One-to-Many
-ServiceRequest.hasMany(Proposal, {
-  foreignKey: 'serviceRequestId',
-  as: 'proposals',
-  onDelete: 'CASCADE'
-});
-
-Proposal.belongsTo(ServiceRequest, {
-  foreignKey: 'serviceRequestId',
-  as: 'serviceRequest'
-});
-
-// User (Influencer) and Proposal - One-to-Many
-User.hasMany(Proposal, {
-  foreignKey: 'influencerId',
-  as: 'madeProposals',
-  onDelete: 'CASCADE'
-});
-
-Proposal.belongsTo(User, {
-  foreignKey: 'influencerId',
-  as: 'influencer'
-});
 User.hasMany(Notification, {
   foreignKey: 'userId',
   as: 'notifications',
@@ -374,9 +299,6 @@ module.exports = {
   ChatParticipant,
   Message,
   Session,
-  ServiceListing,
-  ServiceRequest,
-  Offer,
-  Proposal,
+  Notification,
   Log,
 };

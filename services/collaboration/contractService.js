@@ -3,11 +3,11 @@ const {
   sequelize,
   Collaboration,
   CollaborationContract,
-  CollaborationTask,
   ChatRoom,
   ChatParticipant,
 } = require('../../models');
 const AppError = require('../../utils/AppError');
+const notificationService = require('../notificationService');
 
 const CONTRACT_STATUSES = {
   DRAFT:  'draft',
@@ -17,12 +17,67 @@ const CONTRACT_STATUSES = {
 
 // FIX: these are YOUR original ENUM values from your models — kept exactly as-is
 const COLLAB_STATUSES = {
-  PENDING_CONTRACT_SIGN: 'PendingContractSign',
+  PENDING_CONTRACT_SIGN: 'pending_contract_sign',
   LIVE:                  'live',
-  IN_PROGRESS:           'InProgress',
+  IN_PROGRESS:           'in_progress',
   COMPLETED:             'completed',
   CANCELLED:             'cancelled',
 };
+
+async function finalizeSignedContract({ contract, collaboration, transaction }) {
+  contract.status = CONTRACT_STATUSES.SIGNED;
+  await contract.save({ transaction });
+
+  collaboration.status    = COLLAB_STATUSES.LIVE;
+  collaboration.startDate = contract.startDate || null;
+  collaboration.endDate   = contract.endDate   || null;
+  await collaboration.save({ transaction });
+
+  let chatRoom = await ChatRoom.findOne({
+    where: { collaborationId: collaboration.id },
+    transaction,
+  });
+
+  if (!chatRoom) {
+    chatRoom = await ChatRoom.create({
+      collaborationId: collaboration.id,
+      type: 'one_to_one',
+      name: `Collaboration #${collaboration.id}`,
+    }, { transaction });
+
+    await ChatParticipant.bulkCreate([
+      { chatRoomId: chatRoom.id, userId: collaboration.ownerId,      role: 'owner' },
+      { chatRoomId: chatRoom.id, userId: collaboration.influencerId, role: 'influencer' },
+    ], { transaction });
+  }
+
+  try {
+    await notificationService.createBulkNotifications([
+      {
+        userId: collaboration.ownerId,
+        type: 'CONTRACT_SIGNED',
+        message: `Contract #${contract.id} has been fully signed`,
+        entityType: 'CollaborationContract',
+        entityId: contract.id,
+        metadata: { collaborationId: collaboration.id },
+        isRead: false
+      },
+      {
+        userId: collaboration.influencerId,
+        type: 'CONTRACT_SIGNED',
+        message: `Contract #${contract.id} has been fully signed`,
+        entityType: 'CollaborationContract',
+        entityId: contract.id,
+        metadata: { collaborationId: collaboration.id },
+        isRead: false
+      }
+    ]);
+  } catch (err) {
+    console.error('Failed to send CONTRACT_SIGNED notifications:', err);
+  }
+
+  return { contract, collaboration, chatRoom };
+}
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -50,15 +105,19 @@ function ensureCollabStatus(collaboration, expectedStatus) {
 // ─── createContract ───────────────────────────────────────────────────────────
 // Owner creates a draft contract for a collaboration that is PendingContractSign
 
-async function createContract({ collaborationId, ownerId, agreedPrice, startDate, endDate, deliverables }) {
+async function createContract({ collaborationId, ownerId, startDate, endDate, deliverables }) {
   if (!collaborationId) throw new AppError('collaborationId is required', 400);
-  if (!agreedPrice)     throw new AppError('agreedPrice is required', 400);
   if (!Array.isArray(deliverables) || deliverables.length === 0) {
     throw new AppError('deliverables must be a non-empty array', 400);
   }
 
+  const { CollaborationRequest } = require('../../models');
+
   const collaboration = await Collaboration.findByPk(collaborationId, {
-    include: [{ model: CollaborationContract, as: 'contract' }],
+    include: [
+      { model: CollaborationContract, as: 'contract' },
+      { model: CollaborationRequest, as: 'request' }
+    ],
   });
   if (!collaboration) throw new AppError('Collaboration not found', 404);
 
@@ -70,179 +129,124 @@ async function createContract({ collaborationId, ownerId, agreedPrice, startDate
     throw new AppError('A contract already exists for this collaboration', 400);
   }
 
+  // The agreed price comes entirely from what was accepted in the request phase
+  const finalPrice = collaboration.request ? collaboration.request.proposedBudget : 0;
+
+  if (!finalPrice || finalPrice <= 0) {
+     throw new AppError('Cannot create a contract without a valid proposed budget from the request phase', 400);
+  }
+
   const contract = await CollaborationContract.create({
     collaborationId: collaboration.id,
-    agreedPrice,
+    agreedPrice: finalPrice,
     startDate:   startDate || null,
     endDate:     endDate   || null,
     deliverables,
-    status:      CONTRACT_STATUSES.DRAFT,
-    contractRef: generateContractRef(),
+    status:      CONTRACT_STATUSES.SENT,
   });
+
+  try {
+    await notificationService.createNotification({
+      userId: ownerId,
+      type: 'CONTRACT_CREATED',
+      message: `Contract #${contract.id} was created`,
+      entityType: 'CollaborationContract',
+      entityId: contract.id,
+      metadata: { collaborationId: collaboration.id }
+    });
+
+    await notificationService.createNotification({
+      userId: collaboration.influencerId,
+      type: 'CONTRACT_SENT',
+      message: 'A contract has been sent to you for signature',
+      entityType: 'CollaborationContract',
+      entityId: contract.id,
+      metadata: { collaborationId: collaboration.id }
+    });
+  } catch (err) {
+    console.error('Failed to send contract creation/sent notifications:', err);
+  }
 
   return contract;
 }
 
-// ─── updateContract ───────────────────────────────────────────────────────────
-// Owner can edit a draft contract before sending
-
-async function updateContract({ contractId, ownerId, updates }) {
-  const contract = await CollaborationContract.findByPk(contractId, {
-    include: [{ model: Collaboration, as: 'collaboration' }],
+async function getOwnerContracts(ownerId) {
+  return CollaborationContract.findAll({
+    include: [{ model: Collaboration, as: 'collaboration', where: { ownerId } }],
+    order: [['createdAt', 'DESC']],
   });
-  if (!contract) throw new AppError('Contract not found', 404);
-
-  const { collaboration } = contract;
-  if (!collaboration) throw new AppError('Contract is not linked to a collaboration', 400);
-
-  ensureIsOwner(collaboration, ownerId);
-
-  if (contract.status !== CONTRACT_STATUSES.DRAFT) {
-    throw new AppError('Only draft contracts can be updated', 400);
-  }
-
-  const allowedFields = ['agreedPrice', 'deliverables', 'startDate', 'endDate'];
-  for (const field of allowedFields) {
-    if (Object.prototype.hasOwnProperty.call(updates, field)) {
-      contract[field] = updates[field];
-    }
-  }
-
-  // Validate deliverables if it was updated
-  if (
-    Object.prototype.hasOwnProperty.call(updates, 'deliverables') &&
-    (!Array.isArray(contract.deliverables) || contract.deliverables.length === 0)
-  ) {
-    throw new AppError('deliverables must be a non-empty array', 400);
-  }
-
-  await contract.save();
-  return contract;
 }
 
-// ─── sendContract ─────────────────────────────────────────────────────────────
-// Owner sends the draft to the influencer for signing
-
-async function sendContract({ contractId, ownerId }) {
-  const contract = await CollaborationContract.findByPk(contractId, {
-    include: [{ model: Collaboration, as: 'collaboration' }],
+async function getInfluencerContracts(influencerId) {
+  return CollaborationContract.findAll({
+    include: [{ model: Collaboration, as: 'collaboration', where: { influencerId } }],
+    order: [['createdAt', 'DESC']],
   });
-  if (!contract) throw new AppError('Contract not found', 404);
-
-  const { collaboration } = contract;
-  if (!collaboration) throw new AppError('Contract is not linked to a collaboration', 400);
-
-  ensureIsOwner(collaboration, ownerId);
-  ensureCollabStatus(collaboration, COLLAB_STATUSES.PENDING_CONTRACT_SIGN);
-
-  if (contract.status !== CONTRACT_STATUSES.DRAFT) {
-    throw new AppError('Only draft contracts can be sent', 400);
-  }
-
-  // FIX: removed collaboration.contractId = contract.id (column no longer exists)
-  contract.status = CONTRACT_STATUSES.SENT;
-  await contract.save();
-
-  return contract;
 }
 
-// ─── signContract ─────────────────────────────────────────────────────────────
-// Influencer signs → contract becomes signed → tasks auto-created → chat room opened
-
-async function signContract({ contractId, influencerId }) {
-  return sequelize.transaction(async (t) => {
+async function signByOwner({ contractId, ownerId }) {
+  return sequelize.transaction(async (transaction) => {
     const contract = await CollaborationContract.findByPk(contractId, {
-      include: [{ model: Collaboration, as: 'collaboration' }],
-      transaction: t,
-      lock: t.LOCK.UPDATE,
+      transaction,
+      lock: transaction.LOCK.UPDATE,
     });
     if (!contract) throw new AppError('Contract not found', 404);
 
-    const { collaboration } = contract;
+    const collaboration = await Collaboration.findByPk(contract.collaborationId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
     if (!collaboration) throw new AppError('Contract is not linked to a collaboration', 400);
 
-    ensureIsInfluencer(collaboration, influencerId);
+    ensureIsOwner(collaboration, ownerId);
+    ensureCollabStatus(collaboration, COLLAB_STATUSES.PENDING_CONTRACT_SIGN);
 
     if (contract.status !== CONTRACT_STATUSES.SENT) {
       throw new AppError('Only sent contracts can be signed', 400);
     }
 
-    // Sign the contract
-    contract.status = CONTRACT_STATUSES.SIGNED;
-    await contract.save({ transaction: t });
+    contract.ownerSigned = true;
+    contract.ownerSignedAt = new Date();
+    await contract.save({ transaction });
 
-    // Move collaboration forward
-    // FIX: removed collaboration.contractId (column removed)
-    collaboration.status    = COLLAB_STATUSES.LIVE;
-    collaboration.startDate = contract.startDate || null;
-    collaboration.endDate   = contract.endDate   || null;
-    await collaboration.save({ transaction: t });
-
-    // ── Auto-create tasks from deliverables ───────────────────────────────────
-    const deliverables = Array.isArray(contract.deliverables) ? contract.deliverables : [];
-    let createdTasks = [];
-
-    if (deliverables.length > 0) {
-      // Deduplicate: don't create a task that already exists (idempotent)
-      const existingTasks = await CollaborationTask.findAll({
-        where: { collaborationId: collaboration.id },
-        transaction: t,
-        lock: t.LOCK.UPDATE,
-      });
-
-      const existingKeys = new Set(
-        existingTasks.map(task => {
-          const due = task.dueDate ? new Date(task.dueDate).toISOString() : '';
-          return `${task.taskName}|${due}`;
-        })
-      );
-
-      const tasksToCreate = [];
-      deliverables.forEach((d, index) => {
-        if (!d || !d.title) return;
-        const due = d.dueDate ? new Date(d.dueDate).toISOString() : '';
-        const key = `${d.title}|${due}`;
-        if (existingKeys.has(key)) return;
-
-        tasksToCreate.push({
-          collaborationId: collaboration.id,
-          // FIX: removed influencerId (column removed from CollaborationTask)
-          taskName:    d.title,
-          description: d.description   || null,
-          platform:    d.platform      || null,
-          contentType: d.contentType   || null,
-          dueDate:     d.dueDate ? new Date(d.dueDate) : null,
-          sortOrder:   index,
-          status:      'todo',
-        });
-      });
-
-      if (tasksToCreate.length > 0) {
-        createdTasks = await CollaborationTask.bulkCreate(tasksToCreate, { transaction: t });
-      }
+    if (contract.influencerSigned) {
+      return finalizeSignedContract({ contract, collaboration, transaction });
     }
 
-    // ── Create chat room + add both participants ───────────────────────────────
-    let chatRoom = await ChatRoom.findOne({
-      where: { collaborationId: collaboration.id },
-      transaction: t,
+    return { contract, collaboration };
+  });
+}
+
+async function signByInfluencer({ contractId, influencerId }) {
+  return sequelize.transaction(async (transaction) => {
+    const contract = await CollaborationContract.findByPk(contractId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
     });
+    if (!contract) throw new AppError('Contract not found', 404);
 
-    if (!chatRoom) {
-      chatRoom = await ChatRoom.create({
-        collaborationId: collaboration.id,
-        type: 'one_to_one',
-        name: `Collaboration #${collaboration.id}`,
-      }, { transaction: t });
+    const collaboration = await Collaboration.findByPk(contract.collaborationId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!collaboration) throw new AppError('Contract is not linked to a collaboration', 400);
 
-      await ChatParticipant.bulkCreate([
-        { chatRoomId: chatRoom.id, userId: collaboration.ownerId,      role: 'owner'      },
-        { chatRoomId: chatRoom.id, userId: collaboration.influencerId, role: 'influencer' },
-      ], { transaction: t });
+    ensureIsInfluencer(collaboration, influencerId);
+    ensureCollabStatus(collaboration, COLLAB_STATUSES.PENDING_CONTRACT_SIGN);
+
+    if (contract.status !== CONTRACT_STATUSES.SENT) {
+      throw new AppError('Only sent contracts can be signed', 400);
     }
 
+    contract.influencerSigned = true;
+    contract.influencerSignedAt = new Date();
+    await contract.save({ transaction });
 
-    return { contract, collaboration, chatRoom, tasks: createdTasks };
+    if (contract.ownerSigned) {
+      return finalizeSignedContract({ contract, collaboration, transaction });
+    }
+
+    return { contract, collaboration };
   });
 }
 
@@ -263,22 +267,15 @@ async function getContractByCollaboration({ collaborationId, userId }) {
   return collaboration.contract;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function generateContractRef() {
-  const year = new Date().getFullYear();
-  const rand = Math.floor(Math.random() * 90000) + 10000;
-  return `CONT-${year}-${rand}`;
-}
-
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
   CONTRACT_STATUSES,
   COLLAB_STATUSES,   // single source of truth — import this everywhere
   createContract,
-  updateContract,
-  sendContract,
-  signContract,
+  getOwnerContracts,
+  getInfluencerContracts,
+  signByOwner,
+  signByInfluencer,
   getContractByCollaboration,
 };

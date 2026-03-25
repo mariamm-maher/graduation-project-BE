@@ -44,11 +44,9 @@ module.exports = (io, socket) => {
       if (!chatRoom) {
         // Create new chat room
         chatRoom = await ChatRoom.create({
-          type: 'direct',
+          type: 'one_to_one',
           collaborationId,
-          metadata: {
-            campaignName: 'Collaboration Chat'
-          }
+          name: `Collaboration #${collaborationId}`
         });
 
         // Add both participants
@@ -56,11 +54,13 @@ module.exports = (io, socket) => {
           {
             chatRoomId: chatRoom.id,
             userId: collaboration.ownerId,
+            role: 'owner',
             joinedAt: new Date()
           },
           {
             chatRoomId: chatRoom.id,
             userId: collaboration.influencerId,
+            role: 'influencer',
             joinedAt: new Date()
           }
         ]);
@@ -80,57 +80,25 @@ module.exports = (io, socket) => {
       // Join socket room
       socket.join(`chat:${chatRoom.id}`);
 
-      // Update participant's last read time
-      await ChatParticipant.update(
-        { lastReadAt: new Date() },
-        {
-          where: {
-            chatRoomId: chatRoom.id,
-            userId
-          }
-        }
-      );
-
       // Get recent messages (last 50)
       const messages = await Message.findAll({
-        where: {
-          chatRoomId: chatRoom.id,
-          deletedAt: null
-        },
+        where: { chatRoomId: chatRoom.id },
         include: [
           {
             model: User,
             as: 'sender',
             attributes: ['id', 'firstName', 'lastName', 'email']
-          },
-          {
-            model: Message,
-            as: 'replyTo',
-            attributes: ['id', 'content', 'senderId'],
-            include: [
-              {
-                model: User,
-                as: 'sender',
-                attributes: ['id', 'firstName', 'lastName']
-              }
-            ]
           }
         ],
-        order: [['createdAt', 'DESC']],
+        order: [['sentAt', 'DESC']],
         limit: 50
-      });
-
-      // Count unread messages
-      const participant = await ChatParticipant.findOne({
-        where: { chatRoomId: chatRoom.id, userId }
       });
 
       const unreadCount = await Message.count({
         where: {
           chatRoomId: chatRoom.id,
           senderId: { [Op.ne]: userId },
-          createdAt: { [Op.gt]: participant.lastReadAt || new Date(0) },
-          deletedAt: null
+          status: { [Op.ne]: 'read' }
         }
       });
 
@@ -140,7 +108,7 @@ module.exports = (io, socket) => {
           id: chatRoom.id,
           type: chatRoom.type,
           collaborationId: chatRoom.collaborationId,
-          metadata: chatRoom.metadata,
+          name: chatRoom.name,
           createdAt: chatRoom.createdAt
         },
         participants: chatRoom.participants.map(p => ({
@@ -148,7 +116,7 @@ module.exports = (io, socket) => {
           name: `${p.user.firstName} ${p.user.lastName}`,
           email: p.user.email,
           joinedAt: p.joinedAt,
-          lastReadAt: p.lastReadAt
+          role: p.role
         })),
         messages: messages.reverse().map(msg => ({
           id: msg.id,
@@ -158,19 +126,8 @@ module.exports = (io, socket) => {
             name: `${msg.sender.firstName} ${msg.sender.lastName}`
           },
           content: msg.content,
-          mediaUrl: msg.mediaUrl,
-          replyTo: msg.replyTo ? {
-            id: msg.replyTo.id,
-            content: msg.replyTo.content,
-            sender: {
-              id: msg.replyTo.sender.id,
-              name: `${msg.replyTo.sender.firstName} ${msg.replyTo.sender.lastName}`
-            }
-          } : null,
-          deliveryStatus: msg.deliveryStatus,
-          isEdited: msg.editedAt !== null,
-          createdAt: msg.createdAt,
-          editedAt: msg.editedAt
+          status: msg.status,
+          sentAt: msg.sentAt
         })),
         unreadCount
       });
@@ -211,15 +168,21 @@ module.exports = (io, socket) => {
         });
       }
 
+      const normalizedContent = content?.trim() || (mediaUrl ? '[Media]' : null);
+      if (!normalizedContent) {
+        return socket.emit('error', {
+          event: 'send_message',
+          message: 'Message content is required'
+        });
+      }
+
       // Create message
       const message = await Message.create({
         chatRoomId,
         senderId: userId,
-        content: content?.trim() || null,
-        mediaUrl: mediaUrl || null,
-        replyToId: replyToId || null,
-        deliveryStatus: 'sent',
-        isRead: false
+        content: normalizedContent,
+        status: 'sent',
+        sentAt: new Date()
       });
 
       // Load message with sender info
@@ -229,18 +192,6 @@ module.exports = (io, socket) => {
             model: User,
             as: 'sender',
             attributes: ['id', 'firstName', 'lastName', 'email']
-          },
-          {
-            model: Message,
-            as: 'replyTo',
-            attributes: ['id', 'content', 'senderId'],
-            include: [
-              {
-                model: User,
-                as: 'sender',
-                attributes: ['id', 'firstName', 'lastName']
-              }
-            ]
           }
         ]
       });
@@ -254,31 +205,15 @@ module.exports = (io, socket) => {
           name: `${fullMessage.sender.firstName} ${fullMessage.sender.lastName}`
         },
         content: fullMessage.content,
-        mediaUrl: fullMessage.mediaUrl,
-        replyTo: fullMessage.replyTo ? {
-          id: fullMessage.replyTo.id,
-          content: fullMessage.replyTo.content,
-          sender: {
-            id: fullMessage.replyTo.sender.id,
-            name: `${fullMessage.replyTo.sender.firstName} ${fullMessage.replyTo.sender.lastName}`
-          }
-        } : null,
-        deliveryStatus: 'delivered',
-        isEdited: false,
-        createdAt: fullMessage.createdAt
+        status: 'delivered',
+        sentAt: fullMessage.sentAt
       };
 
       // Update delivery status
-      await message.update({ deliveryStatus: 'delivered' });
+      await message.update({ status: 'delivered' });
 
       // Emit to all participants in the room
       io.to(`chat:${chatRoomId}`).emit('message_received', messageData);
-
-      // Update chat room's updatedAt
-      await ChatRoom.update(
-        { updatedAt: new Date() },
-        { where: { id: chatRoomId } }
-      );
 
       // Send notification to other participants
       const otherParticipants = await ChatParticipant.findAll({
@@ -296,9 +231,9 @@ module.exports = (io, socket) => {
           category: 'chat',
           type: 'new_message',
           title: `New message from ${fullMessage.sender.firstName}`,
-          message: content?.substring(0, 100) || 'Sent a media file',
+          message: normalizedContent.substring(0, 100),
           relatedId: chatRoomId,
-          actionUrl: `/collaborations/${fullMessage.chatRoom?.collaborationId || chatRoomId}`
+          actionUrl: `/chat/rooms/${chatRoomId}`
         });
       }
 
@@ -385,25 +320,19 @@ module.exports = (io, socket) => {
       if (messageIds === 'all') {
         // Mark all unread messages as read
         await Message.update(
-          {
-            isRead: true,
-            deliveryStatus: 'read'
-          },
+          { status: 'read' },
           {
             where: {
               chatRoomId,
               senderId: { [Op.ne]: userId },
-              isRead: false
+              status: { [Op.ne]: 'read' }
             }
           }
         );
       } else if (Array.isArray(messageIds)) {
         // Mark specific messages as read
         await Message.update(
-          {
-            isRead: true,
-            deliveryStatus: 'read'
-          },
+          { status: 'read' },
           {
             where: {
               id: messageIds,
@@ -413,9 +342,6 @@ module.exports = (io, socket) => {
           }
         );
       }
-
-      // Update participant's last read time
-      await participant.update({ lastReadAt: new Date() });
 
       // Notify sender about read status
       io.to(`chat:${chatRoomId}`).emit('messages_read', {

@@ -2,8 +2,10 @@ const Campaign = require('../models/Campaign');
 const KPI = require('../models/KPI');
 const TargetAudience = require('../models/TargetAudience');
 const ContentCalendar = require('../models/ContentCalendar');
+const CampaignAIVersion = require('../models/CampaignAIVersion');
 const { generateCampaignWithAI } = require('../services/campaignAIService');
 const { logAction } = require('../services/logServices');
+const notificationService = require('../services/notificationService');
 const AppError = require('../utils/AppError');
 const sendSuccess = require('../utils/sendSuccess');
 
@@ -58,6 +60,24 @@ exports.generateAICampaign = async (req, res, next) => {
 
     // Generate AI campaign preview
     const aiGeneratedCampaign = await generateCampaignWithAI(campaignData);
+
+    if (req.user?.id) {
+      try {
+        await notificationService.createNotification({
+          userId: req.user.id,
+          type: 'AI_CAMPAIGN_READY',
+          message: `AI campaign draft is ready for "${campaignName}"`,
+          entityType: 'Campaign',
+          entityId: null,
+          metadata: {
+            campaignName,
+            goalType
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send AI_CAMPAIGN_READY notification:', notifError);
+      }
+    }
 
     sendSuccess(res, 201, 'AI campaign draft generated successfully.', {
      
@@ -313,6 +333,21 @@ exports.saveAndPublish = async (req, res, next) => {
 
     await t.commit();
 
+    try {
+      await notificationService.createNotification({
+        userId: campaign.userId,
+        type: 'CAMPAIGN_PUBLISHED',
+        message: `Campaign "${campaign.campaignName}" was published`,
+        entityType: 'Campaign',
+        entityId: campaign.id,
+        metadata: {
+          lifecycleStage: campaign.lifecycleStage
+        }
+      });
+    } catch (notifError) {
+      console.error('Failed to send CAMPAIGN_PUBLISHED notification:', notifError);
+    }
+
     sendSuccess(res, 201, 'Campaign saved and published successfully.', {
       campaign: {
         id: campaign.id,
@@ -369,7 +404,7 @@ exports.saveCampaign = async (req, res, next) => {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
-    // Create campaign with saved stage
+    // Create campaign with saved stage (do NOT publish by default)
     const campaign = await Campaign.create({
       userId: req.user?.id || 1,
       campaignName,
@@ -381,7 +416,7 @@ exports.saveCampaign = async (req, res, next) => {
       startDate: start,
       endDate: end,
       lifecycleStage: 'saved',
-      isPublished: isPublished !== undefined ? isPublished : true
+      isPublished: isPublished !== undefined ? isPublished : false
     }, { transaction: t });
 
     // Create Target Audience if provided
@@ -451,6 +486,23 @@ exports.saveCampaign = async (req, res, next) => {
 
     await t.commit();
 
+    if (campaign.isPublished) {
+      try {
+        await notificationService.createNotification({
+          userId: campaign.userId,
+          type: 'CAMPAIGN_PUBLISHED',
+          message: `Campaign "${campaign.campaignName}" was published`,
+          entityType: 'Campaign',
+          entityId: campaign.id,
+          metadata: {
+            lifecycleStage: campaign.lifecycleStage
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send CAMPAIGN_PUBLISHED notification:', notifError);
+      }
+    }
+
     sendSuccess(res, 201, 'Campaign saved successfully.', {
       campaign: {
         id: campaign.id,
@@ -492,6 +544,21 @@ exports.completeCampaign = async (req, res, next) => {
     campaign.lifecycleStage = 'completed';
     await campaign.save();
 
+    try {
+      await notificationService.createNotification({
+        userId: campaign.userId,
+        type: 'CAMPAIGN_APPROVED',
+        message: `Campaign "${campaign.campaignName}" is marked as completed`,
+        entityType: 'Campaign',
+        entityId: campaign.id,
+        metadata: {
+          lifecycleStage: campaign.lifecycleStage
+        }
+      });
+    } catch (notifError) {
+      console.error('Failed to send CAMPAIGN_APPROVED notification:', notifError);
+    }
+
     sendSuccess(res, 200, 'Campaign completed successfully.', {
       campaign: {
         id: campaign.id,
@@ -530,6 +597,21 @@ exports.cancelCampaign = async (req, res, next) => {
     campaign.lifecycleStage = 'cancelled';
     await campaign.save();
 
+    try {
+      await notificationService.createNotification({
+        userId: campaign.userId,
+        type: 'CAMPAIGN_REJECTED',
+        message: `Campaign "${campaign.campaignName}" was cancelled`,
+        entityType: 'Campaign',
+        entityId: campaign.id,
+        metadata: {
+          lifecycleStage: campaign.lifecycleStage
+        }
+      });
+    } catch (notifError) {
+      console.error('Failed to send CAMPAIGN_REJECTED notification:', notifError);
+    }
+
     sendSuccess(res, 200, 'Campaign cancelled successfully.', {
       campaign: {
         id: campaign.id,
@@ -563,20 +645,80 @@ exports.getCampaigns = async (req, res, next) => {
 
     const { count, rows: campaigns } = await Campaign.findAndCountAll({
       where: whereClause,
-      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'totalBudget', 'currency', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'totalBudget', 'currency', 'startDate', 'endDate', 'goalType', 'createdAt', 'updatedAt'],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']]
     });
 
+    // Add `goals` (from goalType) and computed `duration` (days between startDate and endDate)
+    const campaignsWithExtras = campaigns.map(c => {
+      const camp = c && typeof c.toJSON === 'function' ? c.toJSON() : c;
+      const goals = camp.goalType || null;
+      let duration = null;
+      if (camp.startDate && camp.endDate) {
+        const start = new Date(camp.startDate);
+        const end = new Date(camp.endDate);
+        duration = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+      }
+      return { ...camp, goals, duration };
+    });
+
     sendSuccess(res, 200, 'Campaigns retrieved successfully', {
-      campaigns,
+      campaigns: campaignsWithExtras,
       pagination: {
         total: count,
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(count / limit)
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get overview for authenticated user's campaigns
+// @route   GET /api/campaigns/overview
+// @access  Private
+exports.getCampaignsOverview = async (req, res, next) => {
+  try {
+    const ownerId = req.user && req.user.id;
+
+    if (!ownerId) {
+      return sendSuccess(res, 200, 'Overview retrieved successfully', {
+        totalCampaigns: 0,
+        totalSaved: 0,
+        recentCampaigns: []
+      });
+    }
+
+    const totalCampaigns = await Campaign.count({ where: { userId: ownerId } });
+    const totalSaved = await Campaign.count({ where: { userId: ownerId, lifecycleStage: 'saved' } });
+
+    const recent = await Campaign.findAll({
+      where: { userId: ownerId },
+      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'startDate', 'endDate', 'goalType', 'isPublished', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: 2
+    });
+
+    const recentWithExtras = recent.map(c => {
+      const camp = c && typeof c.toJSON === 'function' ? c.toJSON() : c;
+      const goals = camp.goalType || null;
+      let duration = null;
+      if (camp.startDate && camp.endDate) {
+        const start = new Date(camp.startDate);
+        const end = new Date(camp.endDate);
+        duration = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+      }
+      return { ...camp, goals, duration };
+    });
+
+    sendSuccess(res, 200, 'Overview retrieved successfully', {
+      totalCampaigns,
+      totalSaved,
+      recentCampaigns: recentWithExtras
     });
   } catch (error) {
     next(error);
@@ -715,6 +857,117 @@ exports.createCampaign = async (req, res, next) => {
         lifecycleStage: campaign.lifecycleStage,
         userId: campaign.userId,
         createdAt: campaign.createdAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get active campaigns for authenticated user
+// @route   GET /api/campaigns/active
+// @access  Private
+exports.getActiveCampaigns = async (req, res, next) => {
+  try {
+    const ownerId = req.user && req.user.id;
+    const { Op } = require('sequelize');
+    const today = new Date();
+
+    const activeCampaigns = await Campaign.findAll({
+      where: {
+        userId: ownerId,
+        startDate: { [Op.lte]: today },
+        endDate: { [Op.gte]: today }
+      },
+      include: [
+        {
+          model: KPI,
+          as: 'kpis',
+          attributes: ['id', 'metric', 'targetValue'],
+          required: false
+        },
+        {
+          model: TargetAudience,
+          as: 'targetAudience',
+          attributes: ['id', 'ageRange', 'gender', 'interests', 'platformsUsed'],
+          required: false
+        },
+        {
+          model: ContentCalendar,
+          as: 'contentCalendar',
+          attributes: ['id', 'day', 'date', 'platform', 'contentType', 'status', 'task'],
+          required: false
+        },
+        {
+          model: CampaignAIVersion,
+          as: 'aiVersions',
+          attributes: ['id', 'versionNumber', 'generatedAt', 'isActive'],
+          required: false
+        }
+      ],
+      order: [['startDate', 'DESC']]
+    });
+
+    const campaignsWithTracking = activeCampaigns.map((campaignModel) => {
+      const campaign = campaignModel.toJSON();
+
+      const start = new Date(campaign.startDate);
+      const end = new Date(campaign.endDate);
+      const totalDurationDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+      const elapsedDurationDays = Math.max(0, Math.min(totalDurationDays, Math.ceil((today - start) / (1000 * 60 * 60 * 24))));
+      const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedDurationDays / totalDurationDays) * 100)));
+
+      const calendarItems = Array.isArray(campaign.contentCalendar) ? campaign.contentCalendar : [];
+      const postedContentCount = calendarItems.filter((item) => item.status === 'posted').length;
+      const failedContentCount = calendarItems.filter((item) => item.status === 'failed').length;
+      const scheduledContentCount = calendarItems.filter((item) => item.status === 'scheduled').length;
+
+      const activeAIVersion = Array.isArray(campaign.aiVersions)
+        ? campaign.aiVersions.find((version) => version.isActive) || null
+        : null;
+
+      return {
+        ...campaign,
+        tracking: {
+          duration: {
+            totalDurationDays,
+            elapsedDurationDays,
+            remainingDurationDays: Math.max(0, totalDurationDays - elapsedDurationDays),
+            progressPercent
+          },
+          kpis: {
+            totalKpis: Array.isArray(campaign.kpis) ? campaign.kpis.length : 0,
+            metrics: Array.isArray(campaign.kpis) ? campaign.kpis.map((item) => item.metric) : []
+          },
+          content: {
+            totalItems: calendarItems.length,
+            postedContentCount,
+            scheduledContentCount,
+            failedContentCount
+          },
+          ai: {
+            totalVersions: Array.isArray(campaign.aiVersions) ? campaign.aiVersions.length : 0,
+            activeVersion: activeAIVersion
+          }
+        }
+      };
+    });
+
+    const totalKpis = campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.kpis.totalKpis, 0);
+    const totalContentItems = campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.content.totalItems, 0);
+    const totalPostedContent = campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.content.postedContentCount, 0);
+    const averageProgressPercent = campaignsWithTracking.length
+      ? Math.round(campaignsWithTracking.reduce((sum, campaign) => sum + campaign.tracking.duration.progressPercent, 0) / campaignsWithTracking.length)
+      : 0;
+
+    sendSuccess(res, 200, 'Active campaigns retrieved successfully', {
+      campaigns: campaignsWithTracking,
+      trackingTools: {
+        totalActiveCampaigns: campaignsWithTracking.length,
+        totalKpis,
+        totalContentItems,
+        totalPostedContent,
+        averageProgressPercent
       }
     });
   } catch (error) {

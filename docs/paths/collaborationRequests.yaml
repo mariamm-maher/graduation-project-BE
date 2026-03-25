@@ -1,0 +1,303 @@
+paths:
+ 
+
+  /api/collaboration-requests/mine/sent:
+    get:
+      tags:
+        - Collaboration Requests
+      summary: Get my sent collaboration requests (Owner)
+      description: Returns all collaboration requests sent by the authenticated owner
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../components/parameters.yaml#/parameters/PageNumber'
+        - $ref: '../components/parameters.yaml#/parameters/PageSize'
+        - name: status
+          in: query
+          required: false
+          description: Filter by request status
+          schema:
+            type: string
+            example: pending
+      responses:
+        '200':
+          description: Sent requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Sent requests retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      requests:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        $ref: '../components/schemas.yaml#/schemas/Pagination'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-requests/mine/received:
+    get:
+      tags:
+        - Collaboration Requests
+      summary: Get my received collaboration requests (Influencer)
+      description: Returns all collaboration requests received by the authenticated influencer
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../components/parameters.yaml#/parameters/PageNumber'
+        - $ref: '../components/parameters.yaml#/parameters/PageSize'
+        - name: status
+          in: query
+          required: false
+          description: Filter by request status
+          schema:
+            type: string
+            example: pending
+      responses:
+        '200':
+          description: Received requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Received requests retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      requests:
+                        type: array
+                        items:
+                          type: object
+                      pagination:
+                        $ref: '../components/schemas.yaml#/schemas/Pagination'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-requests/{id}:
+    get:
+      tags:
+        - Collaboration Requests
+      summary: Get collaboration request by ID
+      description: Returns details of a specific collaboration request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Collaboration request ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Collaboration request retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Collaboration request retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      request:
+                        type: object
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '404':
+          $ref: '../components/responses.yaml#/responses/NotFoundError'
+        '500':
+          $ref: '../components/responses.yaml#/responses/InternalServerError'
+
+  /api/collaboration-requests:
+    post:
+      tags:
+        - Collaboration Requests
+      summary: Create (invite) a collaboration request
+      description: Owner sends an invitation/request to an influencer for a campaign
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignId, influencerId]
+              properties:
+                campaignId:
+                  type: integer
+                influencerId:
+                  type: integer
+                message:
+                  type: string
+      responses:
+        '201':
+          description: Collaboration request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Collaboration request created
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+    get:
+      tags:
+        - Collaboration Requests
+      summary: List collaboration requests for a campaign
+      description: Returns requests filtered by campaign (owner view)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: campaignId
+          in: query
+          required: false
+          description: Filter by campaign id
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          description: Filter by request status
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      requests:
+                        type: array
+                        items:
+                          type: object
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+
+  /api/collaboration-requests/{id}/respond:
+    patch:
+      tags:
+        - Collaboration Requests
+      summary: Respond to a collaboration request (accept/reject/counter)
+      description: Influencer or owner responds to a request; supports counter offers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Collaboration request ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  description: accept | reject | counter
+                counterPrice:
+                  type: number
+      responses:
+        '200':
+          description: Request response processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '400':
+          $ref: '../components/responses.yaml#/responses/BadRequestError'
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+
+  /api/collaboration-requests/{id}/cancel:
+    patch:
+      tags:
+        - Collaboration Requests
+      summary: Cancel a collaboration request (owner)
+      description: Owner cancels a pending or negotiating request
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Collaboration request ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Request cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Request cancelled
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+
+
+

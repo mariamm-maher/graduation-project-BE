@@ -1,0 +1,163 @@
+=== ACTUAL BACKEND ROUTE INVENTORY (verified from app.js + routes/*.js) ===
+
+Base Mounts in app.js:
+  - /api/auth
+  - /api/campaigns
+  - /api/collaborations
+  - /api/collaboration-requests
+  - /api/collaboration-contracts
+  - /api/collaboration-tasks
+  - /api/owner
+  - /api/profile
+  - /api/admin
+  - /api/notifications
+  - /api/upload
+  - /api/chat
+  - /api/influencer
+
+==============================================
+
+TAG: Auth
+Endpoints (18):
+  - POST /api/auth/signup
+  - POST /api/auth/login
+  - POST /api/auth/select-role
+  - POST /api/auth/refresh-token
+  - GET /api/auth/google
+  - GET /api/auth/google/callback
+  - POST /api/auth/logout
+  - POST /api/auth/logout-all
+  - GET /api/auth/sessions
+  - DELETE /api/auth/sessions/:sessionId
+  - GET /api/auth/profile
+  - PATCH /api/auth/profile/influencer
+  - PATCH /api/auth/profile/owner
+  - POST /api/auth/forgot-password
+  - POST /api/auth/reset-password
+  - POST /api/auth/change-password
+  - PATCH /api/auth/influencer/onboarding
+  - PATCH /api/auth/owner/onboarding
+
+TAG: Campaigns
+Endpoints (11):
+  - GET /api/campaigns
+  - GET /api/campaigns/overview
+  - GET /api/campaigns/:id
+  - POST /api/campaigns/ai/generate
+  - POST /api/campaigns/draft
+  - POST /api/campaigns/save-and-publish
+  - POST /api/campaigns/save
+  - POST /api/campaigns/create
+  - POST /api/campaigns/:id/complete
+  - POST /api/campaigns/:id/cancel
+  - DELETE /api/campaigns/:id
+
+TAG: Collaboration Requests
+Endpoints (7):
+  - POST /api/collaboration-requests
+  - GET /api/collaboration-requests
+  - GET /api/collaboration-requests/mine/sent
+  - GET /api/collaboration-requests/mine/received
+  - GET /api/collaboration-requests/:id
+  - PATCH /api/collaboration-requests/:id/respond
+  - PATCH /api/collaboration-requests/:id/cancel
+
+TAG: Collaborations
+Endpoints (5):
+  - GET /api/collaborations/mine/owner
+  - GET /api/collaborations/mine/influencer
+  - GET /api/collaborations/:id
+  - PATCH /api/collaborations/:id/cancel
+  - PATCH /api/collaborations/:id/complete
+
+TAG: Collaboration Contracts
+Endpoints (6):
+  - POST /api/collaboration-contracts/collaboration/:collaborationId
+  - GET /api/collaboration-contracts/collaboration/:collaborationId
+  - GET /api/collaboration-contracts/mine/owner
+  - GET /api/collaboration-contracts/mine/influencer
+  - PATCH /api/collaboration-contracts/:id/sign/owner
+  - PATCH /api/collaboration-contracts/:id/sign/influencer
+
+TAG: Collaboration Tasks
+Endpoints (8):
+  - GET /api/collaboration-tasks/collaboration/:collaborationId
+  - GET /api/collaboration-tasks/:id
+  - PATCH /api/collaboration-tasks/:id
+  - PATCH /api/collaboration-tasks/:id/start
+  - PATCH /api/collaboration-tasks/:id/submit
+  - PATCH /api/collaboration-tasks/:id/approve
+  - PATCH /api/collaboration-tasks/:id/reject
+  - PATCH /api/collaboration-tasks/:id/reject-final
+
+TAG: Owner
+Endpoints (3):
+  - GET /api/owner/overview
+  - GET /api/owner/influencers
+  - GET /api/owner/influencers/:id
+
+TAG: Influencer
+Endpoints (4):
+  - GET /api/influencer/overview
+  - GET /api/influencer/campaigns/explore
+  - GET /api/influencer/campaigns/:id
+  - POST /api/influencer/campaigns/:id/apply
+
+TAG: Chat
+Endpoints (8):
+  - GET /api/chat/collaborations/:collaborationId/room
+  - GET /api/chat/rooms
+  - GET /api/chat/rooms/:roomId
+  - GET /api/chat/rooms/:roomId/messages
+  - POST /api/chat/rooms/:roomId/messages
+  - PATCH /api/chat/messages/:id
+  - DELETE /api/chat/messages/:id
+  - PATCH /api/chat/rooms/:roomId/read
+
+TAG: Admin
+Endpoints (18):
+  - GET /api/admin/analytics
+  - GET /api/admin/users
+  - GET /api/admin/users/:id
+  - PATCH /api/admin/users/:id/role
+  - PATCH /api/admin/users/:id/status
+  - DELETE /api/admin/users/:id
+  - GET /api/admin/sessions
+  - GET /api/admin/campaigns
+  - GET /api/admin/campaigns/:id
+  - PATCH /api/admin/campaigns/:id/status
+  - DELETE /api/admin/campaigns/:id
+  - GET /api/admin/collaborations
+  - GET /api/admin/collaborations/:id
+  - PATCH /api/admin/collaborations/:id/status
+  - GET /api/admin/collaboration-requests
+  - PATCH /api/admin/collaboration-requests/:id/status
+  - GET /api/admin/logs
+  - GET /api/admin/recent-activity
+
+TAG: Notifications
+Endpoints (5):
+  - GET /api/notifications
+  - GET /api/notifications/unread
+  - PATCH /api/notifications/:id/read
+  - PATCH /api/notifications/read-all
+  - DELETE /api/notifications/:id
+
+TAG: Upload
+Endpoints (1):
+  - POST /api/upload
+
+TAG: Profile
+Endpoints (8):
+  - GET /api/profile/owner
+  - PUT /api/profile/owner
+  - DELETE /api/profile/owner
+  - GET /api/profile/owner/completion
+  - GET /api/profile/influencer
+  - PUT /api/profile/influencer
+  - DELETE /api/profile/influencer
+  - GET /api/profile/influencer/completion
+
+NOT MOUNTED (present file but disabled in app.js):
+  - routes/socialMedia.js is commented out in app.js
+  - If re-enabled, base would be /api/social-media
