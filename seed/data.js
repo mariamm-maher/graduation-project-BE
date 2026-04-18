@@ -1,4 +1,4 @@
-const sequelize = require('./db');
+const sequelize = require('../config/db');
 const {
   User,
   Role,
@@ -117,11 +117,91 @@ async function seedData() {
     // 3) OWNER PROFILES (5)
     // -----------------------------------------------------------------------
     const ownerProfileSeeds = [
-      { businessName: 'Tech Innovators', businessType: 'Startup', industry: 'Technology', location: 'New York, US', description: 'Leading software and AI solutions.', website: 'https://techinnovators.example.com', phoneNumber: '+1-555-0101' },
-      { businessName: 'Green Horizon', businessType: 'SME', industry: 'Sustainability', location: 'Berlin, DE', description: 'Eco-friendly consumer products.', website: 'https://greenhorizon.example.com', phoneNumber: '+49-30-555-0102' },
-      { businessName: 'FitNation', businessType: 'Enterprise', industry: 'Health & Fitness', location: 'London, UK', description: 'Wellness and fitness brand.', website: 'https://fitnation.example.com', phoneNumber: '+44-20-555-0103' },
-      { businessName: 'StylePulse', businessType: 'SME', industry: 'Fashion', location: 'Paris, FR', description: 'Modern lifestyle and apparel.', website: 'https://stylepulse.example.com', phoneNumber: '+33-1-555-0104' },
-      { businessName: 'FoodTrail', businessType: 'Startup', industry: 'Food & Beverage', location: 'Toronto, CA', description: 'Premium snacks and healthy meals.', website: 'https://foodtrail.example.com', phoneNumber: '+1-416-555-0105' }
+      {
+        brand_name: 'Tech Innovators',
+        product_or_service: 'AI software and workflow automation tools',
+        industry: 'Technology',
+        target_market: ['Startups', 'SMBs', 'North America'],
+        company_size: 'Small',
+        unique_selling_point: 'Rapid AI implementation with measurable ROI in weeks.',
+        competitors: [
+          { name: 'CloudMatrix', website: 'https://cloudmatrix.example.com', notes: 'Strong enterprise integrations' },
+          { name: 'NextOps AI', website: 'https://nextops.example.com', notes: 'Lower pricing tiers for startups' }
+        ],
+        has_previous_campaigns: true,
+        previous_campaign_description: 'Ran Q1 performance campaign focused on SaaS founders.',
+        website: 'https://techinnovators.example.com',
+        platforms: ['Instagram', 'TikTok', 'YouTube'],
+        image: 'https://images.example.com/brands/tech-innovators.jpg'
+      },
+      {
+        brand_name: 'Green Horizon',
+        product_or_service: 'Eco-friendly household and personal care products',
+        industry: 'Sustainability',
+        target_market: ['Eco-conscious consumers', 'Gen Z', 'Europe'],
+        company_size: 'Mid',
+        unique_selling_point: 'Plastic-light packaging and certified sustainable sourcing.',
+        competitors: [
+          { name: 'EcoNest', website: 'https://econest.example.com', notes: 'Large influencer network' },
+          { name: 'PureLeaf Living', website: 'https://pureleaf.example.com', notes: 'High brand awareness in EU' }
+        ],
+        has_previous_campaigns: true,
+        previous_campaign_description: 'Seasonal awareness campaign with sustainability creators.',
+        website: 'https://greenhorizon.example.com',
+        platforms: ['Instagram', 'YouTube', 'Pinterest'],
+        image: 'https://images.example.com/brands/green-horizon.jpg'
+      },
+      {
+        brand_name: 'FitNation',
+        product_or_service: 'Fitness programs, supplements, and wellness coaching',
+        industry: 'Health & Fitness',
+        target_market: ['Fitness beginners', 'Busy professionals', 'UK'],
+        company_size: 'Enterprise',
+        unique_selling_point: 'Integrated coaching with personalized nutrition plans.',
+        competitors: [
+          { name: 'PulseFit', website: 'https://pulsefit.example.com', notes: 'Strong app retention' },
+          { name: 'CoreActive', website: 'https://coreactive.example.com', notes: 'Aggressive paid social ads' }
+        ],
+        has_previous_campaigns: true,
+        previous_campaign_description: 'Conversion-driven campaign for annual coaching plans.',
+        website: 'https://fitnation.example.com',
+        platforms: ['Instagram', 'TikTok', 'YouTube'],
+        image: 'https://images.example.com/brands/fitnation.jpg'
+      },
+      {
+        brand_name: 'StylePulse',
+        product_or_service: 'Modern fashion collections and lifestyle accessories',
+        industry: 'Fashion',
+        target_market: ['Women 18-34', 'Urban shoppers', 'France'],
+        company_size: 'Small',
+        unique_selling_point: 'Fast, trend-led collections with premium finishing.',
+        competitors: [
+          { name: 'UrbanVogue', website: 'https://urbanvogue.example.com', notes: 'Dominant on short-form video' },
+          { name: 'MaisonNova', website: 'https://maisonnova.example.com', notes: 'Higher-end positioning' }
+        ],
+        has_previous_campaigns: false,
+        previous_campaign_description: null,
+        website: 'https://stylepulse.example.com',
+        platforms: ['Instagram', 'TikTok'],
+        image: 'https://images.example.com/brands/stylepulse.jpg'
+      },
+      {
+        brand_name: 'FoodTrail',
+        product_or_service: 'Healthy snacks and ready-to-eat meal products',
+        industry: 'Food & Beverage',
+        target_market: ['Health-conscious families', 'Millennials', 'Canada'],
+        company_size: 'Mid',
+        unique_selling_point: 'Chef-designed nutrition-focused products at affordable prices.',
+        competitors: [
+          { name: 'SnackRoots', website: 'https://snackroots.example.com', notes: 'Broad retail distribution' },
+          { name: 'NutriBite', website: 'https://nutribite.example.com', notes: 'Strong sports niche brand' }
+        ],
+        has_previous_campaigns: true,
+        previous_campaign_description: 'Product launch collaboration with food and fitness influencers.',
+        website: 'https://foodtrail.example.com',
+        platforms: ['Instagram', 'Facebook', 'YouTube'],
+        image: 'https://images.example.com/brands/foodtrail.jpg'
+      }
     ];
 
     for (let index = 0; index < ownerUsers.length; index += 1) {
@@ -132,16 +212,18 @@ async function seedData() {
         where: { userId: user.id },
         defaults: {
           userId: user.id,
-          businessName: profileSeed.businessName,
-          businessType: profileSeed.businessType,
+          brand_name: profileSeed.brand_name,
+          product_or_service: profileSeed.product_or_service,
           industry: profileSeed.industry,
-          location: profileSeed.location,
-          description: profileSeed.description,
+          target_market: profileSeed.target_market,
+          company_size: profileSeed.company_size,
+          unique_selling_point: profileSeed.unique_selling_point,
+          competitors: profileSeed.competitors,
+          has_previous_campaigns: profileSeed.has_previous_campaigns,
+          previous_campaign_description: profileSeed.previous_campaign_description,
           website: profileSeed.website,
-          phoneNumber: profileSeed.phoneNumber,
-          platformsUsed: ['Instagram', 'TikTok', 'YouTube'],
-          primaryMarketingGoal: 'awareness',
-          targetAudience: { ageRange: '18-34', gender: 'all', location: profileSeed.location },
+          platforms: profileSeed.platforms,
+          image: profileSeed.image,
           completionPercentage: 100,
           isOnboarded: true,
           isCompleted: true
@@ -205,12 +287,12 @@ async function seedData() {
       { campaignName: 'O1 Campaign 1 - Draft', UserDescription: 'C1', lifecycleStage: 'draft', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: false },
       { campaignName: 'O1 Campaign 2 - AI Gen', UserDescription: 'C2', lifecycleStage: 'ai_generated', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: false },
       { campaignName: 'O1 Campaign 3 - Saved', UserDescription: 'C3', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
-      { campaignName: 'O1 Campaign 4 - Pub', UserDescription: 'C4', lifecycleStage: 'published', goalType: 'awareness', totalBudget: 6000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
-      { campaignName: 'O1 Campaign 5 - Pub', UserDescription: 'C5', lifecycleStage: 'published', goalType: 'awareness', totalBudget: 7000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 4 - Pub', UserDescription: 'C4', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 6000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 5 - Pub', UserDescription: 'C5', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 7000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
       { campaignName: 'O1 Campaign 6 - Completed', UserDescription: 'C6', lifecycleStage: 'completed', goalType: 'awareness', totalBudget: 8000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
       { campaignName: 'O1 Campaign 7 - Cancelled', UserDescription: 'C7', lifecycleStage: 'cancelled', goalType: 'awareness', totalBudget: 4000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
       { campaignName: 'O1 Campaign 8 - Draft 2', UserDescription: 'C8', lifecycleStage: 'draft', goalType: 'awareness', totalBudget: 5000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: false },
-      { campaignName: 'O1 Campaign 9 - Pub 2', UserDescription: 'C9', lifecycleStage: 'published', goalType: 'awareness', totalBudget: 9000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
+      { campaignName: 'O1 Campaign 9 - Pub 2', UserDescription: 'C9', lifecycleStage: 'saved', goalType: 'awareness', totalBudget: 9000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true },
       { campaignName: 'O1 Campaign 10 - Completed 2', UserDescription: 'C10', lifecycleStage: 'completed', goalType: 'awareness', totalBudget: 6000, currency: 'USD', budgetFlexibility: 'flexible', isPublished: true }
     ];
 

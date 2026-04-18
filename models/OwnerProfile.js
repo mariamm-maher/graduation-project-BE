@@ -18,26 +18,48 @@ const OwnerProfile = sequelize.define('OwnerProfile', {
   },
 
   // Basic Info
-  businessName: {
-    type: DataTypes.STRING,
+  brand_name: {
+    type: DataTypes.TEXT,
     allowNull: true
   },
-  businessType: {
-    type: DataTypes.STRING,
+  unique_selling_point: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  product_or_service: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  company_size: {
+    type: DataTypes.ENUM('Solo', 'Small', 'Mid', 'Enterprise'),
+    allowNull: true,
+    validate: {
+      isIn: [['Solo', 'Small', 'Mid', 'Enterprise']]
+    }
+  },
+  target_market: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: true
+  },
+  competitors: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+  },
+  has_previous_campaigns: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  previous_campaign_description: {
+    type: DataTypes.TEXT,
     allowNull: true
   },
   industry: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  location: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
+
   image: {
     type: DataTypes.STRING,
     allowNull: true
@@ -47,20 +69,14 @@ const OwnerProfile = sequelize.define('OwnerProfile', {
     allowNull: true,
     // validate: { isUrl: true }
   },
-  phoneNumber: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
+
 
   // Marketing Info
-  platformsUsed: {
+  platforms: {
     type: DataTypes.ARRAY(DataTypes.STRING), // ["Instagram", "Facebook", ...]
     allowNull: true
   },
-  primaryMarketingGoal: {
-    type: DataTypes.STRING, // e.g., awareness, lead generation, conversion
-    allowNull: true
-  },
+ 
   targetAudience: {
     type: DataTypes.JSONB, // {ageRange: "18-24", gender: "all", location: "Egypt"}
     allowNull: true
@@ -86,5 +102,7 @@ const OwnerProfile = sequelize.define('OwnerProfile', {
 }, {
   timestamps: true
 });
+
+
 
 module.exports = OwnerProfile;

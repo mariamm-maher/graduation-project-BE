@@ -1,4 +1,15 @@
-const { InfluencerProfile, User } = require('../models');
+const { 
+  InfluencerProfile, 
+  User,
+  Campaign,
+  Collaboration,
+  CollaborationRequest,
+  ChatRoom,
+  ChatParticipant,
+  Message,
+  Notification,
+  Review
+} = require('../models');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 
@@ -141,35 +152,49 @@ exports.getInfluencerById = async (req, res, next) => {
   try {
     const { id } = req.params;
     
+    // Return the influencer profile with related user data and associations
     const influencer = await InfluencerProfile.findOne({
-      where: { 
-        id,
-        isOnboarded: true
-      },
+      where: { id },
       include: [{
-          model: User,
-          as: 'user',
-          // Expose only basic user info
-          attributes: ['firstName', 'lastName', 'email', 'status'],
-          where: { status: 'ACTIVE' },
-          required: true
-        }]
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email', 'status', 'createdAt'],
+        required: true,
+        include: [
+          { model: Collaboration, as: 'influencerCollaborations', include: [{ model: Campaign, as: 'campaign', attributes: ['id', 'campaignName'] }], required: false },
+          { model: CollaborationRequest, as: 'receivedCollaborationRequests', include: [{ model: Campaign, as: 'campaign', attributes: ['id', 'campaignName'] }], required: false },
+          { model: ChatParticipant, as: 'chatParticipations', include: [{ model: ChatRoom, as: 'chatRoom', include: [{ model: Message, as: 'messages', attributes: ['id','senderId','content','sentAt'] }] }], required: false },
+          { model: Message, as: 'sentMessages', attributes: ['id','chatRoomId','content','sentAt'], required: false },
+          { model: Notification, as: 'notifications', attributes: ['id','type','message','isRead','createdAt'], required: false },
+          { model: Review, as: 'receivedReviews', include: [{ model: User, as: 'reviewer', attributes: ['id', 'firstName', 'lastName'] }], required: false }
+        ]
+      }]
     });
     
     if (!influencer) {
       return next(new AppError('Influencer profile not found', 404));
     }
     
-    sendSuccess(res, 200, 'Influencer profile retrieved successfully', {
-      influencer: {
-        id: influencer.id,
-        userId: influencer.userId,
-        user: {
-          firstName: influencer.user.firstName,
-          lastName: influencer.user.lastName,
-          email: influencer.user.email,
-          status: influencer.user.status
-        },
+    // Calculate rating metrics
+    const reviews = influencer.user?.receivedReviews || [];
+    const totalReviews = reviews.length;
+    const averageRating = totalReviews > 0 
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1) 
+      : 0;
+
+    // Build an expanded payload with related insights
+    const payload = {
+      id: influencer.id,
+      userId: influencer.userId,
+      user: influencer.user ? {
+        id: influencer.user.id,
+        firstName: influencer.user.firstName,
+        lastName: influencer.user.lastName,
+        email: influencer.user.email,
+        status: influencer.user.status,
+        createdAt: influencer.user.createdAt
+      } : null,
+      profile: {
         bio: influencer.bio,
         image: influencer.image,
         location: influencer.location,
@@ -183,8 +208,159 @@ exports.getInfluencerById = async (req, res, next) => {
         audienceGender: influencer.audienceGender,
         audienceLocation: influencer.audienceLocation,
         interests: influencer.interests,
-        completionPercentage: influencer.completionPercentage
+        completionPercentage: influencer.completionPercentage,
+        socialMediaLinks: influencer.socialMediaLinks
+      },
+      insights: {
+        totalCollaborations: influencer.user?.influencerCollaborations?.length || 0,
+        recentCollaborations: (influencer.user?.influencerCollaborations || []).map(c => ({ id: c.id, status: c.status, campaign: c.campaign })),
+        pendingRequests: (influencer.user?.receivedCollaborationRequests || []).filter(r => r.status === 'pending').length,
+        notificationsCount: influencer.user?.notifications?.length || 0,
+        recentMessagesCount: influencer.user?.sentMessages?.length || 0,
+        rating: {
+          average: averageRating,
+          total: totalReviews,
+          reviews: reviews.map(r => ({
+            id: r.id,
+            rating: r.rating,
+            reviewText: r.reviewText,
+            reviewer: r.reviewer,
+            createdAt: r.createdAt
+          }))
+        }
+      },
+      related: {
+        collaborations: influencer.user?.influencerCollaborations || [],
+        collaborationRequests: influencer.user?.receivedCollaborationRequests || [],
+        chatParticipations: influencer.user?.chatParticipations || [],
+        sentMessages: influencer.user?.sentMessages || [],
+        notifications: influencer.user?.notifications || [],
+        receivedReviews: reviews
       }
+    };
+    
+    sendSuccess(res, 200, 'Influencer profile retrieved successfully', { influencer: payload });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get Active Influencers
+ * Return influencers where collaboration status is 'in_progress' or 'live'
+ */
+exports.getActiveInfluencers = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+    
+    // Instead of querying Users directly, we query Collaborations to get Campaign and Influencer context together
+    const collaborations = await Collaboration.findAll({
+      where: {
+        ownerId,
+        status: { [require('sequelize').Op.in]: ['in_progress', 'live'] }
+      },
+      include: [
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'status'],
+          include: [{
+            model: InfluencerProfile,
+            as: 'influencerProfile',
+            attributes: ['id', 'image', 'bio', 'primaryPlatform', 'followersCount']
+          }]
+        },
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName', 'endDate']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    const formattedResults = collaborations.map(collab => ({
+      collaborationId: collab.id,
+      status: collab.status,
+      influencer: {
+        id: collab.influencer.id,
+        firstName: collab.influencer.firstName,
+        lastName: collab.influencer.lastName,
+        email: collab.influencer.email,
+        profileImage: collab.influencer.influencerProfile?.image || null,
+        primaryPlatform: collab.influencer.influencerProfile?.primaryPlatform || null,
+        followersCount: collab.influencer.influencerProfile?.followersCount || null
+      },
+      campaign: {
+        id: collab.campaign.id,
+        title: collab.campaign.campaignName,
+        endDate: collab.campaign.endDate
+      }
+    }));
+
+    sendSuccess(res, 200, 'Active influencers retrieved successfully', {
+      collaborations: formattedResults
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get Past Influencers
+ * Return influencers where collaboration status is 'completed'
+ */
+exports.getPastInfluencers = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+
+    const collaborations = await Collaboration.findAll({
+      where: {
+        ownerId,
+        status: 'completed'
+      },
+      include: [
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'status'],
+          include: [{
+            model: InfluencerProfile,
+            as: 'influencerProfile',
+            attributes: ['id', 'image', 'bio', 'primaryPlatform', 'followersCount']
+          }]
+        },
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName', 'endDate']
+        }
+      ],
+      order: [['completedAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']]
+    });
+
+    const formattedResults = collaborations.map(collab => ({
+      collaborationId: collab.id,
+      status: collab.status,
+      completedAt: collab.completedAt,
+      influencer: {
+        id: collab.influencer.id,
+        firstName: collab.influencer.firstName,
+        lastName: collab.influencer.lastName,
+        email: collab.influencer.email,
+        profileImage: collab.influencer.influencerProfile?.image || null,
+        primaryPlatform: collab.influencer.influencerProfile?.primaryPlatform || null,
+        followersCount: collab.influencer.influencerProfile?.followersCount || null
+      },
+      campaign: {
+        id: collab.campaign.id,
+        title: collab.campaign.campaignName,
+        endDate: collab.campaign.endDate
+      }
+    }));
+
+    sendSuccess(res, 200, 'Past influencers retrieved successfully', {
+      collaborations: formattedResults
     });
   } catch (error) {
     next(error);

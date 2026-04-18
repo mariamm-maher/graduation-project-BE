@@ -224,6 +224,12 @@ paths:
   /api/owner/influencers:
     $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers'
 
+  /api/owner/influencers/active:
+    $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers~1active'
+
+  /api/owner/influencers/past:
+    $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers~1past'
+
   /api/owner/influencers/{id}:
     $ref: './paths/owner.yaml#/paths/~1api~1owner~1influencers~1{id}'
 

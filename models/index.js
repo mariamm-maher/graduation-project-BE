@@ -17,7 +17,7 @@ const CollaborationTask = require('./CollaborationTask');
 const ChatRoom = require('./ChatRoom');
 const ChatParticipant = require('./ChatParticipant');
 const Message = require('./Message');
-
+const Review = require('./Review');
 
 const Session = require('./Session');
 const Log = require('./Log');
@@ -277,6 +277,16 @@ Notification.belongsTo(User, {
   as: 'user'
 });
 
+// User and Review relationships
+User.hasMany(Review, { foreignKey: 'ownerId', as: 'givenReviews', onDelete: 'CASCADE' });
+Review.belongsTo(User, { foreignKey: 'ownerId', as: 'reviewer' });
+
+User.hasMany(Review, { foreignKey: 'influencerId', as: 'receivedReviews', onDelete: 'CASCADE' });
+Review.belongsTo(User, { foreignKey: 'influencerId', as: 'reviewee' });
+
+Collaboration.hasMany(Review, { foreignKey: 'collaborationId', as: 'reviews', onDelete: 'SET NULL' });
+Review.belongsTo(Collaboration, { foreignKey: 'collaborationId', as: 'collaboration' });
+
 // UploadedFile associations removed
 module.exports = {
   sequelize,
@@ -301,4 +311,5 @@ module.exports = {
   Session,
   Notification,
   Log,
+  Review
 };

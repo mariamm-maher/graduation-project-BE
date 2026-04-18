@@ -339,6 +339,175 @@ paths:
         '403':
           $ref: '../components/responses.yaml#/responses/ForbiddenError'
 
+  /api/owner/influencers/active:
+    get:
+      tags:
+        - Owner
+      summary: Get Active Influencers
+      description: Retrieve a list of influencers the owner is currently collaborating with (status 'in_progress' or 'live').
+      operationId: getActiveInfluencers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active influencers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Active influencers retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      collaborations:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            collaborationId:
+                              type: integer
+                              example: 12
+                            status:
+                              type: string
+                              example: "in_progress"
+                            influencer:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 5
+                                firstName:
+                                  type: string
+                                  example: "Jane"
+                                lastName:
+                                  type: string
+                                  example: "Smith"
+                                email:
+                                  type: string
+                                  example: "jane.smith@example.com"
+                                profileImage:
+                                  type: string
+                                  nullable: true
+                                  example: "https://example.com/avatar.jpg"
+                                primaryPlatform:
+                                  type: string
+                                  nullable: true
+                                  example: "Instagram"
+                                followersCount:
+                                  type: integer
+                                  nullable: true
+                                  example: 100000
+                            campaign:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 3
+                                title:
+                                  type: string
+                                  example: "Summer Collection Launch"
+                                endDate:
+                                  type: string
+                                  format: date-time
+                                  example: "2023-08-31T00:00:00.000Z"
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+
+  /api/owner/influencers/past:
+    get:
+      tags:
+        - Owner
+      summary: Get Past Influencers
+      description: Retrieve a list of influencers the owner has previously collaborated with (status 'completed').
+      operationId: getPastInfluencers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Past influencers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Past influencers retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      collaborations:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            collaborationId:
+                              type: integer
+                              example: 8
+                            status:
+                              type: string
+                              example: "completed"
+                            completedAt:
+                              type: string
+                              format: date-time
+                              nullable: true
+                              example: "2023-05-15T14:30:00.000Z"
+                            influencer:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 2
+                                firstName:
+                                  type: string
+                                  example: "Alice"
+                                lastName:
+                                  type: string
+                                  example: "Johnson"
+                                email:
+                                  type: string
+                                  example: "alice.j@example.com"
+                                profileImage:
+                                  type: string
+                                  nullable: true
+                                  example: "https://example.com/alice.jpg"
+                                primaryPlatform:
+                                  type: string
+                                  nullable: true
+                                  example: "YouTube"
+                                followersCount:
+                                  type: integer
+                                  nullable: true
+                                  example: 250000
+                            campaign:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  example: 1
+                                title:
+                                  type: string
+                                  example: "Spring Promo"
+                                endDate:
+                                  type: string
+                                  format: date-time
+                                  example: "2023-04-30T00:00:00.000Z"
+        '401':
+          $ref: '../components/responses.yaml#/responses/UnauthorizedError'
+        '403':
+          $ref: '../components/responses.yaml#/responses/ForbiddenError'
+
   /api/owner/influencers/{id}:
     get:
       tags:

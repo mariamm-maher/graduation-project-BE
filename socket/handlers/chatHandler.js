@@ -42,11 +42,25 @@ module.exports = (io, socket) => {
       });
 
       if (!chatRoom) {
+        const users = await User.findAll({
+          where: {
+            id: {
+              [Op.in]: [collaboration.ownerId, collaboration.influencerId]
+            }
+          },
+          attributes: ['id', 'firstName', 'lastName']
+        });
+
+        const owner = users.find((u) => u.id === collaboration.ownerId);
+        const influencer = users.find((u) => u.id === collaboration.influencerId);
+        const ownerName = `${owner?.firstName || 'Owner'} ${owner?.lastName || ''}`.trim();
+        const influencerName = `${influencer?.firstName || 'Influencer'} ${influencer?.lastName || ''}`.trim();
+
         // Create new chat room
         chatRoom = await ChatRoom.create({
           type: 'one_to_one',
           collaborationId,
-          name: `Collaboration #${collaborationId}`
+          name: `${ownerName} collab with ${influencerName}`
         });
 
         // Add both participants
