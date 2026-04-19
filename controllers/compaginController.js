@@ -9,51 +9,118 @@ const notificationService = require('../services/notificationService');
 const AppError = require('../utils/AppError');
 const sendSuccess = require('../utils/sendSuccess');
 
+const resolveCampaignGoal = (payload = {}) => payload.goalType || payload.campaign_goal || payload.campaignGoal;
+
+const resolveBudgetAmount = (payload = {}) => {
+  if (payload.totalBudget !== undefined && payload.totalBudget !== null) return payload.totalBudget;
+  if (payload.budget_amount !== undefined && payload.budget_amount !== null) return payload.budget_amount;
+  return null;
+};
+
+const resolveCurrency = (payload = {}) => payload.currency || payload.budget_currency || null;
+
+const resolveDurationWeeks = (payload = {}) => {
+  if (payload.campaign_duration_weeks === undefined || payload.campaign_duration_weeks === null || payload.campaign_duration_weeks === '') {
+    return null;
+  }
+  const parsed = Number(payload.campaign_duration_weeks);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
+};
+
+const buildCampaignPayload = ({ body, userId, lifecycleStage, isPublished }) => {
+  const goal = resolveCampaignGoal(body);
+  const amount = resolveBudgetAmount(body);
+  const currency = resolveCurrency(body);
+
+  return {
+    userId,
+    campaignName: body.campaignName,
+    campaign_goal: body.campaign_goal || goal,
+    budget_amount: body.budget_amount !== undefined ? body.budget_amount : amount,
+    budget_currency: body.budget_currency || currency,
+    campaign_duration_weeks: resolveDurationWeeks(body),
+    lifecycleStage,
+    isPublished
+  };
+};
+
 // @desc    Generate AI campaign draft
 // @route   POST /api/campaigns/ai/generate
 // @access  Private
 exports.generateAICampaign = async (req, res, next) => {
   try {
     const {
-      campaignName,
-      userDescription,
-      goalType,
-      totalBudget,
-      currency,
+      campaignName, 
       budgetFlexibility,
       startDate,
-      endDate
+      endDate,
+      brand_name,
+      product_or_service,
+      industry,
+      target_market,
+      company_size,
+      unique_selling_point,
+      current_channels,
+      competitors,
+      has_previous_campaigns,
+      previous_campaign_description,
+      website,
+      platforms
     } = req.body;
 
-    // Validation
-    if (!campaignName || !userDescription || !goalType || !totalBudget || !currency || !startDate || !endDate) {
-      return next(new AppError('Please provide all required fields', 400));
-    }
+    const resolvedGoal = resolveCampaignGoal(req.body);
+    const resolvedBudget = resolveBudgetAmount(req.body);
+    const resolvedCurrency = resolveCurrency(req.body);
 
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      return next(new AppError('End date must be after start date', 400));
+  
+
+    let start = null;
+    let end = null;
+    if (startDate && endDate) {
+      // Keep date validation when dates are provided by the client.
+      start = new Date(startDate);
+      end = new Date(endDate);
+      if (start >= end) {
+        return next(new AppError('End date must be after start date', 400));
+      }
     }
 
     // Validate budget
-    if (totalBudget <= 0) {
+    if (Number(resolvedBudget) <= 0) {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
     // Prepare data for AI service (do NOT persist to DB)
+    const durationWeeks = resolveDurationWeeks(req.body);
     const campaignData = {
       campaignId: null,
       userId: req.user?.id || null,
       campaignName,
-      userDescription,
-      goalType,
-      totalBudget,
-      currency,
+      // Basic brand / product info
+      brand_name,
+      product_or_service,
+      industry,
+      target_market,
+      company_size,
+      // Goal / budget
+      campaign_goal: resolvedGoal,
+      totalBudget: resolvedBudget,
+      budget_amount: resolvedBudget,
+      currency: resolvedCurrency,
+      budget_currency: resolvedCurrency,
       budgetFlexibility: budgetFlexibility || 'flexible',
+      // Dates / duration
       startDate: start,
       endDate: end,
+      campaign_duration_weeks: durationWeeks,
+      // Creative/context
+      unique_selling_point,
+      current_channels,
+      competitors,
+      has_previous_campaigns,
+      previous_campaign_description,
+      website,
+      platforms,
       lifecycleStage: 'ai_generated',
       isPublished: false
     };
@@ -71,7 +138,7 @@ exports.generateAICampaign = async (req, res, next) => {
           entityId: null,
           metadata: {
             campaignName,
-            goalType
+            goalType: resolvedGoal
           }
         });
       } catch (notifError) {
@@ -97,50 +164,36 @@ exports.draftCampaign = async (req, res, next) => {
   try {
     const {
       campaignName,
-      userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility,
-      startDate,
-      endDate,
       targetAudience,
       kpis,
       contentCalendar,
       aiVersion
     } = req.body;
 
+    const goal = resolveCampaignGoal(req.body);
+    const amount = resolveBudgetAmount(req.body);
+    const currency = resolveCurrency(req.body);
+
     // Validation
-    if (!campaignName || !userDescription || !goalType || !totalBudget || !currency || !startDate || !endDate) {
+    if (!campaignName || !goal || !amount || !currency) {
       return next(new AppError('Please provide all required fields', 400));
     }
 
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      return next(new AppError('End date must be after start date', 400));
-    }
-
     // Validate budget
-    if (totalBudget <= 0) {
+    if (Number(amount) <= 0) {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
     // Create campaign as draft (unpublished)
-    const campaign = await Campaign.create({
-      userId: req.user?.id || 1,
-      campaignName,
-      UserDescription: userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility: budgetFlexibility || 'flexible',
-      startDate: start,
-      endDate: end,
-      lifecycleStage: 'draft',
-      isPublished: false
-    }, { transaction: t });
+    const campaign = await Campaign.create(
+      buildCampaignPayload({
+        body: req.body,
+        userId: req.user?.id || 1,
+        lifecycleStage: 'draft',
+        isPublished: false
+      }),
+      { transaction: t }
+    );
 
     // Create Target Audience if provided
     if (targetAudience) {
@@ -221,50 +274,36 @@ exports.saveAndPublish = async (req, res, next) => {
   try {
     const {
       campaignName,
-      userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility,
-      startDate,
-      endDate,
       targetAudience,
       kpis,
       contentCalendar,
       aiVersion
     } = req.body;
 
+    const goal = resolveCampaignGoal(req.body);
+    const amount = resolveBudgetAmount(req.body);
+    const currency = resolveCurrency(req.body);
+
     // Validation
-    if (!campaignName || !userDescription || !goalType || !totalBudget || !currency || !startDate || !endDate) {
+    if (!campaignName || !goal || !amount || !currency) {
       return next(new AppError('Please provide all required fields', 400));
     }
 
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      return next(new AppError('End date must be after start date', 400));
-    }
-
     // Validate budget
-    if (totalBudget <= 0) {
+    if (Number(amount) <= 0) {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
     // Create and immediately publish campaign
-    const campaign = await Campaign.create({
-      userId: req.user?.id || 1,
-      campaignName,
-      UserDescription: userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility: budgetFlexibility || 'flexible',
-      startDate: start,
-      endDate: end,
-      lifecycleStage: 'saved',
-      isPublished: true
-    }, { transaction: t });
+    const campaign = await Campaign.create(
+      buildCampaignPayload({
+        body: req.body,
+        userId: req.user?.id || 1,
+        lifecycleStage: 'saved',
+        isPublished: true
+      }),
+      { transaction: t }
+    );
 
     // Create Target Audience if provided
     if (targetAudience) {
@@ -373,13 +412,6 @@ exports.saveCampaign = async (req, res, next) => {
   try {
     const {
       campaignName,
-      userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility,
-      startDate,
-      endDate,
       targetAudience,
       kpis,
       contentCalendar,
@@ -387,37 +419,30 @@ exports.saveCampaign = async (req, res, next) => {
       isPublished
     } = req.body;
 
+    const goal = resolveCampaignGoal(req.body);
+    const amount = resolveBudgetAmount(req.body);
+    const currency = resolveCurrency(req.body);
+
     // Validation
-    if (!campaignName || !userDescription || !goalType || !totalBudget || !currency || !startDate || !endDate) {
+    if (!campaignName || !goal || !amount || !currency) {
       return next(new AppError('Please provide all required fields', 400));
     }
 
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      return next(new AppError('End date must be after start date', 400));
-    }
-
     // Validate budget
-    if (totalBudget <= 0) {
+    if (Number(amount) <= 0) {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
     // Create campaign with saved stage (do NOT publish by default)
-    const campaign = await Campaign.create({
-      userId: req.user?.id || 1,
-      campaignName,
-      UserDescription: userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility: budgetFlexibility || 'flexible',
-      startDate: start,
-      endDate: end,
-      lifecycleStage: 'saved',
-      isPublished: isPublished !== undefined ? isPublished : false
-    }, { transaction: t });
+    const campaign = await Campaign.create(
+      buildCampaignPayload({
+        body: req.body,
+        userId: req.user?.id || 1,
+        lifecycleStage: 'saved',
+        isPublished: isPublished !== undefined ? isPublished : false
+      }),
+      { transaction: t }
+    );
 
     // Create Target Audience if provided
     if (targetAudience) {
@@ -633,35 +658,48 @@ exports.getCampaigns = async (req, res, next) => {
     const ownerId = req.user && req.user.id;
     const { page = 1, limit = 10, lifecycleStage, goalType, search } = req.query;
     const offset = (page - 1) * limit;
+    const { Op } = require('sequelize');
 
     // Build where clause for owner's campaigns
     const whereClause = { userId: ownerId };
     if (lifecycleStage) whereClause.lifecycleStage = lifecycleStage;
-    if (goalType) whereClause.goalType = goalType;
+    if (goalType) {
+      whereClause.campaign_goal = goalType;
+    }
     if (search) {
-      const { Op } = require('sequelize');
       whereClause.campaignName = { [Op.iLike]: `%${search}%` };
     }
 
     const { count, rows: campaigns } = await Campaign.findAndCountAll({
       where: whereClause,
-      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'totalBudget', 'currency', 'startDate', 'endDate', 'goalType', 'createdAt', 'updatedAt'],
+      attributes: [
+        'id',
+        'campaignName',
+        'lifecycleStage',
+        'campaign_goal',
+        'budget_amount',
+        'budget_currency',
+        'campaign_duration_weeks',
+        'isPublished',
+        'createdAt',
+        'updatedAt'
+      ],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']]
     });
 
-    // Add `goals` (from goalType) and computed `duration` (days between startDate and endDate)
+    // Return compatibility aliases expected by older clients.
     const campaignsWithExtras = campaigns.map(c => {
       const camp = c && typeof c.toJSON === 'function' ? c.toJSON() : c;
-      const goals = camp.goalType || null;
-      let duration = null;
-      if (camp.startDate && camp.endDate) {
-        const start = new Date(camp.startDate);
-        const end = new Date(camp.endDate);
-        duration = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
-      }
-      return { ...camp, goals, duration };
+      const goals = camp.campaign_goal || null;
+      const duration = camp.campaign_duration_weeks ? camp.campaign_duration_weeks * 7 : null;
+      return {
+        ...camp,
+        goalType: goals,
+        goals,
+        duration
+      };
     });
 
     sendSuccess(res, 200, 'Campaigns retrieved successfully', {
@@ -698,21 +736,31 @@ exports.getCampaignsOverview = async (req, res, next) => {
 
     const recent = await Campaign.findAll({
       where: { userId: ownerId },
-      attributes: ['id', 'campaignName', 'lifecycleStage', 'UserDescription', 'startDate', 'endDate', 'goalType', 'isPublished', 'createdAt'],
+      attributes: [
+        'id',
+        'campaignName',
+        'lifecycleStage',
+        'campaign_goal',
+        'budget_amount',
+        'budget_currency',
+        'campaign_duration_weeks',
+        'isPublished',
+        'createdAt'
+      ],
       order: [['createdAt', 'DESC']],
       limit: 2
     });
 
     const recentWithExtras = recent.map(c => {
       const camp = c && typeof c.toJSON === 'function' ? c.toJSON() : c;
-      const goals = camp.goalType || null;
-      let duration = null;
-      if (camp.startDate && camp.endDate) {
-        const start = new Date(camp.startDate);
-        const end = new Date(camp.endDate);
-        duration = Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
-      }
-      return { ...camp, goals, duration };
+      const goals = camp.campaign_goal || null;
+      const duration = camp.campaign_duration_weeks ? camp.campaign_duration_weeks * 7 : null;
+      return {
+        ...camp,
+        goalType: goals,
+        goals,
+        duration
+      };
     });
 
     sendSuccess(res, 200, 'Overview retrieved successfully', {
@@ -810,45 +858,32 @@ exports.createCampaign = async (req, res, next) => {
   try {
     const {
       campaignName,
-      userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility,
-      startDate,
-      endDate
+      isPublished
     } = req.body;
 
+    const goal = resolveCampaignGoal(req.body);
+    const amount = resolveBudgetAmount(req.body);
+    const currency = resolveCurrency(req.body);
+
     // Validation
-    if (!campaignName || !userDescription || !goalType || !totalBudget || !currency || !startDate || !endDate) {
+    if (!campaignName || !goal || !amount || !currency) {
       return next(new AppError('Please provide all required fields', 400));
     }
 
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      return next(new AppError('End date must be after start date', 400));
-    }
-
     // Validate budget
-    if (totalBudget <= 0) {
+    if (Number(amount) <= 0) {
       return next(new AppError('Budget must be greater than 0', 400));
     }
 
     // Create manual campaign with draft stage
-    const campaign = await Campaign.create({
-      userId: req.user?.id || 1,
-      campaignName,
-      UserDescription: userDescription,
-      goalType,
-      totalBudget,
-      currency,
-      budgetFlexibility: budgetFlexibility || 'flexible',
-      startDate: start,
-      endDate: end,
-      lifecycleStage: 'draft'
-    });
+    const campaign = await Campaign.create(
+      buildCampaignPayload({
+        body: req.body,
+        userId: req.user?.id || 1,
+        lifecycleStage: 'draft',
+        isPublished: isPublished !== undefined ? isPublished : false
+      })
+    );
 
     sendSuccess(res, 201, 'Manual campaign created successfully.', {
       campaign: {
@@ -876,8 +911,7 @@ exports.getActiveCampaigns = async (req, res, next) => {
     const activeCampaigns = await Campaign.findAll({
       where: {
         userId: ownerId,
-        startDate: { [Op.lte]: today },
-        endDate: { [Op.gte]: today }
+        lifecycleStage: { [Op.notIn]: ['cancelled'] }
       },
       include: [
         {
@@ -905,15 +939,14 @@ exports.getActiveCampaigns = async (req, res, next) => {
           required: false
         }
       ],
-      order: [['startDate', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     const campaignsWithTracking = activeCampaigns.map((campaignModel) => {
       const campaign = campaignModel.toJSON();
 
-      const start = new Date(campaign.startDate);
-      const end = new Date(campaign.endDate);
-      const totalDurationDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+      const start = new Date(campaign.createdAt);
+      const totalDurationDays = Math.max(1, Number(campaign.campaign_duration_weeks || 1) * 7);
       const elapsedDurationDays = Math.max(0, Math.min(totalDurationDays, Math.ceil((today - start) / (1000 * 60 * 60 * 24))));
       const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedDurationDays / totalDurationDays) * 100)));
 

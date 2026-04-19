@@ -156,9 +156,10 @@ const ownerOverviewService = {
           'id',
           'campaignName',
           'lifecycleStage',
-          'totalBudget',
-          'startDate',
-          'endDate',
+          'campaign_goal',
+          'budget_amount',
+          'budget_currency',
+          'campaign_duration_weeks',
           'isPublished',
           'createdAt',
           'updatedAt'
@@ -416,13 +417,22 @@ const ownerOverviewService = {
     const now = new Date();
     const brandName = ownerProfile?.brand_name || 'Owner Brand';
 
+    const campaignWindow = (campaign) => {
+      const start = new Date(campaign.createdAt);
+      const durationWeeks = Number(campaign.campaign_duration_weeks || 1);
+      const end = new Date(start);
+      end.setDate(end.getDate() + Math.max(1, durationWeeks * 7));
+      return { start, end };
+    };
+
     const explicitActive = campaigns.filter((campaign) => campaign.lifecycleStage === 'active');
     const fallbackActive = campaigns.filter((campaign) => {
       const stage = campaign.lifecycleStage;
+      const window = campaignWindow(campaign);
       return ['saved', 'completed', 'active'].includes(stage)
         && campaign.isPublished
-        && new Date(campaign.startDate) <= now
-        && new Date(campaign.endDate) >= now;
+        && window.start <= now
+        && window.end >= now;
     });
 
     const activeCampaignPool = explicitActive.length ? explicitActive : fallbackActive;
@@ -466,6 +476,8 @@ const ownerOverviewService = {
           + campaignRequests.length * 5
           + (campaignKpis.engagement || 0);
 
+        const window = campaignWindow(campaign);
+
         return {
           id: String(campaign.id),
           name: campaign.campaignName,
@@ -473,9 +485,9 @@ const ownerOverviewService = {
           status: campaign.lifecycleStage,
           engagement: Math.round(derivedEngagement),
           reach: Math.round(campaignKpis.reach || derivedReach),
-          budget: parseNumeric(campaign.totalBudget),
-          progress: progressPercentage(campaign.startDate, campaign.endDate, now),
-          daysLeft: daysLeft(campaign.endDate, now),
+          budget: parseNumeric(campaign.budget_amount),
+          progress: progressPercentage(window.start, window.end, now),
+          daysLeft: daysLeft(window.end, now),
           influencersCount: influencerMap.size,
           leadInfluencer: lead ? fullName(lead) : 'N/A',
           _lastActivity: campaignLastActivity.get(campaign.id) || new Date(campaign.updatedAt).getTime()
@@ -585,7 +597,7 @@ const ownerOverviewService = {
 
     const campaignRois = campaigns
       .map((campaign) => {
-        const spend = parseNumeric(campaign.totalBudget);
+        const spend = parseNumeric(campaign.budget_amount);
         if (spend <= 0) return null;
         const roas = parseNumeric(kpiMap.get(campaign.id)?.roas);
         if (roas <= 0) return 0;

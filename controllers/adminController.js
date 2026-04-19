@@ -429,12 +429,13 @@ exports.getSessions = async (req, res, next) => {
 exports.getCampaigns = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, goalType, lifecycleStage } = req.query;
+    const { Op } = require('sequelize');
     const offset = (page - 1) * limit;
 
     // Build where clause
     const whereClause = {};
     if (goalType) {
-      whereClause.goalType = goalType;
+      whereClause.campaign_goal = goalType;
     }
     if (lifecycleStage) {
       whereClause.lifecycleStage = lifecycleStage;

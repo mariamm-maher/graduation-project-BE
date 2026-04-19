@@ -59,28 +59,29 @@ const OwnerProfile = sequelize.define('OwnerProfile', {
     type: DataTypes.STRING,
     allowNull: true
   },
-
-  image: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
   website: {
     type: DataTypes.STRING,
     allowNull: true,
     // validate: { isUrl: true }
   },
-
-
   // Marketing Info
   platforms: {
     type: DataTypes.ARRAY(DataTypes.STRING), // ["Instagram", "Facebook", ...]
     allowNull: true
   },
- 
-  targetAudience: {
+    targetAudience: {
     type: DataTypes.JSONB, // {ageRange: "18-24", gender: "all", location: "Egypt"}
     allowNull: true
   },
+  image: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+
+
+
+ 
+
 
   // Analytics / Admin Fields
   completionPercentage: {

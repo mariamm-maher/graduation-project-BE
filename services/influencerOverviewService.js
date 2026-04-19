@@ -24,7 +24,7 @@ const {
 
 const buildBrand = (ownerUser, ownerProfile) => ({
   id: String(ownerUser?.id || ownerProfile?.userId || ''),
-  name: ownerProfile?.businessName || `${ownerUser?.firstName || ''} ${ownerUser?.lastName || ''}`.trim() || 'Brand'
+  name: ownerProfile?.brand_name || `${ownerUser?.firstName || ''} ${ownerUser?.lastName || ''}`.trim() || 'Brand'
 });
 
 const inferCollabIsActive = (collab) => ['live', 'in_progress', 'active'].includes(collab.status);
@@ -49,14 +49,14 @@ const influencerOverviewService = {
           {
             model: Campaign,
             as: 'campaign',
-            attributes: ['id', 'campaignName', 'endDate', 'startDate', 'lifecycleStage', 'totalBudget', 'currency', 'createdAt'],
+            attributes: ['id', 'campaignName', 'campaign_goal', 'lifecycleStage', 'budget_amount', 'budget_currency', 'campaign_duration_weeks', 'createdAt'],
             include: [{ model: KPI, as: 'kpis', attributes: ['metric', 'targetValue'], required: false }]
           },
           {
             model: User,
             as: 'owner',
             attributes: ['id', 'firstName', 'lastName'],
-            include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['businessName'], required: false }]
+            include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'], required: false }]
           },
           {
             model: CollaborationContract,
@@ -101,7 +101,7 @@ const influencerOverviewService = {
             model: User,
             as: 'owner',
             attributes: ['id', 'firstName', 'lastName'],
-            include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['businessName'], required: false }]
+            include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'], required: false }]
           }]
         }],
         attributes: ['id', 'status', 'platform', 'dueDate', 'createdAt']
@@ -196,9 +196,11 @@ const influencerOverviewService = {
           new Set((collab.tasks || []).map((task) => task.platform).filter(Boolean))
         );
 
-        const daysLeftRaw = collab.campaign?.endDate
-          ? Math.ceil((new Date(collab.campaign.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          : 0;
+        const durationDays = Math.max(1, Number(collab.campaign?.campaign_duration_weeks || 1) * 7);
+        const campaignStart = collab.campaign?.createdAt ? new Date(collab.campaign.createdAt) : now;
+        const campaignEnd = new Date(campaignStart);
+        campaignEnd.setDate(campaignEnd.getDate() + durationDays);
+        const daysLeftRaw = Math.ceil((campaignEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         const brand = buildBrand(collab.owner, collab.owner?.ownerProfile);
 
@@ -225,19 +227,18 @@ const influencerOverviewService = {
 
     const availableWhere = {
       isPublished: true,
-      endDate: { [Op.gte]: now },
       lifecycleStage: { [Op.notIn]: ['draft', 'cancelled', 'completed'] }
     };
 
     const availableCampaignCandidates = await Campaign.findAll({
       where: availableWhere,
-      attributes: ['id', 'campaignName', 'totalBudget', 'currency', 'endDate', 'lifecycleStage', 'createdAt', 'userId'],
+      attributes: ['id', 'campaignName', 'budget_amount', 'budget_currency', 'campaign_duration_weeks', 'lifecycleStage', 'createdAt', 'userId'],
       include: [
         {
           model: User,
           as: 'user',
           attributes: ['id', 'firstName', 'lastName'],
-          include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['businessName'], required: false }]
+          include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'], required: false }]
         },
         {
           model: ContentCalendar,
@@ -254,7 +255,10 @@ const influencerOverviewService = {
       .filter((campaign) => !appliedCampaignIds.has(campaign.id))
       .map((campaign) => {
         const platforms = Array.from(new Set((campaign.contentCalendar || []).map((row) => row.platform).filter(Boolean)));
-        const payment = parseNumeric(campaign.totalBudget);
+        const payment = parseNumeric(campaign.budget_amount);
+        const durationDays = Math.max(1, Number(campaign.campaign_duration_weeks || 1) * 7);
+        const deadline = new Date(campaign.createdAt);
+        deadline.setDate(deadline.getDate() + durationDays);
 
         return {
           id: String(campaign.id),
@@ -263,9 +267,9 @@ const influencerOverviewService = {
           payment: {
             min: Number((payment * 0.6).toFixed(2)),
             max: Number(payment.toFixed(2)),
-            currency: campaign.currency || 'USD'
+            currency: campaign.budget_currency || 'USD'
           },
-          deadline: campaign.endDate,
+          deadline,
           platforms,
           status: campaign.lifecycleStage,
           applied: false,

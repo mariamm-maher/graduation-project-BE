@@ -111,7 +111,7 @@ async function listByOwner({ ownerId, status }) {
       {
         model: Campaign,
         as: 'campaign',
-        attributes: ['id', 'campaignName', 'totalBudget', 'startDate', 'endDate']
+        attributes: ['id', 'campaignName', 'campaign_goal', 'budget_amount', 'budget_currency', 'campaign_duration_weeks', 'lifecycleStage', 'createdAt']
       },
       {
         model: User,
@@ -135,7 +135,7 @@ async function listByInfluencer({ influencerId, status }) {
       {
         model: Campaign,
         as: 'campaign',
-        attributes: ['id', 'campaignName', 'totalBudget', 'startDate', 'endDate']
+        attributes: ['id', 'campaignName', 'campaign_goal', 'budget_amount', 'budget_currency', 'campaign_duration_weeks', 'lifecycleStage', 'createdAt']
       },
       {
         model: User,
@@ -194,15 +194,9 @@ function formatCollabData(collab) {
   const data = collab.toJSON ? collab.toJSON() : collab;
   
   if (data.campaign) {
-    if (data.campaign.startDate && data.campaign.endDate) {
-      const start = new Date(data.campaign.startDate);
-      const end = new Date(data.campaign.endDate);
-      const durationMs = end - start;
-      // Calculate duration in days
-      data.campaign.duration = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
-    } else {
-      data.campaign.duration = null;
-    }
+    data.campaign.duration = data.campaign.campaign_duration_weeks
+      ? Number(data.campaign.campaign_duration_weeks) * 7
+      : null;
   }
   
   // Ensure status is present (from model)
