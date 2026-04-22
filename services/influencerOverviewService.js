@@ -372,7 +372,7 @@ const influencerOverviewService = {
               model: User,
               as: 'owner',
               attributes: ['id', 'firstName', 'lastName'],
-              include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['businessName'], required: false }]
+              include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'], required: false }]
             }
           ]
         }]

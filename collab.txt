@@ -1,0 +1,172 @@
+# One-Page Collaboration Workspace Plan
+
+Goal: show collaboration request, contract, tasks, chat summary, and timeline in one frontend page.
+
+## 1) Backend API (single aggregated endpoint)
+
+Create endpoint:
+
+- GET /api/collaborations/:id/workspace
+
+Controller flow:
+
+1. Read collaborationId from params.
+2. Read actorId from req.user.id.
+3. Call service getCollaborationWorkspace({ collaborationId, actorId }).
+4. Return a single payload for the page.
+
+Service should include:
+
+- Collaboration (root)
+- CollaborationRequest (linked by collaborationRequestId)
+- CollaborationContract (by collaborationId)
+- CollaborationTask[] (by collaborationId)
+- ChatRoom + unread counts + last message preview
+- Computed permissions based on actor role + current status
+- Unified timeline events array
+
+## 2) Suggested response shape
+
+{
+	"collaboration": {
+		"id": 12,
+		"status": "in_progress",
+		"startDate": "2026-04-20",
+		"endDate": "2026-05-20",
+		"owner": { "id": 3, "name": "...", "brandName": "..." },
+		"influencer": { "id": 8, "name": "...", "image": "..." },
+		"campaign": { "id": 77, "name": "..." }
+	},
+	"request": {
+		"id": 41,
+		"status": "accepted",
+		"proposedBudget": 1200,
+		"counterPrice": null,
+		"message": "...",
+		"responseMessage": "...",
+		"createdAt": "..."
+	},
+	"contract": {
+		"id": 15,
+		"status": "signed",
+		"deliverables": [],
+		"signedAt": "..."
+	},
+	"tasks": {
+		"total": 9,
+		"todo": 3,
+		"in_review": 2,
+		"done": 4,
+		"items": []
+	},
+	"chat": {
+		"roomId": 6,
+		"unreadCount": 5,
+		"lastMessage": {
+			"content": "...",
+			"sentAt": "...",
+			"senderId": 8
+		}
+	},
+	"timeline": [
+		{ "type": "REQUEST_SENT", "at": "...", "label": "Request sent" },
+		{ "type": "COUNTER_OFFER", "at": "...", "label": "Counter offer made" },
+		{ "type": "REQUEST_ACCEPTED", "at": "...", "label": "Request accepted" },
+		{ "type": "CONTRACT_CREATED", "at": "...", "label": "Contract generated" }
+	],
+	"permissions": {
+		"canCounter": false,
+		"canAccept": false,
+		"canReject": false,
+		"canSignContract": true,
+		"canCreateTask": true,
+		"canUpdateTask": true,
+		"canCancelCollaboration": false
+	}
+}
+
+## 3) Timeline strategy (important)
+
+Merge all events from multiple modules into one sorted array:
+
+- request.createdAt => REQUEST_SENT
+- request updates => COUNTER_OFFER / REQUEST_ACCEPTED / REQUEST_REJECTED
+- contract.createdAt => CONTRACT_CREATED
+- contract.signedAt => CONTRACT_SIGNED
+- task.createdAt => TASK_CREATED
+- task status changes => TASK_STATUS_CHANGED
+- collaboration completed/cancelled => COLLABORATION_COMPLETED / COLLABORATION_CANCELLED
+
+Sort by event time DESC or ASC (pick one and keep it consistent).
+
+## 4) Frontend one-page layout
+
+Page: CollaborationWorkspace
+
+Sections:
+
+1. Header strip
+	 - campaign name, owner, influencer, status badge
+	 - dates from collaboration.startDate/endDate
+
+2. Progress bar
+	 - Request -> Contract -> Tasks -> Completion
+
+3. Main body (two-column)
+	 - Left: Request card, Contract card, Task board/list
+	 - Right: Timeline + quick actions + chat summary
+
+4. Quick actions panel (driven by permissions)
+	 - Accept/reject/counter
+	 - Sign contract
+	 - Create task
+	 - Mark complete
+
+## 5) Frontend data flow
+
+Single query:
+
+- GET /api/collaborations/:id/workspace
+
+State:
+
+- workspace (full payload)
+- loading / error
+
+When user takes action:
+
+1. Call action endpoint (respond/sign/create-task/etc).
+2. On success: either optimistic update or refetch workspace.
+3. Re-render all sections from one source of truth.
+
+## 6) Backend implementation checklist
+
+1. Add route in collaboration routes:
+	 - GET /:id/workspace
+2. Add controller method getWorkspace.
+3. Add service method getCollaborationWorkspace.
+4. Add permission builder helper:
+	 - buildPermissions({ actorId, collaboration, request, contract })
+5. Add timeline builder helper:
+	 - buildTimeline({ collaboration, request, contract, tasks })
+6. Reuse existing models only; do not duplicate status logic in frontend.
+
+## 7) Good defaults
+
+- Return empty objects/arrays for missing sections (never break the page).
+- Keep response keys stable (avoid frontend churn).
+- Add paging only for heavy arrays (optional for tasks/timeline later).
+- Add indexes on collaborationId in request/contract/tasks tables if not present.
+
+## 8) Minimal first version (fast delivery)
+
+First release can ship with:
+
+- collaboration + request + contract + tasks summary + timeline + permissions
+- chat only as summary (roomId + unread + lastMessage)
+
+Then v2 can add:
+
+- full chat thread in same page
+- attachments
+- audit trail details

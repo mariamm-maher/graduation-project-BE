@@ -9,7 +9,13 @@ const notificationService = require('../services/notificationService');
 const AppError = require('../utils/AppError');
 const sendSuccess = require('../utils/sendSuccess');
 
-const resolveCampaignGoal = (payload = {}) => payload.goalType || payload.campaign_goal || payload.campaignGoal;
+const CAMPAIGN_GOALS = new Set(['Awareness', 'Leads', 'Sales', 'Retention', 'Re-engagement']);
+const TARGET_AUDIENCE_GENDERS = new Set(['all', 'male', 'female', 'custom']);
+const KPI_METRICS = new Set(['impressions', 'reach', 'engagement_rate', 'conversions', 'ROAS', 'CPA', 'CTR']);
+const CONTENT_TYPES = new Set(['video', 'carousel', 'story', 'reel', 'post', 'article']);
+const CONTENT_STATUSES = new Set(['scheduled', 'posted', 'failed']);
+
+const resolveCampaignGoal = (payload = {}) => payload.goalType || payload.campaign_goal;
 
 const resolveBudgetAmount = (payload = {}) => {
   if (payload.totalBudget !== undefined && payload.totalBudget !== null) return payload.totalBudget;
@@ -27,22 +33,154 @@ const resolveDurationWeeks = (payload = {}) => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
 };
 
+const resolveDate = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const buildAndValidateCampaignCore = (body = {}) => {
+  const campaignName = body.campaignName;
+  const campaign_goal = resolveCampaignGoal(body);
+  const budget_amount = resolveBudgetAmount(body);
+  const budget_currency = resolveCurrency(body);
+  const campaign_duration_weeks = resolveDurationWeeks(body);
+
+  if (!campaignName || !campaign_goal || budget_amount === null || budget_amount === undefined || !budget_currency) {
+    throw new AppError('Please provide all required fields', 400);
+  }
+
+  const normalizedBudget = Number(budget_amount);
+  if (!Number.isFinite(normalizedBudget) || normalizedBudget <= 0) {
+    throw new AppError('Budget must be greater than 0', 400);
+  }
+
+  if (!CAMPAIGN_GOALS.has(campaign_goal)) {
+    throw new AppError('Invalid campaign_goal value', 400);
+  }
+
+  if (campaign_duration_weeks === null || campaign_duration_weeks < 1) {
+    throw new AppError('campaign_duration_weeks must be greater than or equal to 1', 400);
+  }
+
+  return {
+    campaignName,
+    campaign_goal,
+    budget_amount: normalizedBudget,
+    budget_currency,
+    campaign_duration_weeks,
+    startDate: resolveDate(body.startDate),
+    endDate: resolveDate(body.endDate)
+  };
+};
+
 const buildCampaignPayload = ({ body, userId, lifecycleStage, isPublished }) => {
-  const goal = resolveCampaignGoal(body);
-  const amount = resolveBudgetAmount(body);
-  const currency = resolveCurrency(body);
+  const campaignData = buildAndValidateCampaignCore(body);
 
   return {
     userId,
-    campaignName: body.campaignName,
-    campaign_goal: body.campaign_goal || goal,
-    budget_amount: body.budget_amount !== undefined ? body.budget_amount : amount,
-    budget_currency: body.budget_currency || currency,
-    campaign_duration_weeks: resolveDurationWeeks(body),
+    ...campaignData,
     lifecycleStage,
     isPublished
   };
 };
+
+const createCampaignRelations = async ({ campaignId, targetAudience, kpis, contentCalendar, aiVersion, transaction }) => {
+  if (targetAudience) {
+    if (!TARGET_AUDIENCE_GENDERS.has(targetAudience.gender)) {
+      throw new AppError('Invalid targetAudience.gender value', 400);
+    }
+
+    if (!Array.isArray(targetAudience.interests) || !Array.isArray(targetAudience.platformsUsed)) {
+      throw new AppError('targetAudience.interests and targetAudience.platformsUsed must be arrays', 400);
+    }
+
+    await TargetAudience.create({
+      campaignId,
+      ageRange: targetAudience.ageRange,
+      gender: targetAudience.gender,
+      interests: targetAudience.interests,
+      platformsUsed: targetAudience.platformsUsed
+    }, { transaction });
+  }
+
+  if (Array.isArray(kpis)) {
+    for (const kpi of kpis) {
+      if (!KPI_METRICS.has(kpi.metric)) {
+        throw new AppError(`Invalid KPI metric: ${kpi.metric}`, 400);
+      }
+
+      await KPI.create({
+        campaignId,
+        metric: kpi.metric,
+        targetValue: kpi.targetValue
+      }, { transaction });
+    }
+  }
+
+  if (Array.isArray(contentCalendar)) {
+    for (const content of contentCalendar) {
+      const status = content.status || 'scheduled';
+      const contentDate = resolveDate(content.date);
+
+      if (!CONTENT_TYPES.has(content.contentType)) {
+        throw new AppError(`Invalid contentType: ${content.contentType}`, 400);
+      }
+
+      if (!CONTENT_STATUSES.has(status)) {
+        throw new AppError(`Invalid content status: ${status}`, 400);
+      }
+
+      if (!Number.isInteger(Number(content.day))) {
+        throw new AppError('ContentCalendar day must be an integer', 400);
+      }
+
+      if (!contentDate) {
+        throw new AppError('Invalid ContentCalendar date value', 400);
+      }
+
+      await ContentCalendar.create({
+        campaignId,
+        day: Number(content.day),
+        date: contentDate,
+        platform: content.platform,
+        contentType: content.contentType,
+        caption: content.caption,
+        mediaUrl: content.mediaUrl,
+        task: content.task,
+        status
+      }, { transaction });
+    }
+  }
+
+  if (aiVersion) {
+    await CampaignAIVersion.create({
+      campaignId,
+      versionNumber: aiVersion.versionNumber || 1,
+      generatedAt: resolveDate(aiVersion.generatedAt) || undefined,
+      strategy: aiVersion.strategy,
+      execution: aiVersion.execution,
+      estimations: aiVersion.estimations,
+      isActive: aiVersion.isActive !== undefined ? aiVersion.isActive : true
+    }, { transaction });
+  }
+};
+
+const campaignResponse = (campaign) => ({
+  id: campaign.id,
+  campaignName: campaign.campaignName,
+  lifecycleStage: campaign.lifecycleStage,
+  isPublished: campaign.isPublished,
+  userId: campaign.userId,
+  campaign_goal: campaign.campaign_goal,
+  budget_amount: campaign.budget_amount,
+  budget_currency: campaign.budget_currency,
+  campaign_duration_weeks: campaign.campaign_duration_weeks,
+  startDate: campaign.startDate,
+  endDate: campaign.endDate,
+  createdAt: campaign.createdAt,
+  updatedAt: campaign.updatedAt
+});
 
 // @desc    Generate AI campaign draft
 // @route   POST /api/campaigns/ai/generate
@@ -51,7 +189,6 @@ exports.generateAICampaign = async (req, res, next) => {
   try {
     const {
       campaignName, 
-      budgetFlexibility,
       startDate,
       endDate,
       brand_name,
@@ -65,9 +202,14 @@ exports.generateAICampaign = async (req, res, next) => {
       has_previous_campaigns,
       previous_campaign_description,
       website,
-      platforms
+      platforms,
+      campaign_duration_weeks,
+       budget_amount,
+       campaign_goal,
+       budget_currency,
     } = req.body;
 
+   
     const resolvedGoal = resolveCampaignGoal(req.body);
     const resolvedBudget = resolveBudgetAmount(req.body);
     const resolvedCurrency = resolveCurrency(req.body);
@@ -108,7 +250,6 @@ exports.generateAICampaign = async (req, res, next) => {
       budget_amount: resolvedBudget,
       currency: resolvedCurrency,
       budget_currency: resolvedCurrency,
-      budgetFlexibility: budgetFlexibility || 'flexible',
       // Dates / duration
       startDate: start,
       endDate: end,
@@ -159,108 +300,43 @@ exports.generateAICampaign = async (req, res, next) => {
 // @route   POST /api/campaigns/draft
 // @access  Private
 exports.draftCampaign = async (req, res, next) => {
-  const t = await Campaign.sequelize.transaction();
-  
   try {
     const {
-      campaignName,
       targetAudience,
       kpis,
       contentCalendar,
       aiVersion
     } = req.body;
 
-    const goal = resolveCampaignGoal(req.body);
-    const amount = resolveBudgetAmount(req.body);
-    const currency = resolveCurrency(req.body);
+    const payload = buildCampaignPayload({
+      body: req.body,
+      userId: req.user?.id || 1,
+      lifecycleStage: 'draft',
+      isPublished: false
+    });
 
-    // Validation
-    if (!campaignName || !goal || !amount || !currency) {
-      return next(new AppError('Please provide all required fields', 400));
-    }
+    let campaign;
+    await Campaign.sequelize.transaction(async (t) => {
+      // Create campaign as draft (unpublished)
+      campaign = await Campaign.create(
+        payload,
+        { transaction: t }
+      );
 
-    // Validate budget
-    if (Number(amount) <= 0) {
-      return next(new AppError('Budget must be greater than 0', 400));
-    }
-
-    // Create campaign as draft (unpublished)
-    const campaign = await Campaign.create(
-      buildCampaignPayload({
-        body: req.body,
-        userId: req.user?.id || 1,
-        lifecycleStage: 'draft',
-        isPublished: false
-      }),
-      { transaction: t }
-    );
-
-    // Create Target Audience if provided
-    if (targetAudience) {
-      await TargetAudience.create({
+      await createCampaignRelations({
         campaignId: campaign.id,
-        ageRange: targetAudience.ageRange,
-        gender: targetAudience.gender,
-        interests: targetAudience.interests,
-        platformsUsed: targetAudience.platformsUsed
-      }, { transaction: t });
-    }
-
-    // Create KPIs if provided
-    if (kpis && Array.isArray(kpis)) {
-      for (const kpi of kpis) {
-        await KPI.create({
-          campaignId: campaign.id,
-          metric: kpi.metric,
-          targetValue: kpi.targetValue
-        }, { transaction: t });
-      }
-    }
-
-    // Create Content Calendar if provided
-    if (contentCalendar && Array.isArray(contentCalendar)) {
-      for (const content of contentCalendar) {
-        await ContentCalendar.create({
-          campaignId: campaign.id,
-          day: content.day,
-          date: content.date,
-          platform: content.platform,
-          contentType: content.contentType,
-          caption: content.caption,
-          mediaUrl: content.mediaUrl,
-          task: content.task,
-          status: content.status || 'scheduled'
-        }, { transaction: t });
-      }
-    }
-
-    // Create Campaign AI Version if provided
-    if (aiVersion) {
-      const CampaignAIVersion = require('../models/CampaignAIVersion');
-      await CampaignAIVersion.create({
-        campaignId: campaign.id,
-        versionNumber: aiVersion.versionNumber || 1,
-        strategy: aiVersion.strategy,
-        execution: aiVersion.execution,
-        estimations: aiVersion.estimations,
-        isActive: aiVersion.isActive !== undefined ? aiVersion.isActive : true
-      }, { transaction: t });
-    }
-
-    await t.commit();
+        targetAudience,
+        kpis,
+        contentCalendar,
+        aiVersion,
+        transaction: t
+      });
+    });
 
     sendSuccess(res, 201, 'Campaign draft saved successfully.', {
-      campaign: {
-        id: campaign.id,
-        campaignName: campaign.campaignName,
-        lifecycleStage: campaign.lifecycleStage,
-        isPublished: campaign.isPublished,
-        userId: campaign.userId,
-        createdAt: campaign.createdAt
-      }
+      campaign: campaignResponse(campaign)
     });
   } catch (error) {
-    await t.rollback();
     next(error);
   }
 };
@@ -269,108 +345,51 @@ exports.draftCampaign = async (req, res, next) => {
 // @route   POST /api/campaigns/save-and-publish
 // @access  Private
 exports.saveAndPublish = async (req, res, next) => {
-  const t = await Campaign.sequelize.transaction();
-  
   try {
     const {
-      campaignName,
       targetAudience,
       kpis,
       contentCalendar,
       aiVersion
     } = req.body;
 
-    const goal = resolveCampaignGoal(req.body);
-    const amount = resolveBudgetAmount(req.body);
-    const currency = resolveCurrency(req.body);
+    const payload = buildCampaignPayload({
+      body: req.body,
+      userId: req.user?.id || 1,
+      lifecycleStage: 'saved',
+      isPublished: true
+    });
 
-    // Validation
-    if (!campaignName || !goal || !amount || !currency) {
-      return next(new AppError('Please provide all required fields', 400));
-    }
+    let campaign;
+    await Campaign.sequelize.transaction(async (t) => {
+      // Create and immediately publish campaign
+      campaign = await Campaign.create(
+        payload,
+        { transaction: t }
+      );
 
-    // Validate budget
-    if (Number(amount) <= 0) {
-      return next(new AppError('Budget must be greater than 0', 400));
-    }
-
-    // Create and immediately publish campaign
-    const campaign = await Campaign.create(
-      buildCampaignPayload({
-        body: req.body,
-        userId: req.user?.id || 1,
-        lifecycleStage: 'saved',
-        isPublished: true
-      }),
-      { transaction: t }
-    );
-
-    // Create Target Audience if provided
-    if (targetAudience) {
-      await TargetAudience.create({
+      await createCampaignRelations({
         campaignId: campaign.id,
-        ageRange: targetAudience.ageRange,
-        gender: targetAudience.gender,
-        interests: targetAudience.interests,
-        platformsUsed: targetAudience.platformsUsed
-      }, { transaction: t });
-    }
-
-    // Create KPIs if provided
-    if (kpis && Array.isArray(kpis)) {
-      for (const kpi of kpis) {
-        await KPI.create({
-          campaignId: campaign.id,
-          metric: kpi.metric,
-          targetValue: kpi.targetValue
-        }, { transaction: t });
-      }
-    }
-
-    // Create Content Calendar if provided
-    if (contentCalendar && Array.isArray(contentCalendar)) {
-      for (const content of contentCalendar) {
-        await ContentCalendar.create({
-          campaignId: campaign.id,
-          day: content.day,
-          date: content.date,
-          platform: content.platform,
-          contentType: content.contentType,
-          caption: content.caption,
-          mediaUrl: content.mediaUrl,
-          task: content.task,
-          status: content.status || 'scheduled'
-        }, { transaction: t });
-      }
-    }
-
-    // Create Campaign AI Version if provided
-    if (aiVersion) {
-      const CampaignAIVersion = require('../models/CampaignAIVersion');
-      await CampaignAIVersion.create({
-        campaignId: campaign.id,
-        versionNumber: aiVersion.versionNumber || 1,
-        strategy: aiVersion.strategy,
-        execution: aiVersion.execution,
-        estimations: aiVersion.estimations,
-        isActive: aiVersion.isActive !== undefined ? aiVersion.isActive : true
-      }, { transaction: t });
-    }
-
-    // Log campaign creation (finalization)
-    try {
-      await logAction({ 
-        req, 
-        action: 'CREATE_CAMPAIGN', 
-        entity: 'Campaign', 
-        entityId: campaign.id, 
-        meta: { campaignName: campaign.campaignName, userId: campaign.userId, published: true } 
+        targetAudience,
+        kpis,
+        contentCalendar,
+        aiVersion,
+        transaction: t
       });
-    } catch (e) {
-      // Log error but don't fail the request
-    }
 
-    await t.commit();
+      // Log campaign creation (finalization)
+      try {
+        await logAction({ 
+          req, 
+          action: 'CREATE_CAMPAIGN', 
+          entity: 'Campaign', 
+          entityId: campaign.id, 
+          meta: { campaignName: campaign.campaignName, userId: campaign.userId, published: true } 
+        });
+      } catch (e) {
+        // Log error but don't fail the request
+      }
+    });
 
     try {
       await notificationService.createNotification({
@@ -388,17 +407,9 @@ exports.saveAndPublish = async (req, res, next) => {
     }
 
     sendSuccess(res, 201, 'Campaign saved and published successfully.', {
-      campaign: {
-        id: campaign.id,
-        campaignName: campaign.campaignName,
-        lifecycleStage: campaign.lifecycleStage,
-        isPublished: campaign.isPublished,
-        userId: campaign.userId,
-        createdAt: campaign.createdAt
-      }
+      campaign: campaignResponse(campaign)
     });
   } catch (error) {
-    await t.rollback();
     next(error);
   }
 };
@@ -407,11 +418,8 @@ exports.saveAndPublish = async (req, res, next) => {
 // @route   POST /api/campaigns/save
 // @access  Private
 exports.saveCampaign = async (req, res, next) => {
-  const t = await Campaign.sequelize.transaction();
-  
   try {
     const {
-      campaignName,
       targetAudience,
       kpis,
       contentCalendar,
@@ -419,97 +427,43 @@ exports.saveCampaign = async (req, res, next) => {
       isPublished
     } = req.body;
 
-    const goal = resolveCampaignGoal(req.body);
-    const amount = resolveBudgetAmount(req.body);
-    const currency = resolveCurrency(req.body);
+    const payload = buildCampaignPayload({
+      body: req.body,
+      userId: req.user?.id || 1,
+      lifecycleStage: 'saved',
+      isPublished: isPublished !== undefined ? isPublished : false
+    });
 
-    // Validation
-    if (!campaignName || !goal || !amount || !currency) {
-      return next(new AppError('Please provide all required fields', 400));
-    }
+    let campaign;
+    await Campaign.sequelize.transaction(async (t) => {
+      // Create campaign with saved stage (do NOT publish by default)
+      campaign = await Campaign.create(
+        payload,
+        { transaction: t }
+      );
 
-    // Validate budget
-    if (Number(amount) <= 0) {
-      return next(new AppError('Budget must be greater than 0', 400));
-    }
-
-    // Create campaign with saved stage (do NOT publish by default)
-    const campaign = await Campaign.create(
-      buildCampaignPayload({
-        body: req.body,
-        userId: req.user?.id || 1,
-        lifecycleStage: 'saved',
-        isPublished: isPublished !== undefined ? isPublished : false
-      }),
-      { transaction: t }
-    );
-
-    // Create Target Audience if provided
-    if (targetAudience) {
-      await TargetAudience.create({
+      await createCampaignRelations({
         campaignId: campaign.id,
-        ageRange: targetAudience.ageRange,
-        gender: targetAudience.gender,
-        interests: targetAudience.interests,
-        platformsUsed: targetAudience.platformsUsed
-      }, { transaction: t });
-    }
-
-    // Create KPIs if provided
-    if (kpis && Array.isArray(kpis)) {
-      for (const kpi of kpis) {
-        await KPI.create({
-          campaignId: campaign.id,
-          metric: kpi.metric,
-          targetValue: kpi.targetValue
-        }, { transaction: t });
-      }
-    }
-
-    // Create Content Calendar if provided
-    if (contentCalendar && Array.isArray(contentCalendar)) {
-      for (const content of contentCalendar) {
-        await ContentCalendar.create({
-          campaignId: campaign.id,
-          day: content.day,
-          date: content.date,
-          platform: content.platform,
-          contentType: content.contentType,
-          caption: content.caption,
-          mediaUrl: content.mediaUrl,
-          task: content.task,
-          status: content.status || 'scheduled'
-        }, { transaction: t });
-      }
-    }
-
-    // Create Campaign AI Version if provided
-    if (aiVersion) {
-      const CampaignAIVersion = require('../models/CampaignAIVersion');
-      await CampaignAIVersion.create({
-        campaignId: campaign.id,
-        versionNumber: aiVersion.versionNumber || 1,
-        strategy: aiVersion.strategy,
-        execution: aiVersion.execution,
-        estimations: aiVersion.estimations,
-        isActive: aiVersion.isActive !== undefined ? aiVersion.isActive : true
-      }, { transaction: t });
-    }
-
-    // Log campaign creation (finalization)
-    try {
-      await logAction({ 
-        req, 
-        action: 'CREATE_CAMPAIGN', 
-        entity: 'Campaign', 
-        entityId: campaign.id, 
-        meta: { campaignName: campaign.campaignName, userId: campaign.userId, published: campaign.isPublished } 
+        targetAudience,
+        kpis,
+        contentCalendar,
+        aiVersion,
+        transaction: t
       });
-    } catch (e) {
-      // Log error but don't fail the request
-    }
 
-    await t.commit();
+      // Log campaign creation (finalization)
+      try {
+        await logAction({ 
+          req, 
+          action: 'CREATE_CAMPAIGN', 
+          entity: 'Campaign', 
+          entityId: campaign.id, 
+          meta: { campaignName: campaign.campaignName, userId: campaign.userId, published: campaign.isPublished } 
+        });
+      } catch (e) {
+        // Log error but don't fail the request
+      }
+    });
 
     if (campaign.isPublished) {
       try {
@@ -529,17 +483,9 @@ exports.saveCampaign = async (req, res, next) => {
     }
 
     sendSuccess(res, 201, 'Campaign saved successfully.', {
-      campaign: {
-        id: campaign.id,
-        campaignName: campaign.campaignName,
-        lifecycleStage: campaign.lifecycleStage,
-        isPublished: campaign.isPublished,
-        userId: campaign.userId,
-        createdAt: campaign.createdAt
-      }
+      campaign: campaignResponse(campaign)
     });
   } catch (error) {
-    await t.rollback();
     next(error);
   }
 };
@@ -680,6 +626,8 @@ exports.getCampaigns = async (req, res, next) => {
         'budget_amount',
         'budget_currency',
         'campaign_duration_weeks',
+        'startDate',
+        'endDate',
         'isPublished',
         'createdAt',
         'updatedAt'
@@ -726,13 +674,14 @@ exports.getCampaignsOverview = async (req, res, next) => {
     if (!ownerId) {
       return sendSuccess(res, 200, 'Overview retrieved successfully', {
         totalCampaigns: 0,
+        totalDraft: 0,
         totalSaved: 0,
         recentCampaigns: []
       });
     }
 
     const totalCampaigns = await Campaign.count({ where: { userId: ownerId } });
-    const totalSaved = await Campaign.count({ where: { userId: ownerId, lifecycleStage: 'saved' } });
+    const totalDraft = await Campaign.count({ where: { userId: ownerId, lifecycleStage: 'draft' } });
 
     const recent = await Campaign.findAll({
       where: { userId: ownerId },
@@ -744,6 +693,8 @@ exports.getCampaignsOverview = async (req, res, next) => {
         'budget_amount',
         'budget_currency',
         'campaign_duration_weeks',
+        'startDate',
+        'endDate',
         'isPublished',
         'createdAt'
       ],
@@ -765,8 +716,289 @@ exports.getCampaignsOverview = async (req, res, next) => {
 
     sendSuccess(res, 200, 'Overview retrieved successfully', {
       totalCampaigns,
-      totalSaved,
+      totalDraft,
+      totalSaved: totalDraft,
       recentCampaigns: recentWithExtras
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get analytics insights for authenticated owner's campaigns
+// @route   GET /api/campaigns/analytics
+// @access  Private
+exports.getCampaignAnalytics = async (req, res, next) => {
+  try {
+    const ownerId = req.user && req.user.id;
+    const today = new Date();
+
+    if (!ownerId) {
+      return sendSuccess(res, 200, 'Campaign analytics retrieved successfully', {
+        summary: {
+          totalCampaigns: 0,
+          activeCampaigns: 0,
+          completedCampaigns: 0,
+          cancelledCampaigns: 0,
+          publishedCampaigns: 0
+        },
+        budget: {
+          totalBudget: 0,
+          averageBudget: 0,
+          minBudget: 0,
+          maxBudget: 0,
+          byCurrency: {}
+        },
+        lifecycle: {
+          byStage: {},
+          publicationRatePercent: 0,
+          completionRatePercent: 0,
+          cancellationRatePercent: 0
+        },
+        goals: {
+          byGoal: {},
+          topGoal: null
+        },
+        duration: {
+          averageWeeks: 0,
+          totalWeeks: 0,
+          runningCampaigns: 0,
+          upcomingCampaigns: 0,
+          endedCampaigns: 0
+        },
+        kpis: {
+          totalKpis: 0,
+          byMetric: {},
+          mostUsedMetric: null
+        },
+        content: {
+          totalItems: 0,
+          byStatus: {},
+          byType: {},
+          byPlatform: {},
+          postingCompletionPercent: 0
+        },
+        ai: {
+          campaignsWithAIVersion: 0,
+          aiAdoptionRatePercent: 0,
+          totalVersions: 0,
+          activeVersions: 0,
+          averageVersionsPerCampaign: 0
+        },
+        timeline: {
+          campaignsByMonth: {}
+        }
+      });
+    }
+
+    const campaigns = await Campaign.findAll({
+      where: { userId: ownerId },
+      attributes: [
+        'id',
+        'campaignName',
+        'lifecycleStage',
+        'campaign_goal',
+        'budget_amount',
+        'budget_currency',
+        'campaign_duration_weeks',
+        'startDate',
+        'endDate',
+        'isPublished',
+        'createdAt'
+      ],
+      include: [
+        {
+          model: KPI,
+          as: 'kpis',
+          attributes: ['id', 'metric'],
+          required: false
+        },
+        {
+          model: ContentCalendar,
+          as: 'contentCalendar',
+          attributes: ['id', 'status', 'contentType', 'platform'],
+          required: false
+        },
+        {
+          model: CampaignAIVersion,
+          as: 'aiVersions',
+          attributes: ['id', 'isActive'],
+          required: false
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    const rows = campaigns.map((c) => (typeof c.toJSON === 'function' ? c.toJSON() : c));
+    const totalCampaigns = rows.length;
+
+    const lifecycleByStage = {};
+    const goalsByType = {};
+    const budgetByCurrency = {};
+    const kpisByMetric = {};
+    const contentByStatus = {};
+    const contentByType = {};
+    const contentByPlatform = {};
+    const campaignsByMonth = {};
+
+    let publishedCampaigns = 0;
+    let completedCampaigns = 0;
+    let cancelledCampaigns = 0;
+    let runningCampaigns = 0;
+    let upcomingCampaigns = 0;
+    let endedCampaigns = 0;
+
+    let totalBudget = 0;
+    let minBudget = Number.POSITIVE_INFINITY;
+    let maxBudget = 0;
+
+    let totalWeeks = 0;
+    let totalKpis = 0;
+    let totalContentItems = 0;
+    let postedContentCount = 0;
+
+    let campaignsWithAIVersion = 0;
+    let totalAIVersions = 0;
+    let activeAIVersions = 0;
+
+    for (const campaign of rows) {
+      const stage = campaign.lifecycleStage || 'unknown';
+      lifecycleByStage[stage] = (lifecycleByStage[stage] || 0) + 1;
+
+      if (campaign.isPublished) publishedCampaigns += 1;
+      if (campaign.lifecycleStage === 'completed') completedCampaigns += 1;
+      if (campaign.lifecycleStage === 'cancelled') cancelledCampaigns += 1;
+
+      const goal = campaign.campaign_goal || 'unknown';
+      goalsByType[goal] = (goalsByType[goal] || 0) + 1;
+
+      const budget = Number(campaign.budget_amount || 0);
+      if (Number.isFinite(budget) && budget > 0) {
+        totalBudget += budget;
+        minBudget = Math.min(minBudget, budget);
+        maxBudget = Math.max(maxBudget, budget);
+
+        const curr = campaign.budget_currency || 'unknown';
+        budgetByCurrency[curr] = (budgetByCurrency[curr] || 0) + budget;
+      }
+
+      const weeks = Number(campaign.campaign_duration_weeks || 0);
+      if (Number.isFinite(weeks) && weeks > 0) totalWeeks += weeks;
+
+      const startDate = campaign.startDate ? new Date(campaign.startDate) : null;
+      const endDate = campaign.endDate ? new Date(campaign.endDate) : null;
+      const hasValidStart = startDate && !Number.isNaN(startDate.getTime());
+      const hasValidEnd = endDate && !Number.isNaN(endDate.getTime());
+
+      if (hasValidStart && startDate > today) {
+        upcomingCampaigns += 1;
+      } else if (hasValidStart && (!hasValidEnd || endDate >= today)) {
+        runningCampaigns += 1;
+      } else if (hasValidEnd && endDate < today) {
+        endedCampaigns += 1;
+      }
+
+      const createdAt = campaign.createdAt ? new Date(campaign.createdAt) : null;
+      if (createdAt && !Number.isNaN(createdAt.getTime())) {
+        const key = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+        campaignsByMonth[key] = (campaignsByMonth[key] || 0) + 1;
+      }
+
+      const kpis = Array.isArray(campaign.kpis) ? campaign.kpis : [];
+      totalKpis += kpis.length;
+      for (const item of kpis) {
+        const metric = item.metric || 'unknown';
+        kpisByMetric[metric] = (kpisByMetric[metric] || 0) + 1;
+      }
+
+      const contentItems = Array.isArray(campaign.contentCalendar) ? campaign.contentCalendar : [];
+      totalContentItems += contentItems.length;
+      for (const item of contentItems) {
+        const status = item.status || 'unknown';
+        const type = item.contentType || 'unknown';
+        const platform = item.platform || 'unknown';
+
+        contentByStatus[status] = (contentByStatus[status] || 0) + 1;
+        contentByType[type] = (contentByType[type] || 0) + 1;
+        contentByPlatform[platform] = (contentByPlatform[platform] || 0) + 1;
+
+        if (status === 'posted') postedContentCount += 1;
+      }
+
+      const aiVersions = Array.isArray(campaign.aiVersions) ? campaign.aiVersions : [];
+      if (aiVersions.length > 0) campaignsWithAIVersion += 1;
+      totalAIVersions += aiVersions.length;
+      activeAIVersions += aiVersions.filter((version) => version && version.isActive).length;
+    }
+
+    const activeCampaigns = totalCampaigns - (lifecycleByStage.cancelled || 0) - (lifecycleByStage.draft || 0);
+    const avgBudget = totalCampaigns > 0 ? Number((totalBudget / totalCampaigns).toFixed(2)) : 0;
+    const avgWeeks = totalCampaigns > 0 ? Number((totalWeeks / totalCampaigns).toFixed(2)) : 0;
+
+    const topGoal = Object.keys(goalsByType).sort((a, b) => goalsByType[b] - goalsByType[a])[0] || null;
+    const mostUsedMetric = Object.keys(kpisByMetric).sort((a, b) => kpisByMetric[b] - kpisByMetric[a])[0] || null;
+
+    const publicationRatePercent = totalCampaigns ? Math.round((publishedCampaigns / totalCampaigns) * 100) : 0;
+    const completionRatePercent = totalCampaigns ? Math.round((completedCampaigns / totalCampaigns) * 100) : 0;
+    const cancellationRatePercent = totalCampaigns ? Math.round((cancelledCampaigns / totalCampaigns) * 100) : 0;
+    const postingCompletionPercent = totalContentItems ? Math.round((postedContentCount / totalContentItems) * 100) : 0;
+    const aiAdoptionRatePercent = totalCampaigns ? Math.round((campaignsWithAIVersion / totalCampaigns) * 100) : 0;
+    const averageVersionsPerCampaign = totalCampaigns ? Number((totalAIVersions / totalCampaigns).toFixed(2)) : 0;
+
+    sendSuccess(res, 200, 'Campaign analytics retrieved successfully', {
+      summary: {
+        totalCampaigns,
+        activeCampaigns,
+        completedCampaigns,
+        cancelledCampaigns,
+        publishedCampaigns
+      },
+      budget: {
+        totalBudget: Number(totalBudget.toFixed(2)),
+        averageBudget: avgBudget,
+        minBudget: Number.isFinite(minBudget) ? minBudget : 0,
+        maxBudget,
+        byCurrency: budgetByCurrency
+      },
+      lifecycle: {
+        byStage: lifecycleByStage,
+        publicationRatePercent,
+        completionRatePercent,
+        cancellationRatePercent
+      },
+      goals: {
+        byGoal: goalsByType,
+        topGoal
+      },
+      duration: {
+        averageWeeks: avgWeeks,
+        totalWeeks,
+        runningCampaigns,
+        upcomingCampaigns,
+        endedCampaigns
+      },
+      kpis: {
+        totalKpis,
+        byMetric: kpisByMetric,
+        mostUsedMetric
+      },
+      content: {
+        totalItems: totalContentItems,
+        byStatus: contentByStatus,
+        byType: contentByType,
+        byPlatform: contentByPlatform,
+        postingCompletionPercent
+      },
+      ai: {
+        campaignsWithAIVersion,
+        aiAdoptionRatePercent,
+        totalVersions: totalAIVersions,
+        activeVersions: activeAIVersions,
+        averageVersionsPerCampaign
+      },
+      timeline: {
+        campaignsByMonth
+      }
     });
   } catch (error) {
     next(error);
@@ -783,23 +1015,47 @@ exports.getCampaignById = async (req, res, next) => {
 
     const campaign = await Campaign.findOne({
       where: { id, userId: ownerId },
+      attributes: [
+        'id',
+        'campaignName',
+        'lifecycleStage',
+        'campaign_goal',
+        'budget_amount',
+        'budget_currency',
+        'campaign_duration_weeks',
+        'startDate',
+        'endDate',
+        'isPublished',
+        'createdAt',
+        'updatedAt'
+      ],
       include: [
         {
           model: TargetAudience,
-          as: 'targetAudience'
+          as: 'targetAudience',
+          attributes: ['id', 'ageRange', 'gender', 'interests', 'platformsUsed']
         },
         {
           model: KPI,
-          as: 'kpis'
+          as: 'kpis',
+          attributes: ['id', 'metric', 'targetValue']
         },
         {
           model: ContentCalendar,
-          as: 'contentCalendar'
+          as: 'contentCalendar',
+          attributes: ['id', 'day', 'date', 'platform', 'contentType', 'caption', 'mediaUrl', 'task', 'status']
         },
         {
-          model: require('../models/CampaignAIVersion'),
-          as: 'aiVersions'
+          model: CampaignAIVersion,
+          as: 'aiVersions',
+          attributes: ['id', 'versionNumber', 'generatedAt', 'strategy', 'execution', 'estimations', 'isActive']
         }
+      ],
+      order: [
+        [{ model: KPI, as: 'kpis' }, 'id', 'ASC'],
+        [{ model: ContentCalendar, as: 'contentCalendar' }, 'day', 'ASC'],
+        [{ model: ContentCalendar, as: 'contentCalendar' }, 'id', 'ASC'],
+        [{ model: CampaignAIVersion, as: 'aiVersions' }, 'versionNumber', 'DESC']
       ]
     });
 
@@ -807,7 +1063,9 @@ exports.getCampaignById = async (req, res, next) => {
       return next(new AppError('Campaign not found or you do not have access', 404));
     }
 
-    sendSuccess(res, 200, 'Campaign retrieved successfully', { campaign });
+    const payload = campaign.toJSON();
+
+    sendSuccess(res, 200, 'Campaign retrieved successfully', { campaign: payload });
   } catch (error) {
     next(error);
   }
@@ -886,13 +1144,7 @@ exports.createCampaign = async (req, res, next) => {
     );
 
     sendSuccess(res, 201, 'Manual campaign created successfully.', {
-      campaign: {
-        id: campaign.id,
-        campaignName: campaign.campaignName,
-        lifecycleStage: campaign.lifecycleStage,
-        userId: campaign.userId,
-        createdAt: campaign.createdAt
-      }
+      campaign: campaignResponse(campaign)
     });
   } catch (error) {
     next(error);
@@ -911,7 +1163,22 @@ exports.getActiveCampaigns = async (req, res, next) => {
     const activeCampaigns = await Campaign.findAll({
       where: {
         userId: ownerId,
-        lifecycleStage: { [Op.notIn]: ['cancelled'] }
+        lifecycleStage: { [Op.notIn]: ['cancelled', 'draft'] },
+        [Op.or]: [
+          { isPublished: true },
+          { lifecycleStage: 'completed' },
+          {
+            [Op.and]: [
+              { startDate: { [Op.lte]: today } },
+              {
+                [Op.or]: [
+                  { endDate: { [Op.gte]: today } },
+                  { endDate: null }
+                ]
+              }
+            ]
+          }
+        ]
       },
       include: [
         {

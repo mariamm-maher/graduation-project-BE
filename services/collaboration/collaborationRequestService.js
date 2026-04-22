@@ -324,7 +324,7 @@ async function listByInfluencer({ influencerId, status }) {
           {
             model: OwnerProfile,
             as: 'ownerProfile',
-            attributes: ['businessName']
+            attributes: ['brand_name']
           }
         ]
       },

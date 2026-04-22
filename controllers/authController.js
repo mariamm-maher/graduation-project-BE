@@ -179,11 +179,6 @@ exports.login = async (req, res, next) => {
       
       if (roles.includes('INFLUENCER')) {
         const { InfluencerProfile } = require('../models');
-        if (key === 'target_market') {
-          if (!Array.isArray(val) || val.some((item) => typeof item !== 'string')) {
-            return next(new AppError('target_market must be an array of strings', 400));
-          }
-        }
         const influencerProfile = await InfluencerProfile.findOne({ 
           where: { userId: user.id },
           attributes: ['isOnboarded']
@@ -701,6 +696,7 @@ exports.updateOwnerProfile = async (req, res, next) => {
       'product_or_service',
       'industry',
       'target_market',
+      'targetAudience',
       'company_size',
       'unique_selling_point',
       'competitors',
@@ -709,7 +705,8 @@ exports.updateOwnerProfile = async (req, res, next) => {
       'website',
       'platforms',
       'image',
-      'isOnboarded'
+      'isOnboarded',
+      'isCompleted'
     ];
 
     let profile = await OwnerProfile.findOne({ where: { userId } });
@@ -722,8 +719,14 @@ exports.updateOwnerProfile = async (req, res, next) => {
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
         let val = req.body[key];
 
-        if ((key === 'platforms' || key === 'competitors') && typeof val === 'string') {
+        if ((key === 'target_market' || key === 'platforms' || key === 'competitors' || key === 'targetAudience') && typeof val === 'string') {
           try { val = JSON.parse(val); } catch (e) { /* leave as-is */ }
+        }
+
+        if (key === 'target_market') {
+          if (!Array.isArray(val) || val.some((item) => typeof item !== 'string')) {
+            return next(new AppError('target_market must be an array of strings', 400));
+          }
         }
 
         if (key === 'has_previous_campaigns' && typeof val === 'string') {
@@ -1162,6 +1165,7 @@ exports.onboardOwner = async (req, res, next) => {
       'product_or_service',
       'industry',
       'target_market',
+      'targetAudience',
       'company_size',
       'unique_selling_point',
       'competitors',
@@ -1169,11 +1173,13 @@ exports.onboardOwner = async (req, res, next) => {
       'previous_campaign_description',
       'website',
       'platforms',
-      'image'
+      'image',
+      'isOnboarded',
+      'isCompleted'
     ];
 
     // Required fields for onboarding
-    const requiredFields = ['brand_name', 'product_or_service', 'industry', 'target_market', 'company_size'];
+    const requiredFields = ['brand_name', 'product_or_service'];
 
     // Validate required fields
     for (const field of requiredFields) {
@@ -1189,12 +1195,18 @@ exports.onboardOwner = async (req, res, next) => {
         let val = req.body[key];
         
         // Parse JSON strings for array/object types
-                const jsonFields = ['target_market', 'competitors', 'platforms'];
+        const jsonFields = ['target_market', 'competitors', 'platforms', 'targetAudience'];
         if (jsonFields.includes(key) && typeof val === 'string') {
           try { 
             val = JSON.parse(val); 
           } catch (e) { 
             return next(new AppError(`Invalid JSON format for ${key}`, 400));
+          }
+        }
+
+        if (key === 'target_market') {
+          if (!Array.isArray(val) || val.some((item) => typeof item !== 'string')) {
+            return next(new AppError('target_market must be an array of strings', 400));
           }
         }
 

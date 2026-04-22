@@ -102,7 +102,6 @@ exports.getAllInfluencers = async (req, res, next) => {
     
     // Calculate pagination metadata
     const totalPages = Math.ceil(count / limit);
-    console.log(influencers);
     sendSuccess(res, 200, 'Influencers retrieved successfully', {
       influencers: influencers.map(profile => ({
         id: profile.id,
@@ -273,7 +272,7 @@ exports.getActiveInfluencers = async (req, res, next) => {
         {
           model: Campaign,
           as: 'campaign',
-          attributes: ['id', 'campaignName', 'endDate']
+          attributes: ['id', 'campaignName']
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -282,6 +281,8 @@ exports.getActiveInfluencers = async (req, res, next) => {
     const formattedResults = collaborations.map(collab => ({
       collaborationId: collab.id,
       status: collab.status,
+      startDate: collab.startDate,
+      endDate: collab.endDate,
       influencer: {
         id: collab.influencer.id,
         firstName: collab.influencer.firstName,
@@ -293,8 +294,7 @@ exports.getActiveInfluencers = async (req, res, next) => {
       },
       campaign: {
         id: collab.campaign.id,
-        title: collab.campaign.campaignName,
-        endDate: collab.campaign.endDate
+        title: collab.campaign.campaignName
       }
     }));
 
@@ -333,7 +333,7 @@ exports.getPastInfluencers = async (req, res, next) => {
         {
           model: Campaign,
           as: 'campaign',
-          attributes: ['id', 'campaignName', 'endDate']
+          attributes: ['id', 'campaignName']
         }
       ],
       order: [['completedAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']]
@@ -343,6 +343,8 @@ exports.getPastInfluencers = async (req, res, next) => {
       collaborationId: collab.id,
       status: collab.status,
       completedAt: collab.completedAt,
+      startDate: collab.startDate,
+      endDate: collab.endDate,
       influencer: {
         id: collab.influencer.id,
         firstName: collab.influencer.firstName,
@@ -354,8 +356,7 @@ exports.getPastInfluencers = async (req, res, next) => {
       },
       campaign: {
         id: collab.campaign.id,
-        title: collab.campaign.campaignName,
-        endDate: collab.campaign.endDate
+        title: collab.campaign.campaignName
       }
     }));
 

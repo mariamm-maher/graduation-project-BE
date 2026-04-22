@@ -144,7 +144,7 @@ async function listByInfluencer({ influencerId, status }) {
         include: [{
           model: OwnerProfile,
           as: 'ownerProfile',
-          attributes: ['businessName']
+          attributes: ['brand_name']
         }]
       }
     ]
@@ -215,7 +215,7 @@ function formatCollabData(collab) {
       lastName: data.owner.lastName,
       name: `${data.owner.firstName || ''} ${data.owner.lastName || ''}`.trim(),
       email: data.owner.email || null,
-      businessName: data.owner.ownerProfile && data.owner.ownerProfile.businessName ? data.owner.ownerProfile.businessName : null
+      businessName: data.owner.ownerProfile && data.owner.ownerProfile.brand_name ? data.owner.ownerProfile.brand_name : null
     };
   }
 

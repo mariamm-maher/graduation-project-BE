@@ -1963,6 +1963,229 @@
         }
       }
     },
+    "/api/campaigns/analytics": {
+      "get": {
+        "tags": [
+          "Campaigns"
+        ],
+        "summary": "Campaigns Analytics",
+        "description": "Returns owner-level analytics and insights aggregated across all campaigns.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign analytics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Campaign analytics retrieved successfully"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "totalCampaigns": {
+                              "type": "integer"
+                            },
+                            "activeCampaigns": {
+                              "type": "integer"
+                            },
+                            "completedCampaigns": {
+                              "type": "integer"
+                            },
+                            "cancelledCampaigns": {
+                              "type": "integer"
+                            },
+                            "publishedCampaigns": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "budget": {
+                          "type": "object",
+                          "properties": {
+                            "totalBudget": {
+                              "type": "number"
+                            },
+                            "averageBudget": {
+                              "type": "number"
+                            },
+                            "minBudget": {
+                              "type": "number"
+                            },
+                            "maxBudget": {
+                              "type": "number"
+                            },
+                            "byCurrency": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "lifecycle": {
+                          "type": "object",
+                          "properties": {
+                            "byStage": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "publicationRatePercent": {
+                              "type": "integer"
+                            },
+                            "completionRatePercent": {
+                              "type": "integer"
+                            },
+                            "cancellationRatePercent": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "goals": {
+                          "type": "object",
+                          "properties": {
+                            "byGoal": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "topGoal": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        },
+                        "duration": {
+                          "type": "object",
+                          "properties": {
+                            "averageWeeks": {
+                              "type": "number"
+                            },
+                            "totalWeeks": {
+                              "type": "number"
+                            },
+                            "runningCampaigns": {
+                              "type": "integer"
+                            },
+                            "upcomingCampaigns": {
+                              "type": "integer"
+                            },
+                            "endedCampaigns": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "kpis": {
+                          "type": "object",
+                          "properties": {
+                            "totalKpis": {
+                              "type": "integer"
+                            },
+                            "byMetric": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "mostUsedMetric": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        },
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "totalItems": {
+                              "type": "integer"
+                            },
+                            "byStatus": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "byType": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "byPlatform": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "postingCompletionPercent": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "ai": {
+                          "type": "object",
+                          "properties": {
+                            "campaignsWithAIVersion": {
+                              "type": "integer"
+                            },
+                            "aiAdoptionRatePercent": {
+                              "type": "integer"
+                            },
+                            "totalVersions": {
+                              "type": "integer"
+                            },
+                            "activeVersions": {
+                              "type": "integer"
+                            },
+                            "averageVersionsPerCampaign": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "timeline": {
+                          "type": "object",
+                          "properties": {
+                            "campaignsByMonth": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/campaigns/ai/generate": {
       "post": {
         "tags": [

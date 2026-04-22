@@ -41,7 +41,11 @@ erDiagram
 
     Collaboration ||--o| CollaborationContract : has
     Collaboration ||--o{ CollaborationTask : has
-    Collaboration ||--o| ChatRoom : mayHave
+    Collaboration ||--o{ ChatRoom : mayHave
+    
+    User ||--o{ Review : gives
+    User ||--o{ Review : receives
+    Collaboration ||--o{ Review : has
 
     %% ========================================
     %% CHAT SYSTEM
@@ -144,16 +148,18 @@ erDiagram
     OwnerProfile {
         int id PK
         int userId FK "unique"
-        string businessName "nullable"
-        string businessType "nullable"
+        text brand_name "nullable"
+        text unique_selling_point "nullable"
+        text product_or_service "nullable"
+        enum company_size "Solo Small Mid Enterprise"
+        array target_market "nullable"
+        jsonb competitors "default []"
+        boolean has_previous_campaigns "default false"
+        text previous_campaign_description "nullable"
         string industry "nullable"
-        string location "nullable"
-        text description "nullable"
         string image "nullable"
         string website "nullable"
-        string phoneNumber "nullable"
-        array platformsUsed "nullable"
-        string primaryMarketingGoal "nullable"
+        array platforms "nullable"
         jsonb targetAudience "nullable"
         int completionPercentage "default 0"
         boolean isOnboarded "default false"
@@ -182,14 +188,11 @@ erDiagram
         int userId FK
         string campaignName
         enum lifecycleStage "draft ai_generated saved completed cancelled"
-        text UserDescription
-        enum goalType "awareness consideration conversion lead_generation retention"
-        float totalBudget
-        string currency
-        enum budgetFlexibility "strict flexible"
+        enum campaign_goal "Awareness Leads Sales Retention Re-engagement"
+        float budget_amount
+        string budget_currency
+        int campaign_duration_weeks "nullable"
         boolean isPublished "default false"
-        date startDate
-        date endDate
         timestamp createdAt
         timestamp updatedAt
     }
@@ -329,13 +332,24 @@ erDiagram
     Notification {
         int id PK
         int userId FK
-        enum type "..more"
+        enum type "CAMPAIGN_INVITATION CAMPAIGN_PUBLISHED CAMPAIGN_APPROVED CAMPAIGN_REJECTED AI_CAMPAIGN_READY CONTRACT_CREATED CONTRACT_SENT CONTRACT_SIGNED OFFER_MADE OFFER_ACCEPTED OFFER_REJECTED PROPOSAL_SUBMITTED PROPOSAL_ACCEPTED PROPOSAL_REJECTED TASK_ASSIGNED TASK_STARTED TASK_SUBMITTED TASK_APPROVED TASK_REJECTED TASK_FINAL_REJECTED FILE_UPLOADED MESSAGE_RECEIVED"
         text message
         string entityType "nullable"
         int entityId "nullable"
         jsonb metadata "nullable"
         boolean isRead "default false"
         timestamp readAt "nullable"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    Review {
+        int id PK
+        int ownerId FK
+        int influencerId FK
+        int collaborationId FK "nullable"
+        int rating "1..5"
+        text reviewText "nullable"
         timestamp createdAt
         timestamp updatedAt
     }

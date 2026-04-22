@@ -50,6 +50,14 @@ const Campaign = sequelize.define('Campaign', {
       min: 1
     }
   },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  endDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
   isPublished: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

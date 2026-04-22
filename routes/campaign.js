@@ -12,6 +12,7 @@ const {
   getCampaigns,
   getCampaignById,
   getCampaignsOverview,
+  getCampaignAnalytics,
   getActiveCampaigns,
   deleteCampaign
 } = require('../controllers/compaginController');
@@ -27,6 +28,10 @@ router.get('/active', authenticate, authorize('OWNER'), getActiveCampaigns);
 // @route   GET /api/campaigns/overview
 // @desc    Get campaigns overview (totals and recent campaigns)
 router.get('/overview', authenticate, authorize('OWNER'), getCampaignsOverview);
+
+// @route   GET /api/campaigns/analytics
+// @desc    Get owner campaigns analytics insights
+router.get('/analytics', authenticate, authorize('OWNER'), getCampaignAnalytics);
 
 // @route   GET /api/campaigns/:id
 // @desc    Get single campaign with all relations

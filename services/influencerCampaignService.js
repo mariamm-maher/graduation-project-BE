@@ -5,7 +5,8 @@ const {
   CollaborationRequest,
   ContentCalendar,
   User,
-  OwnerProfile
+  OwnerProfile,
+  InfluencerProfile
 } = require('../models');
 const AppError = require('../utils/AppError');
 
@@ -19,26 +20,26 @@ const getCampaignPlatforms = (contentCalendar = []) => {
 };
 
 const toCampaignDTO = (campaign, { applied = false } = {}) => {
-  const brandName = campaign.user?.ownerProfile?.businessName
+  const brandName = campaign.user?.ownerProfile?.brand_name
     || `${campaign.user?.firstName || ''} ${campaign.user?.lastName || ''}`.trim()
     || 'Brand';
 
   return {
     id: String(campaign.id),
     name: campaign.campaignName,
-    description: campaign.UserDescription,
+    description: campaign.campaign_goal ? `Goal: ${campaign.campaign_goal}` : null,
     brand: {
       id: String(campaign.user?.id || ''),
       name: brandName
     },
     budget: {
-      total: parseNumber(campaign.totalBudget),
-      currency: campaign.currency || 'USD'
+      total: parseNumber(campaign.budget_amount),
+      currency: campaign.budget_currency || 'USD'
     },
+    campaignGoal: campaign.campaign_goal,
+    durationWeeks: campaign.campaign_duration_weeks,
     lifecycleStage: campaign.lifecycleStage,
     isPublished: campaign.isPublished,
-    startDate: campaign.startDate,
-    endDate: campaign.endDate,
     platforms: getCampaignPlatforms(campaign.contentCalendar || []),
     applied
   };
@@ -102,10 +103,12 @@ exports.exploreCampaigns = async ({ influencerId, query }) => {
 
   const where = {
     isPublished: true,
-    endDate: { [Op.gte]: new Date() },
-    lifecycleStage: { [Op.notIn]: ['draft', 'cancelled', 'completed'] },
-    totalBudget: { [Op.gte]: minPayment }
+    lifecycleStage: { [Op.notIn]: ['draft', 'cancelled', 'completed'] }
   };
+
+  if (minPayment > 0) {
+    where.budget_amount = { [Op.gte]: minPayment };
+  }
 
   if (existingCampaignIds.size > 0) {
     where.id = { [Op.notIn]: Array.from(existingCampaignIds) };
@@ -129,7 +132,7 @@ exports.exploreCampaigns = async ({ influencerId, query }) => {
         include: [{
           model: OwnerProfile,
           as: 'ownerProfile',
-          attributes: ['businessName'],
+          attributes: ['brand_name'],
           required: false
         }]
       },
@@ -171,7 +174,7 @@ exports.getCampaignById = async ({ influencerId, campaignId }) => {
         include: [{
           model: OwnerProfile,
           as: 'ownerProfile',
-          attributes: ['businessName'],
+          attributes: ['brand_name'],
           required: false
         }]
       },
@@ -232,7 +235,6 @@ exports.applyToCampaign = async ({ influencerId, campaignId, payload }) => {
     where: {
       id: campaignId,
       isPublished: true,
-      endDate: { [Op.gte]: new Date() },
       lifecycleStage: { [Op.notIn]: ['draft', 'cancelled', 'completed'] }
     },
     attributes: ['id', 'userId', 'campaignName']
@@ -293,13 +295,13 @@ exports.applyToCampaign = async ({ influencerId, campaignId, payload }) => {
   };
 };
 
-exports.getOverviewStats = async ({ influencerId }) => {
+exports.getOverviewStats = async ({ ownerId }) => {
   const today = new Date();
 
   const [activeCollaboratorNow, totalInfluencersInSystem, pastCollaboratingNumber] = await Promise.all([
     Collaboration.count({
       where: {
-        influencerId,
+        ownerId,
         status: { [Op.in]: ['live', 'in_progress'] },
         [Op.and]: [
           {
@@ -320,7 +322,7 @@ exports.getOverviewStats = async ({ influencerId }) => {
     InfluencerProfile.count(),
     Collaboration.count({
       where: {
-        influencerId,
+        ownerId,
         [Op.or]: [
           { status: { [Op.in]: ['completed', 'cancelled'] } },
           { endDate: { [Op.lt]: today } }
