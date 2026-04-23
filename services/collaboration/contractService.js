@@ -11,7 +11,6 @@ const AppError = require('../../utils/AppError');
 const notificationService = require('../notificationService');
 
 const CONTRACT_STATUSES = {
-  DRAFT:  'draft',
   SENT:   'sent',
   SIGNED: 'signed',
 };

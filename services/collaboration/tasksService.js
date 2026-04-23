@@ -8,7 +8,7 @@ const TASK_STATUSES = {
   TODO:        'todo',
   IN_PROGRESS: 'in_progress',
   IN_REVIEW:   'in_review',
-  APPROVED:    'Approved',
+  APPROVED:    'approved',
   REJECTED:    'rejected',
 };
 
@@ -272,7 +272,7 @@ const UI_TO_DB_STATUS = {
   todo:        'todo',
   in_progress: 'in_progress',
   review:      'in_review',
-  completed:   'Approved',
+  completed:   'approved',
 };
 
 async function moveTask({ taskId, userId, uiStatus }) {
@@ -286,7 +286,7 @@ async function moveTask({ taskId, userId, uiStatus }) {
   }
 
   task.status      = dbStatus;
-  task.completedAt = dbStatus === 'Approved' ? new Date() : null;
+  task.completedAt = dbStatus === 'approved' ? new Date() : null;
   await task.save();
 
   return task;
