@@ -149,11 +149,15 @@ exports.getAllInfluencers = async (req, res, next) => {
  */
 exports.getInfluencerById = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const userId = Number(req.params.id);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return next(new AppError('Invalid user id', 400));
+    }
     
-    // Return the influencer profile with related user data and associations
+    // Query by userId (not influencer profile id) and return related associations.
     const influencer = await InfluencerProfile.findOne({
-      where: { id },
+      where: { userId },
       include: [{
         model: User,
         as: 'user',
@@ -171,7 +175,7 @@ exports.getInfluencerById = async (req, res, next) => {
     });
     
     if (!influencer) {
-      return next(new AppError('Influencer profile not found', 404));
+      return next(new AppError('Influencer profile not found for this user id', 404));
     }
     
     // Calculate rating metrics
