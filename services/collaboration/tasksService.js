@@ -47,7 +47,7 @@ async function getTaskWithAuth(taskId, userId) {
 // FIX: added userId + owner-only guard
 
 async function updateTask({ taskId, userId, updates }) {
-  const { task, isOwner } = await getTaskWithAuth(taskId, userId);
+  const { task, collaboration, isOwner } = await getTaskWithAuth(taskId, userId);
 
   if (!isOwner) {
     throw new AppError('Only the owner can edit task details', 403);
@@ -80,7 +80,7 @@ async function updateTask({ taskId, userId, updates }) {
 // FIX: added influencer-only guard + status validation
 
 async function startTask({ taskId, userId }) {
-  const { task, isInfluencer } = await getTaskWithAuth(taskId, userId);
+  const { task, collaboration, isInfluencer } = await getTaskWithAuth(taskId, userId);
 
   if (!isInfluencer) {
     throw new AppError('Only the influencer can start a task', 403);
@@ -112,7 +112,7 @@ async function startTask({ taskId, userId }) {
 // FIX: added influencer-only guard + saves submission data
 
 async function submitTaskForReview({ taskId, userId, submissionUrl, submissionNote }) {
-  const { task, isInfluencer } = await getTaskWithAuth(taskId, userId);
+  const { task, collaboration, isInfluencer } = await getTaskWithAuth(taskId, userId);
 
   if (!isInfluencer) {
     throw new AppError('Only the influencer can submit a task', 403);
@@ -150,7 +150,7 @@ async function submitTaskForReview({ taskId, userId, submissionUrl, submissionNo
 // FIX: added owner-only guard
 
 async function approveTask({ taskId, userId }) {
-  const { task, isOwner } = await getTaskWithAuth(taskId, userId);
+  const { task, collaboration, isOwner } = await getTaskWithAuth(taskId, userId);
 
   if (!isOwner) {
     throw new AppError('Only the owner can approve a task', 403);
@@ -183,7 +183,7 @@ async function approveTask({ taskId, userId }) {
 // FIX: added owner-only guard + review note + sends back to todo (not terminal)
 
 async function rejectTask({ taskId, userId, reviewNote }) {
-  const { task, isOwner } = await getTaskWithAuth(taskId, userId);
+  const { task, collaboration, isOwner } = await getTaskWithAuth(taskId, userId);
 
   if (!isOwner) {
     throw new AppError('Only the owner can reject a task', 403);
@@ -218,7 +218,7 @@ async function rejectTask({ taskId, userId, reviewNote }) {
 // Hard rejection — owner decides task will not be redone
 
 async function terminalRejectTask({ taskId, userId, reviewNote }) {
-  const { task, isOwner } = await getTaskWithAuth(taskId, userId);
+  const { task, collaboration, isOwner } = await getTaskWithAuth(taskId, userId);
 
   if (!isOwner) {
     throw new AppError('Only the owner can reject a task', 403);
@@ -264,6 +264,70 @@ async function getTasksByCollaboration({ collaborationId, userId }) {
   });
 }
 
+// ─── moveTask ───────────────────────────────────────────────────────────────
+// Owner-only drag-and-drop: freely change task status on the board.
+// Blocks moving INTO in_review / Approved (those go through submit/approve).
+
+const UI_TO_DB_STATUS = {
+  todo:        'todo',
+  in_progress: 'in_progress',
+  review:      'in_review',
+  completed:   'Approved',
+};
+
+async function moveTask({ taskId, userId, uiStatus }) {
+  const dbStatus = UI_TO_DB_STATUS[uiStatus];
+  if (!dbStatus) throw new AppError(`Invalid status '${uiStatus}'`, 400);
+
+  const { task, isOwner } = await getTaskWithAuth(taskId, userId);
+
+  if (!isOwner) {
+    throw new AppError('Only the owner can move tasks on the board', 403);
+  }
+
+  task.status      = dbStatus;
+  task.completedAt = dbStatus === 'Approved' ? new Date() : null;
+  await task.save();
+
+  return task;
+}
+
+// ─── createTask ──────────────────────────────────────────────────────────────
+// Owner-only — create a new task under a collaboration
+
+async function createTask({ collaborationId, userId, taskName, description, dueDate, platform, contentType, sortOrder }) {
+  const collaboration = await Collaboration.findByPk(collaborationId);
+  if (!collaboration) throw new AppError('Collaboration not found', 404);
+
+  if (collaboration.ownerId !== userId) {
+    throw new AppError('Only the owner can create tasks', 403);
+  }
+
+  const task = await CollaborationTask.create({
+    collaborationId,
+    taskName,
+    description:  description  || null,
+    dueDate:      dueDate      || null,
+    platform:     platform     || null,
+    contentType:  contentType  || null,
+    sortOrder:    sortOrder    ?? 0,
+    status:       TASK_STATUSES.TODO,
+  });
+
+  try {
+    await notificationService.notifyTaskAssigned(
+      collaboration.influencerId,
+      task.id,
+      task.taskName,
+      collaboration.id
+    );
+  } catch (err) {
+    console.error('Failed to send TASK_ASSIGNED notification:', err);
+  }
+
+  return task;
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -276,4 +340,6 @@ module.exports = {
   rejectTask,
   terminalRejectTask,
   getTasksByCollaboration,
+  createTask,
+  moveTask,
 };

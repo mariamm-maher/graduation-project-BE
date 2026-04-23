@@ -173,9 +173,17 @@ class ChatService {
                 name: `${p.user.firstName} ${p.user.lastName}`,
                 email: p.user.email
               })),
-            lastMessage,
+            lastMessage: lastMessage ? {
+              id: lastMessage.id,
+              content: lastMessage.content,
+              sentAt: lastMessage.sentAt,
+              senderId: lastMessage.senderId,
+              senderName: lastMessage.sender
+                ? `${lastMessage.sender.firstName} ${lastMessage.sender.lastName}`
+                : null
+            } : null,
             unreadCount,
-            updatedAt: room.createdAt || null
+            updatedAt: lastMessage?.sentAt || room.createdAt || null
           };
         })
       );

@@ -374,6 +374,31 @@ module.exports = (io, socket) => {
     }
   });
 
+  // Join room by roomId directly (used when re-connecting or switching rooms)
+  socket.on('join_room', async (data) => {
+    try {
+      const { chatRoomId } = data;
+      const userId = socket.userId;
+
+      const participant = await ChatParticipant.findOne({
+        where: { chatRoomId, userId }
+      });
+
+      if (!participant) {
+        return socket.emit('error', {
+          event: 'join_room',
+          message: 'Unauthorized: You are not a participant of this chat'
+        });
+      }
+
+      socket.join(`chat:${chatRoomId}`);
+      console.log(`User ${userId} joined room ${chatRoomId} via join_room`);
+    } catch (error) {
+      console.error('Error joining room:', error);
+      socket.emit('error', { event: 'join_room', message: 'Failed to join room' });
+    }
+  });
+
   // Leave room
   socket.on('leave_room', async (data) => {
     try {

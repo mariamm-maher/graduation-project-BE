@@ -2,6 +2,27 @@
 const taskService = require('../services/collaboration/tasksService');
 const sendSuccess = require('../utils/sendSuccess');
 
+// POST /api/collaboration-tasks/collaboration/:collaborationId
+// Role: Owner — create a new task
+exports.createTask = async (req, res, next) => {
+  try {
+    const { taskName, description, dueDate, platform, contentType, sortOrder } = req.body;
+    const task = await taskService.createTask({
+      collaborationId: req.params.collaborationId,
+      userId:          req.user.id,
+      taskName,
+      description,
+      dueDate,
+      platform,
+      contentType,
+      sortOrder,
+    });
+    sendSuccess(res, 201, 'Task created', { task });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // GET /api/collaborations/:collaborationId/tasks
 // Role: Owner or Influencer — list all tasks on the board
 exports.getTasksByCollaboration = async (req, res, next) => {
@@ -117,6 +138,21 @@ exports.terminalRejectTask = async (req, res, next) => {
       reviewNote,
     });
     sendSuccess(res, 200, 'Task permanently rejected', { task });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PATCH /api/collaboration-tasks/:id/move
+// Role: Owner — drag-and-drop status change
+exports.moveTask = async (req, res, next) => {
+  try {
+    const task = await taskService.moveTask({
+      taskId:   req.params.id,
+      userId:   req.user.id,
+      uiStatus: req.body.status,
+    });
+    sendSuccess(res, 200, 'Task moved', { task });
   } catch (err) {
     next(err);
   }
