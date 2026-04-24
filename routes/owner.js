@@ -14,6 +14,20 @@ router.use('/', ownerOverviewRoutes);
 router.get('/influencers', authenticate, authorize('OWNER'), ownerController.getAllInfluencers);
 
 /**
+ * @route   GET /api/owner/influencers/active
+ * @desc    Get active influencers (collaborations in progress or live)
+ * @access  Private (Owner only)
+ */
+router.get('/influencers/active', authenticate, authorize('OWNER'), ownerController.getActiveInfluencers);
+
+/**
+ * @route   GET /api/owner/influencers/past
+ * @desc    Get past influencers (collaborations completed)
+ * @access  Private (Owner only)
+ */
+router.get('/influencers/past', authenticate, authorize('OWNER'), ownerController.getPastInfluencers);
+
+/**
  * @route   GET /api/owner/influencers/:id
  * @desc    Get single influencer profile by ID
  * @access  Private (Owner only)

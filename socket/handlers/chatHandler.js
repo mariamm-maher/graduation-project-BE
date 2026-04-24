@@ -1,84 +1,33 @@
 const { ChatRoom, ChatParticipant, Message, User, Collaboration } = require('../../models');
 const { Op } = require('sequelize');
+const chatService = require('../../services/chatService');
 
 module.exports = (io, socket) => {
+  // In-memory set of chat room IDs this socket has joined — avoids DB lookups on every typing event
+  if (!socket.joinedChatRooms) {
+    socket.joinedChatRooms = new Set();
+  }
+
   // Join collaboration chat
   socket.on('join_collaboration_chat', async (data) => {
     try {
       const { collaborationId } = data;
       const userId = socket.userId;
 
-      // Verify user is part of the collaboration
-      const collaboration = await Collaboration.findByPk(collaborationId);
-
-      if (!collaboration) {
+      // Delegate to chatService — handles auth check, find-or-create with proper locking
+      let chatRoom;
+      try {
+        chatRoom = await chatService.getOrCreateCollaborationChat(collaborationId, userId);
+      } catch (serviceErr) {
         return socket.emit('error', {
           event: 'join_collaboration_chat',
-          message: 'Collaboration not found'
+          message: serviceErr.message || 'Failed to join chat room'
         });
       }
 
-      // Check authorization
-      const isOwner = collaboration.ownerId === userId;
-      const isInfluencer = collaboration.influencerId === userId;
-
-      if (!isOwner && !isInfluencer) {
-        return socket.emit('error', {
-          event: 'join_collaboration_chat',
-          message: 'Unauthorized: You are not part of this collaboration'
-        });
-      }
-
-      // Find or create chat room for this collaboration
-      let chatRoom = await ChatRoom.findOne({
-        where: { collaborationId },
-        include: [
-          {
-            model: ChatParticipant,
-            as: 'participants',
-            include: [{ model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email'] }]
-          }
-        ]
-      });
-
-      if (!chatRoom) {
-        // Create new chat room
-        chatRoom = await ChatRoom.create({
-          type: 'one_to_one',
-          collaborationId,
-          name: `Collaboration #${collaborationId}`
-        });
-
-        // Add both participants
-        await ChatParticipant.bulkCreate([
-          {
-            chatRoomId: chatRoom.id,
-            userId: collaboration.ownerId,
-            role: 'owner',
-            joinedAt: new Date()
-          },
-          {
-            chatRoomId: chatRoom.id,
-            userId: collaboration.influencerId,
-            role: 'influencer',
-            joinedAt: new Date()
-          }
-        ]);
-
-        // Reload with participants
-        chatRoom = await ChatRoom.findByPk(chatRoom.id, {
-          include: [
-            {
-              model: ChatParticipant,
-              as: 'participants',
-              include: [{ model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email'] }]
-            }
-          ]
-        });
-      }
-
-      // Join socket room
+      // Join socket room and cache membership for fast typing checks
       socket.join(`chat:${chatRoom.id}`);
+      socket.joinedChatRooms.add(String(chatRoom.id));
 
       // Get recent messages (last 50)
       const messages = await Message.findAll({
@@ -223,18 +172,19 @@ module.exports = (io, socket) => {
         }
       });
 
+      const notificationService = require('../../services/notificationService');
+      const senderName = `${fullMessage.sender.firstName} ${fullMessage.sender.lastName}`;
       for (const otherParticipant of otherParticipants) {
-        // Create chat notification
-        const notificationService = require('../../services/notificationService');
-        await notificationService.createNotification({
-          userId: otherParticipant.userId,
-          category: 'chat',
-          type: 'new_message',
-          title: `New message from ${fullMessage.sender.firstName}`,
-          message: normalizedContent.substring(0, 100),
-          relatedId: chatRoomId,
-          actionUrl: `/chat/rooms/${chatRoomId}`
-        });
+        try {
+          await notificationService.notifyMessageReceived(
+            otherParticipant.userId,
+            fullMessage.id,
+            chatRoomId,
+            senderName
+          );
+        } catch (notifyErr) {
+          console.error('Failed to send MESSAGE_RECEIVED notification:', notifyErr);
+        }
       }
 
       console.log(`Message sent in room ${chatRoomId} by user ${userId}`);
@@ -248,55 +198,23 @@ module.exports = (io, socket) => {
   });
 
   // Typing indicator
-  socket.on('typing', async (data) => {
-    try {
-      const { chatRoomId } = data;
-      const userId = socket.userId;
-
-      // Verify participant
-      const participant = await ChatParticipant.findOne({
-        where: { chatRoomId, userId }
-      });
-
-      if (!participant) return;
-
-      // Emit to other users in the room
-      socket.to(`chat:${chatRoomId}`).emit('user_typing', {
-        chatRoomId,
-        user: {
-          id: socket.user.id,
-          name: socket.user.name
-        }
-      });
-    } catch (error) {
-      console.error('Error handling typing event:', error);
-    }
+  socket.on('typing', (data) => {
+    const { chatRoomId } = data || {};
+    if (!chatRoomId || !socket.joinedChatRooms.has(String(chatRoomId))) return;
+    socket.to(`chat:${chatRoomId}`).emit('user_typing', {
+      chatRoomId,
+      user: { id: socket.user.id, name: socket.user.name }
+    });
   });
 
   // Stop typing indicator
-  socket.on('stop_typing', async (data) => {
-    try {
-      const { chatRoomId } = data;
-      const userId = socket.userId;
-
-      // Verify participant
-      const participant = await ChatParticipant.findOne({
-        where: { chatRoomId, userId }
-      });
-
-      if (!participant) return;
-
-      // Emit to other users in the room
-      socket.to(`chat:${chatRoomId}`).emit('user_stopped_typing', {
-        chatRoomId,
-        user: {
-          id: socket.user.id,
-          name: socket.user.name
-        }
-      });
-    } catch (error) {
-      console.error('Error handling stop_typing event:', error);
-    }
+  socket.on('stop_typing', (data) => {
+    const { chatRoomId } = data || {};
+    if (!chatRoomId || !socket.joinedChatRooms.has(String(chatRoomId))) return;
+    socket.to(`chat:${chatRoomId}`).emit('user_stopped_typing', {
+      chatRoomId,
+      user: { id: socket.user.id, name: socket.user.name }
+    });
   });
 
   // Mark messages as read
@@ -360,14 +278,47 @@ module.exports = (io, socket) => {
     }
   });
 
-  // Leave room
-  socket.on('leave_room', async (data) => {
+  // Join room by roomId directly (used when re-connecting or switching rooms)
+  socket.on('join_room', async (data) => {
     try {
       const { chatRoomId } = data;
-      socket.leave(`chat:${chatRoomId}`);
-      console.log(`User ${socket.userId} left room ${chatRoomId}`);
+      const userId = socket.userId;
+
+      if (!chatRoomId) {
+        return socket.emit('error', { event: 'join_room', message: 'chatRoomId is required' });
+      }
+
+      const room = await ChatRoom.findByPk(chatRoomId);
+      if (!room) {
+        return socket.emit('error', { event: 'join_room', message: 'Chat room not found' });
+      }
+
+      const participant = await ChatParticipant.findOne({
+        where: { chatRoomId, userId }
+      });
+
+      if (!participant) {
+        return socket.emit('error', {
+          event: 'join_room',
+          message: 'Unauthorized: You are not a participant of this chat'
+        });
+      }
+
+      socket.join(`chat:${chatRoomId}`);
+      socket.joinedChatRooms.add(String(chatRoomId));
+      console.log(`User ${userId} joined room ${chatRoomId} via join_room`);
     } catch (error) {
-      console.error('Error leaving room:', error);
+      console.error('Error joining room:', error);
+      socket.emit('error', { event: 'join_room', message: 'Failed to join room' });
     }
+  });
+
+  // Leave room
+  socket.on('leave_room', (data) => {
+    const { chatRoomId } = data || {};
+    if (!chatRoomId) return;
+    socket.leave(`chat:${chatRoomId}`);
+    socket.joinedChatRooms.delete(String(chatRoomId));
+    console.log(`User ${socket.userId} left room ${chatRoomId}`);
   });
 };

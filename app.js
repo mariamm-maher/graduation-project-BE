@@ -38,6 +38,7 @@ app.use('/api/collaboration-tasks', require('./routes/collaborationTask'));
 
 app.use('/api/owner', require('./routes/owner'));
 app.use('/api/profile', require('./routes/profile'));
+app.use('/api/settings', require('./routes/settings'));
 // app.use('/api/social-media', require('./routes/socialMedia'));
 
 app.use('/api/admin', require('./routes/admin'));

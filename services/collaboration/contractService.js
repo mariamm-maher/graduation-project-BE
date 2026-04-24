@@ -5,12 +5,12 @@ const {
   CollaborationContract,
   ChatRoom,
   ChatParticipant,
+  User,
 } = require('../../models');
 const AppError = require('../../utils/AppError');
 const notificationService = require('../notificationService');
 
 const CONTRACT_STATUSES = {
-  DRAFT:  'draft',
   SENT:   'sent',
   SIGNED: 'signed',
 };
@@ -39,10 +39,18 @@ async function finalizeSignedContract({ contract, collaboration, transaction }) 
   });
 
   if (!chatRoom) {
+    const [owner, influencer] = await Promise.all([
+      User.findByPk(collaboration.ownerId, { attributes: ['firstName', 'lastName'], transaction }),
+      User.findByPk(collaboration.influencerId, { attributes: ['firstName', 'lastName'], transaction }),
+    ]);
+
+    const ownerName = `${owner?.firstName || 'Owner'} ${owner?.lastName || ''}`.trim();
+    const influencerName = `${influencer?.firstName || 'Influencer'} ${influencer?.lastName || ''}`.trim();
+
     chatRoom = await ChatRoom.create({
       collaborationId: collaboration.id,
       type: 'one_to_one',
-      name: `Collaboration #${collaboration.id}`,
+      name: `${ownerName} collab with ${influencerName}`,
     }, { transaction });
 
     await ChatParticipant.bulkCreate([

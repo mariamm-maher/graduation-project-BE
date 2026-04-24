@@ -43,10 +43,24 @@ class ChatService {
 
       // Create if doesn't exist
       if (!chatRoom) {
+        const users = await User.findAll({
+          where: {
+            id: {
+              [Op.in]: [collaboration.ownerId, collaboration.influencerId]
+            }
+          },
+          attributes: ['id', 'firstName', 'lastName']
+        });
+
+        const owner = users.find((u) => u.id === collaboration.ownerId);
+        const influencer = users.find((u) => u.id === collaboration.influencerId);
+        const ownerName = `${owner?.firstName || 'Owner'} ${owner?.lastName || ''}`.trim();
+        const influencerName = `${influencer?.firstName || 'Influencer'} ${influencer?.lastName || ''}`.trim();
+
         chatRoom = await ChatRoom.create({
           type: 'one_to_one',
           collaborationId,
-          name: `Collaboration #${collaborationId}`
+          name: `${ownerName} collab with ${influencerName}`
         });
 
         // Add participants
@@ -159,9 +173,17 @@ class ChatService {
                 name: `${p.user.firstName} ${p.user.lastName}`,
                 email: p.user.email
               })),
-            lastMessage,
+            lastMessage: lastMessage ? {
+              id: lastMessage.id,
+              content: lastMessage.content,
+              sentAt: lastMessage.sentAt,
+              senderId: lastMessage.senderId,
+              senderName: lastMessage.sender
+                ? `${lastMessage.sender.firstName} ${lastMessage.sender.lastName}`
+                : null
+            } : null,
             unreadCount,
-            updatedAt: room.createdAt || null
+            updatedAt: lastMessage?.sentAt || room.createdAt || null
           };
         })
       );

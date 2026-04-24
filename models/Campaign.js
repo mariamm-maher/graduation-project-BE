@@ -28,38 +28,41 @@ const Campaign = sequelize.define('Campaign', {
     defaultValue: 'ai_generated',
     allowNull: false
   },
-  UserDescription: {
-    type: DataTypes.TEXT,
-    allowNull: false
+
+  campaign_goal: {
+    type: DataTypes.ENUM('Awareness', 'Leads', 'Sales', 'Retention', 'Re-engagement'),
+    allowNull: true
   },
-  goalType: {
-    type: DataTypes.ENUM('awareness', 'consideration', 'conversion', 'lead_generation', 'retention'),
-    allowNull: false
-  },
-  totalBudget: {
+ 
+  budget_amount: {
     type: DataTypes.FLOAT,
-    allowNull: false
+    allowNull: true
   },
-  currency: {
+
+  budget_currency: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   },
-  budgetFlexibility: {
-    type: DataTypes.ENUM('strict', 'flexible'),
+  campaign_duration_weeks: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: 1
+    }
+  },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  endDate: {
+    type: DataTypes.DATE,
     allowNull: true
   },
   isPublished: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
-  startDate: {
-    type: DataTypes.DATE,
-    allowNull: false
-  },
-  endDate: {
-    type: DataTypes.DATE,
-    allowNull: false
-  }
+ 
 }, {
   timestamps: true
 });

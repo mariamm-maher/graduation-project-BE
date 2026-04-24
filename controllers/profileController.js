@@ -7,10 +7,22 @@ const calculateAndUpdateCompletion = async (profile, modelName) => {
 
   if (modelName === 'OwnerProfile') {
     fieldsToCheck = [
-      'businessName', 'businessType', 'industry', 'location', 'description',
-      'image', 'website', 'phoneNumber', 'platformsUsed', 'primaryMarketingGoal',
-      'targetAudience'
+      'brand_name',
+      'product_or_service',
+      'industry',
+      'target_market',
+      'company_size',
+      'unique_selling_point',
+      'competitors',
+      'has_previous_campaigns',
+      'website',
+      'platforms',
+      'image'
     ];
+
+    if (profile?.has_previous_campaigns === true) {
+      fieldsToCheck.push('previous_campaign_description');
+    }
   } else if (modelName === 'InfluencerProfile') {
     fieldsToCheck = [
       'bio', 'image', 'location', 'socialMediaLinks', 'primaryPlatform',
@@ -59,8 +71,30 @@ exports.getOwnerProfile = async (req, res, next) => {
       attributes: ['id', 'firstName', 'lastName', 'email', 'status'],
       include: [{
         model: OwnerProfile,
-        as: 'ownerProfile',  
-        required: false      
+        as: 'ownerProfile',
+        required: false,
+        attributes: [
+          'id',
+          'userId',
+          'brand_name',
+          'product_or_service',
+          'industry',
+          'target_market',
+          'company_size',
+          'unique_selling_point',
+          'competitors',
+          'has_previous_campaigns',
+          'previous_campaign_description',
+          'website',
+          'platforms',
+          'image',
+          'targetAudience',
+          'completionPercentage',
+          'isOnboarded',
+          'isCompleted',
+          'createdAt',
+          'updatedAt'
+        ]
       }]
     });
 
@@ -297,10 +331,22 @@ exports.getOwnerProfileCompletion = async (req, res, next) => {
     }
 
     const fieldsToCheck = [
-      'businessName', 'businessType', 'industry', 'location', 'description',
-      'image', 'website', 'phoneNumber', 'platformsUsed', 'primaryMarketingGoal',
-      'targetAudience'
+      'brand_name',
+      'product_or_service',
+      'industry',
+      'target_market',
+      'company_size',
+      'unique_selling_point',
+      'competitors',
+      'has_previous_campaigns',
+      'website',
+      'platforms',
+      'image'
     ];
+
+    if (profile?.has_previous_campaigns === true) {
+      fieldsToCheck.push('previous_campaign_description');
+    }
 
     let totalFields = fieldsToCheck.length;
     let filledFields = 0;

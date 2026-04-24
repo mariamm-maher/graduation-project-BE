@@ -38,21 +38,26 @@ exports.calculateOwnerProfileCompletion = (profileInstance) => {
   const profile = getProfileData(profileInstance);
   if (!profile) return 0;
 
-  const fields = [
-    'businessName',
-    'businessType',
+  const baseFields = [
+    'brand_name',
+    'product_or_service',
     'industry',
-    'location',
-    'description',
-    'image',
+    'target_market',
+    'company_size',
+    'unique_selling_point',
+    'competitors',
     'website',
-    'phoneNumber',
-    'platformsUsed',
-    'primaryMarketingGoal',
-    'targetAudience'
+    'platforms',
+    'image',
+    'has_previous_campaigns'
   ];
 
-  const filledCount = fields.filter(field => isFieldFilled(profile[field])).length;
+  const fields = [...baseFields];
+  if (profile.has_previous_campaigns === true) {
+    fields.push('previous_campaign_description');
+  }
+
+  const filledCount = fields.filter((field) => isFieldFilled(profile[field])).length;
   return Math.round((filledCount / fields.length) * 100);
 };
 

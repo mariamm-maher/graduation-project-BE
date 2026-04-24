@@ -148,7 +148,7 @@ const ownerOverviewService = {
     const [ownerProfile, campaigns] = await Promise.all([
       OwnerProfile.findOne({
         where: { userId: ownerId },
-        attributes: ['businessName']
+        attributes: ['brand_name']
       }),
       Campaign.findAll({
         where: { userId: ownerId },
@@ -156,9 +156,10 @@ const ownerOverviewService = {
           'id',
           'campaignName',
           'lifecycleStage',
-          'totalBudget',
-          'startDate',
-          'endDate',
+          'campaign_goal',
+          'budget_amount',
+          'budget_currency',
+          'campaign_duration_weeks',
           'isPublished',
           'createdAt',
           'updatedAt'
@@ -344,7 +345,7 @@ const ownerOverviewService = {
         }]
       }),
       Message.findAll({
-        attributes: ['id', 'status', 'sentAt', 'chatRoomId'],
+        attributes: ['id', 'status', 'sentAt', 'chatRoomId', 'senderId', 'content'],
         include: [{
           model: ChatRoom,
           as: 'chatRoom',
@@ -358,7 +359,7 @@ const ownerOverviewService = {
               ownerId,
               campaignId: { [Op.in]: campaignIds }
             },
-            attributes: ['id', 'campaignId'],
+            attributes: ['id', 'campaignId', 'ownerId', 'influencerId'],
             include: [{
               model: User,
               as: 'influencer',
@@ -370,9 +371,13 @@ const ownerOverviewService = {
               }]
             }]
           }]
+        }, {
+          model: User,
+          as: 'sender',
+          attributes: ['id', 'firstName', 'lastName']
         }],
         order: [['sentAt', 'DESC']],
-        limit: 20
+        limit: 100
       })
     ]);
 
@@ -410,15 +415,24 @@ const ownerOverviewService = {
     }
 
     const now = new Date();
-    const brandName = ownerProfile?.businessName || 'Owner Brand';
+    const brandName = ownerProfile?.brand_name || 'Owner Brand';
+
+    const campaignWindow = (campaign) => {
+      const start = new Date(campaign.createdAt);
+      const durationWeeks = Number(campaign.campaign_duration_weeks || 1);
+      const end = new Date(start);
+      end.setDate(end.getDate() + Math.max(1, durationWeeks * 7));
+      return { start, end };
+    };
 
     const explicitActive = campaigns.filter((campaign) => campaign.lifecycleStage === 'active');
     const fallbackActive = campaigns.filter((campaign) => {
       const stage = campaign.lifecycleStage;
+      const window = campaignWindow(campaign);
       return ['saved', 'completed', 'active'].includes(stage)
         && campaign.isPublished
-        && new Date(campaign.startDate) <= now
-        && new Date(campaign.endDate) >= now;
+        && window.start <= now
+        && window.end >= now;
     });
 
     const activeCampaignPool = explicitActive.length ? explicitActive : fallbackActive;
@@ -462,6 +476,8 @@ const ownerOverviewService = {
           + campaignRequests.length * 5
           + (campaignKpis.engagement || 0);
 
+        const window = campaignWindow(campaign);
+
         return {
           id: String(campaign.id),
           name: campaign.campaignName,
@@ -469,9 +485,9 @@ const ownerOverviewService = {
           status: campaign.lifecycleStage,
           engagement: Math.round(derivedEngagement),
           reach: Math.round(campaignKpis.reach || derivedReach),
-          budget: parseNumeric(campaign.totalBudget),
-          progress: progressPercentage(campaign.startDate, campaign.endDate, now),
-          daysLeft: daysLeft(campaign.endDate, now),
+          budget: parseNumeric(campaign.budget_amount),
+          progress: progressPercentage(window.start, window.end, now),
+          daysLeft: daysLeft(window.end, now),
           influencersCount: influencerMap.size,
           leadInfluencer: lead ? fullName(lead) : 'N/A',
           _lastActivity: campaignLastActivity.get(campaign.id) || new Date(campaign.updatedAt).getTime()
@@ -540,60 +556,36 @@ const ownerOverviewService = {
       };
     });
 
-    const communications = [];
+    const communicationsFeed = latestMessages
+      .filter((message) => {
+        const collab = message.chatRoom?.collaboration;
+        if (!collab) return false;
 
-    for (const contract of allContracts) {
-      if (!(contract.ownerSigned && contract.influencerSigned)) continue;
-      const influencer = contract.collaboration?.influencer;
-      communications.push({
-        id: `contract-${contract.id}`,
-        influencer: buildInfluencerSummary(influencer),
-        action: 'contract_signed',
-        platform: influencer?.influencerProfile?.primaryPlatform || 'in_app',
-        status: 'signed',
-        occurredAt: contract.createdAt
-      });
-    }
+        const senderId = Number(message.senderId);
+        const ownerSender = senderId === Number(collab.ownerId);
+        const influencerSender = senderId === Number(collab.influencerId);
 
-    for (const request of allRequests) {
-      if (!['pending', 'negotiating'].includes(request.status)) continue;
-      communications.push({
-        id: `request-${request.id}`,
-        influencer: buildInfluencerSummary(request.influencer),
-        action: 'dm_required',
-        platform: request.influencer?.influencerProfile?.primaryPlatform || 'in_app',
-        status: request.status,
-        occurredAt: request.createdAt
-      });
-    }
+        // Keep only direct owner/influencer chat messages for this collaboration
+        return ownerSender || influencerSender;
+      })
+      .map((message) => {
+        const influencer = message.chatRoom?.collaboration?.influencer;
+        const senderName = fullName(message.sender);
 
-    for (const task of rangeTasks) {
-      const influencer = task.collaboration?.influencer;
-      communications.push({
-        id: `task-${task.id}`,
-        influencer: buildInfluencerSummary(influencer),
-        action: 'followup_scheduled',
-        platform: task.platform || influencer?.influencerProfile?.primaryPlatform || 'in_app',
-        status: task.status,
-        occurredAt: task.createdAt
-      });
-    }
-
-    for (const message of latestMessages) {
-      const influencer = message.chatRoom?.collaboration?.influencer;
-      communications.push({
-        id: `message-${message.id}`,
-        influencer: buildInfluencerSummary(influencer),
-        action: 'email_sent',
-        platform: influencer?.influencerProfile?.primaryPlatform || 'chat',
-        status: message.status,
-        occurredAt: message.sentAt
-      });
-    }
-
-    const communicationsFeed = communications
+        return {
+          id: `message-${message.id}`,
+          influencerId: String(influencer?.id || ''),
+          influencer: buildInfluencerSummary(influencer),
+          action: 'chat_message',
+          platform: 'chat',
+          status: message.status,
+          sender: senderName,
+          contentPreview: message.content ? String(message.content).slice(0, 120) : '',
+          occurredAt: message.sentAt
+        };
+      })
       .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt))
-      .slice(0, 20);
+      .slice(0, 5);
 
     const totalEngagement = performanceSeries.reduce((sum, item) => sum + item.engagement, 0);
     const totalReach = performanceSeries.reduce((sum, item) => sum + item.reach, 0);
@@ -605,7 +597,7 @@ const ownerOverviewService = {
 
     const campaignRois = campaigns
       .map((campaign) => {
-        const spend = parseNumeric(campaign.totalBudget);
+        const spend = parseNumeric(campaign.budget_amount);
         if (spend <= 0) return null;
         const roas = parseNumeric(kpiMap.get(campaign.id)?.roas);
         if (roas <= 0) return 0;

@@ -49,12 +49,6 @@ exports.selectRole = async (req, res, next) => {
       return next(new AppError('Invalid roleId', 400));
     }
 
-    //  BLOCK ADMIN ROLE (id = 3)
-    if (parsedRoleId === 3) {
-      return next(
-        new AppError('ADMIN role is reserved and cannot be assigned to other users', 403)
-      );
-    }
 
     const { User, Role, UserRole, OwnerProfile, InfluencerProfile } =
       require('../models');
@@ -697,7 +691,23 @@ exports.updateOwnerProfile = async (req, res, next) => {
     const { OwnerProfile } = require('../models');
     const userId = req.user.id;
 
-    const allowed = ['businessName','businessType','industry','location','description','image','website','phoneNumber','platformsUsed','primaryMarketingGoal','targetAudience','isOnboarded'];
+    const allowed = [
+      'brand_name',
+      'product_or_service',
+      'industry',
+      'target_market',
+      'targetAudience',
+      'company_size',
+      'unique_selling_point',
+      'competitors',
+      'has_previous_campaigns',
+      'previous_campaign_description',
+      'website',
+      'platforms',
+      'image',
+      'isOnboarded',
+      'isCompleted'
+    ];
 
     let profile = await OwnerProfile.findOne({ where: { userId } });
     if (!profile) {
@@ -708,11 +718,37 @@ exports.updateOwnerProfile = async (req, res, next) => {
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
         let val = req.body[key];
-        if ((key === 'platformsUsed' || key === 'targetAudience') && typeof val === 'string') {
+
+        if ((key === 'target_market' || key === 'platforms' || key === 'competitors' || key === 'targetAudience') && typeof val === 'string') {
           try { val = JSON.parse(val); } catch (e) { /* leave as-is */ }
         }
+
+        if (key === 'target_market') {
+          if (!Array.isArray(val) || val.some((item) => typeof item !== 'string')) {
+            return next(new AppError('target_market must be an array of strings', 400));
+          }
+        }
+
+        if (key === 'has_previous_campaigns' && typeof val === 'string') {
+          const normalized = val.trim().toLowerCase();
+          if (normalized === 'true') val = true;
+          else if (normalized === 'false') val = false;
+          else return next(new AppError('has_previous_campaigns must be true or false', 400));
+        }
+
+        if (key === 'company_size') {
+          const allowedCompanySizes = ['Solo', 'Small', 'Mid', 'Enterprise'];
+          if (!allowedCompanySizes.includes(val)) {
+            return next(new AppError('company_size must be one of: Solo, Small, Mid, Enterprise', 400));
+          }
+        }
+
         updates[key] = val;
       }
+    }
+
+    if (updates.has_previous_campaigns === true && !updates.previous_campaign_description) {
+      return next(new AppError('previous_campaign_description is required when has_previous_campaigns is true', 400));
     }
 
     await profile.update(updates);
@@ -1123,15 +1159,27 @@ exports.onboardOwner = async (req, res, next) => {
       return next(new AppError('Profile is already onboarded. Use the update endpoint to modify your profile.', 400));
     }
 
-    // Allowed onboarding fields (all fields from onboarding questions)
+    // Allowed onboarding fields based on latest owner profile schema
     const allowedFields = [
-      'businessName', 'businessType', 'industry', 'location', 'description',
-      'image', 'website', 'phoneNumber', 'platformsUsed', 'primaryMarketingGoal',
-      'targetAudience'
+      'brand_name',
+      'product_or_service',
+      'industry',
+      'target_market',
+      'targetAudience',
+      'company_size',
+      'unique_selling_point',
+      'competitors',
+      'has_previous_campaigns',
+      'previous_campaign_description',
+      'website',
+      'platforms',
+      'image',
+      'isOnboarded',
+      'isCompleted'
     ];
 
     // Required fields for onboarding
-    const requiredFields = ['businessName', 'businessType', 'industry', 'location'];
+    const requiredFields = ['brand_name', 'product_or_service'];
 
     // Validate required fields
     for (const field of requiredFields) {
@@ -1146,8 +1194,8 @@ exports.onboardOwner = async (req, res, next) => {
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
         let val = req.body[key];
         
-        // Parse JSON strings for complex types
-        const jsonFields = ['platformsUsed', 'targetAudience'];
+        // Parse JSON strings for array/object types
+        const jsonFields = ['target_market', 'competitors', 'platforms', 'targetAudience'];
         if (jsonFields.includes(key) && typeof val === 'string') {
           try { 
             val = JSON.parse(val); 
@@ -1155,9 +1203,33 @@ exports.onboardOwner = async (req, res, next) => {
             return next(new AppError(`Invalid JSON format for ${key}`, 400));
           }
         }
+
+        if (key === 'target_market') {
+          if (!Array.isArray(val) || val.some((item) => typeof item !== 'string')) {
+            return next(new AppError('target_market must be an array of strings', 400));
+          }
+        }
+
+        if (key === 'has_previous_campaigns' && typeof val === 'string') {
+          const normalized = val.trim().toLowerCase();
+          if (normalized === 'true') val = true;
+          else if (normalized === 'false') val = false;
+          else return next(new AppError('has_previous_campaigns must be true or false', 400));
+        }
+
+        if (key === 'company_size') {
+          const allowedCompanySizes = ['Solo', 'Small', 'Mid', 'Enterprise'];
+          if (!allowedCompanySizes.includes(val)) {
+            return next(new AppError('company_size must be one of: Solo, Small, Mid, Enterprise', 400));
+          }
+        }
         
         updates[key] = val;
       }
+    }
+
+    if (updates.has_previous_campaigns === true && !updates.previous_campaign_description) {
+      return next(new AppError('previous_campaign_description is required when has_previous_campaigns is true', 400));
     }
 
     // Set onboarding flag

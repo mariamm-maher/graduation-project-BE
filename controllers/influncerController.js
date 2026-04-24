@@ -44,7 +44,7 @@ exports.applyToCampaign = async (req, res, next) => {
 exports.getOverviewStats = async (req, res, next) => {
 	try {
 		const result = await influencerCampaignService.getOverviewStats({
-			influencerId: req.user.id
+			ownerId: req.user.id
 		});
 
 		return sendSuccess(res, 200, 'Influencer overview stats retrieved successfully', result);
