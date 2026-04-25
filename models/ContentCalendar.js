@@ -25,7 +25,7 @@ const ContentCalendar = sequelize.define('ContentCalendar', {
     allowNull: false
   },
   platform: {
-    type: DataTypes.STRING,
+    type: DataTypes.ENUM('instagram', 'facebook', 'twitter', 'linkedin', 'tiktok', 'youtube'),
     allowNull: false
   },
   contentType: {

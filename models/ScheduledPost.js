@@ -1,8 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const User = require('./User');
-const SocialMediaAccount = require('./SocialMediaAccount');
-const Campaign = require('./Campaign');
 
 const ScheduledPost = sequelize.define('ScheduledPost', {
   id: {
@@ -10,29 +7,20 @@ const ScheduledPost = sequelize.define('ScheduledPost', {
     primaryKey: true,
     autoIncrement: true
   },
-  userId: {
+  channelId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',
+      model: 'channel',
       key: 'id'
     },
     onDelete: 'CASCADE'
   },
-  socialMediaAccountId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'SocialMediaAccounts',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
-  },
-  campaignId: {
+  CollaborationTaskId: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Campaigns',
+      model: 'CollaborationTasks',
       key: 'id'
     },
     onDelete: 'SET NULL'
@@ -45,15 +33,6 @@ const ScheduledPost = sequelize.define('ScheduledPost', {
       key: 'id'
     },
     onDelete: 'SET NULL'
-  },
-  platform: {
-    type: DataTypes.ENUM('instagram', 'facebook', 'twitter', 'linkedin', 'tiktok', 'youtube'),
-    allowNull: false
-  },
-  contentType: {
-    type: DataTypes.ENUM('post', 'story', 'reel', 'video', 'carousel', 'article', 'tweet', 'poll'),
-    allowNull: false,
-    defaultValue: 'post'
   },
   content: {
     type: DataTypes.TEXT,
@@ -72,7 +51,7 @@ const ScheduledPost = sequelize.define('ScheduledPost', {
     comment: 'When the post should be published'
   },
   status: {
-    type: DataTypes.ENUM('draft', 'scheduled', 'publishing', 'published', 'failed'),
+    type: DataTypes.ENUM('draft', 'scheduled', 'published', 'failed'),
     allowNull: false,
     defaultValue: 'draft'
   },
@@ -108,25 +87,10 @@ const ScheduledPost = sequelize.define('ScheduledPost', {
   timestamps: true,
   indexes: [
     {
-      fields: ['userId', 'status']
-    },
-    {
       fields: ['scheduledAt', 'status']
     },
-    {
-      fields: ['platform', 'status']
-    }
   ]
 });
-
-User.hasMany(ScheduledPost, { foreignKey: 'userId', as: 'scheduledPosts' });
-ScheduledPost.belongsTo(User, { foreignKey: 'userId' });
-
-SocialMediaAccount.hasMany(ScheduledPost, { foreignKey: 'socialMediaAccountId', as: 'scheduledPosts' });
-ScheduledPost.belongsTo(SocialMediaAccount, { foreignKey: 'socialMediaAccountId' });
-
-Campaign.hasMany(ScheduledPost, { foreignKey: 'campaignId', as: 'scheduledPosts' });
-ScheduledPost.belongsTo(Campaign, { foreignKey: 'campaignId' });
 
 module.exports = ScheduledPost;
 
