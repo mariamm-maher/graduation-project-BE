@@ -2,14 +2,25 @@ const express = require('express');
 const metaAuthService = require('../services/channels/metaAuthService');
 const { authenticate: authMiddleware } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
+const { verifyAccessToken } = require('../utils/generateToken');
 
 const router = express.Router();
 
 // GET /auth/meta  — redirect user to Meta OAuth
 router.get('/meta', authMiddleware, async (req, res, next) => {
   try {
-    const url = await metaAuthService.getOAuthUrl(req.user.id);
+    const url = await metaAuthService.getOAuthUrl(req.user.id, req.accessToken);
     return res.redirect(url);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// GET /auth/meta-url  — return Meta OAuth URL as JSON (frontend redirects)
+router.get('/meta-url', authMiddleware, async (req, res, next) => {
+  try {
+    const url = await metaAuthService.getOAuthUrl(req.user.id, req.accessToken);
+    return res.status(200).json({ data: { url } });
   } catch (err) {
     return next(err);
   }
@@ -21,29 +32,32 @@ router.get('/meta', authMiddleware, async (req, res, next) => {
 router.get('/meta/callback', async (req, res, next) => {
   try {
     const { code, state } = req.query;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
     if (!code || !state) {
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard/channels?error=missing_params`);
+      return res.redirect(`${frontendUrl}/dashboard/channels?error=meta_failed`);
     }
 
-    const userId = Number(state);
-    if (!userId) {
-      return res.redirect(`${process.env.FRONTEND_URL}/dashboard/channels?error=invalid_state`);
+    const verify = verifyAccessToken(String(state));
+    if (!verify.valid || !verify.decoded?.id) {
+      return res.redirect(`${frontendUrl}/dashboard/channels?error=meta_failed`);
     }
 
+    const userId = verify.decoded.id;
     const result = await metaAuthService.handleCallback(code, userId);
 
     await notificationService.createNotification({
       userId,
-      type:       'CHANNEL_CONNECTED',
+      type: 'CAMPAIGN_PUBLISHED',
       message:    `${result.channelsAdded} Meta channel(s) connected successfully`,
       entityType: 'channel',
       metadata:   { platform: 'meta', channelsAdded: result.channelsAdded }
     });
 
-    return res.redirect(`${process.env.FRONTEND_URL}/dashboard/channels?connected=true`);
+    return res.redirect(`${frontendUrl}/dashboard/channels?success=true`);
   } catch (err) {
-    return res.redirect(`${process.env.FRONTEND_URL}/dashboard/channels?error=meta_auth_failed`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/dashboard/channels?error=meta_failed`);
   }
 });
 

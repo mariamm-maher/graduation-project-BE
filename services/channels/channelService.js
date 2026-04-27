@@ -78,8 +78,13 @@ class ChannelService {
 
   async deleteChannel(channelId, userId) {
     // Block deletion if pending posts exist on this channel
-    const pendingCount = await PostChannel.count({
-      where: { channelId, status: 'pending' }
+    const pendingCount = await ScheduledPost.count({
+      where: {
+        channelId,
+        status: {
+          [Op.in]: ['draft', 'scheduled']
+        }
+      }
     });
     if (pendingCount > 0) {
       const err = new Error('Channel has pending posts. Cancel them first.');

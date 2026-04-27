@@ -8,13 +8,30 @@ exports.authenticate = async (req, res, next) => {
   try {
     let accessToken;
 
-    // Get access token from header
+    // 1) Get access token from Authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       accessToken = req.headers.authorization.split(' ')[1];
-      // Remove any quotes or whitespace that might have been added
-      if (accessToken) {
-        accessToken = accessToken.trim().replace(/^["']|["']$/g, '');
-      }
+    }
+
+    // 2) Fallback to cookie (for browser redirects / OAuth initiations)
+    if (!accessToken) {
+      accessToken = req.cookies?.accessToken || req.cookies?.token;
+    }
+
+    // 3) Optional fallback to query token (useful for full-page redirect flows)
+    // Example: /auth/meta?accessToken=...
+    if (!accessToken && typeof req.query?.accessToken === 'string') {
+      accessToken = req.query.accessToken;
+    }
+
+    // 4) Optional fallback to common custom header used by some clients
+    if (!accessToken && typeof req.headers['x-access-token'] === 'string') {
+      accessToken = req.headers['x-access-token'];
+    }
+
+    // Normalize token value
+    if (accessToken) {
+      accessToken = accessToken.trim().replace(/^["']|["']$/g, '');
     }
 
     if (!accessToken) {

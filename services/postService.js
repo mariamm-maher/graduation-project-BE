@@ -13,39 +13,76 @@ function throwBadRequest(message) {
   throw { status: 400, message };
 }
 
+function normalizeChannelId(raw) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === 'number' || typeof raw === 'string') {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  if (typeof raw === 'object') {
+    const candidate = raw.id ?? raw.value ?? raw.channelId ?? raw.channel_id;
+    const parsed = Number(candidate);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
 async function createPost({
   userId,
   channelIds,
+  channelId,
+  channels,
   content,
+  caption,
+  text,
   mediaUrls,
+  media,
   scheduledAt,
+  scheduleAt,
+  scheduledDate: scheduledDateInput,
+  publishAt,
   contentType,
   options,
   campaignId,
   contentCalendarId,
   collaborationTaskId
 }) {
-  if (!content || !String(content).trim()) {
+  const normalizedContent = content || caption || text;
+  if (!normalizedContent || !String(normalizedContent).trim()) {
     throwBadRequest('Content must not be empty');
   }
 
-  if (!Array.isArray(channelIds) || channelIds.length === 0) {
-    throwBadRequest('channelIds must be a non-empty array');
+  const rawChannelIds = (
+    Array.isArray(channelIds) ? channelIds :
+    Array.isArray(channels) ? channels :
+    channelId !== undefined && channelId !== null ? [channelId] :
+    []
+  );
+
+  const normalizedChannelIds = [...new Set(
+    rawChannelIds
+      .map((id) => normalizeChannelId(id))
+      .filter((id) => id !== null)
+  )];
+
+  if (normalizedChannelIds.length === 0) {
+    throwBadRequest('channelIds must be a non-empty array of valid channel IDs');
   }
 
-  const scheduledDate = new Date(scheduledAt);
-  if (!scheduledAt || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+  const normalizedScheduledAt = scheduledAt || scheduleAt || scheduledDateInput || publishAt;
+  const scheduledDate = new Date(normalizedScheduledAt);
+  if (!normalizedScheduledAt || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
     throwBadRequest('scheduledAt must be in the future');
   }
 
   const owned = await Channel.findAll({
     where: {
-      id: channelIds,
+      id: normalizedChannelIds,
       userId
     }
   });
-  if (owned.length !== channelIds.length) {
-    throwBadRequest('One or more channels not found');
+  if (owned.length !== normalizedChannelIds.length) {
+    throwBadRequest('One or more channels not found for this user');
   }
 
   if (collaborationTaskId) {
@@ -69,11 +106,14 @@ async function createPost({
     const createdPost = await ScheduledPost.create(
       {
         userId,
-        content,
-        mediaUrls,
+        // Current model still requires channelId, so we keep primary channel here
+        // and maintain per-channel targets in PostChannel records.
+        channelId: normalizedChannelIds[0],
+        content: normalizedContent,
+        mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : (Array.isArray(media) ? media : []),
         scheduledAt: scheduledDate,
-        contentType,
-        options,
+        contentType: contentType || 'post',
+        options: options || {},
         status: 'scheduled',
         campaignId: campaignId || null,
         contentCalendarId: contentCalendarId || null,
@@ -82,11 +122,11 @@ async function createPost({
       { transaction: t }
     );
 
-    for (const channelId of channelIds) {
+    for (const currentChannelId of normalizedChannelIds) {
       await PostChannel.create(
         {
           scheduledPostId: createdPost.id,
-          channelId,
+          channelId: currentChannelId,
           status: 'pending'
         },
         { transaction: t }

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get('/api/analytics/posts/:postId', async (req, res) => {
+router.get('/posts/:postId', async (req, res) => {
   try {
     const data = await analyticsService.getPostAnalytics(req.params.postId, req.user.id);
     return res.json({ success: true, data });
@@ -15,7 +15,7 @@ router.get('/api/analytics/posts/:postId', async (req, res) => {
   }
 });
 
-router.get('/api/analytics/channels/:channelId', async (req, res) => {
+router.get('/channels/:channelId', async (req, res) => {
   try {
     const data = await analyticsService.getChannelAnalytics(req.params.channelId, req.user.id);
     return res.json({ success: true, data });
@@ -24,7 +24,7 @@ router.get('/api/analytics/channels/:channelId', async (req, res) => {
   }
 });
 
-router.get('/api/analytics/campaigns/:campaignId', async (req, res) => {
+router.get('/campaigns/:campaignId', async (req, res) => {
   try {
     const data = await analyticsService.getCampaignAnalytics(req.params.campaignId, req.user.id);
     return res.json({ success: true, data });
