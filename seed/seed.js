@@ -317,8 +317,8 @@ async function runAllSeeds() {
     await sequelize.authenticate();
     await seedInfluencers();
     await seedOwners();
-    await seedCampaigns();
-    await seedCollaborations();
+    // await seedCampaigns();
+    // await seedCollaborations();
     
     console.log('Done. Seeded all accounts and campaigns successfully.');
     process.exit(0);

@@ -6,11 +6,15 @@ const ownerAccounts = [
       unique_selling_point: 'Affordable smart home gadgets with seamless integration.',
       product_or_service: 'Smart Home Devices',
       company_size: 'Small',
-      target_market: ['US', 'Canada'],
-      competitors: ['Nest', 'Ring', 'Wyze'],
+      target_market: ['Egypt', 'Europe'],
+      competitors: [
+        { name: 'Nest', website: 'https://nest.com', notes: '' },
+        { name: 'Ring', website: 'https://ring.com', notes: '' },
+        { name: 'Wyze', website: 'https://wyze.com', notes: '' }
+      ],
       has_previous_campaigns: true,
       previous_campaign_description: 'Worked with 5 micro-influencers for our summer launch.',
-      industry: 'Technology',
+      industry: 'Technology & Apps',
       website: 'https://techhaven.example.com',
       platforms: ['Instagram', 'Facebook', 'YouTube'],
       targetAudience: { ageRange: '25-45', gender: 'all', location: 'North America' },

@@ -3,6 +3,9 @@ const requestService = require('../services/collaboration/collaborationRequestSe
 const notificationService = require('../services/notificationService');
 const Campaign = require('../models/Campaign');
 const sendSuccess    = require('../utils/sendSuccess');
+const AppError       = require('../utils/AppError');
+
+const INVALID_CAMPAIGN_STAGES = ['draft', 'cancelled'];
 
 // POST /api/collaboration-requests
 // Role: Owner — send a request to an influencer
@@ -10,6 +13,32 @@ exports.invite = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
     const { campaignId, influencerId, proposedBudget, message, expiresAt } = req.body;
+
+    // Validate campaign exists and is in an invitable lifecycle stage
+    let campaign = null;
+    if (campaignId) {
+      campaign = await Campaign.findByPk(campaignId, {
+        attributes: ['id', 'campaignName', 'lifecycleStage', 'userId'],
+      });
+
+      if (!campaign) {
+        return next(new AppError('Campaign not found.', 404));
+      }
+
+      if (campaign.userId !== ownerId) {
+        return next(new AppError('You do not own this campaign.', 403));
+      }
+
+      if (INVALID_CAMPAIGN_STAGES.includes(campaign.lifecycleStage)) {
+        return next(
+          new AppError(
+            `Cannot invite influencers to a campaign that is "${campaign.lifecycleStage}". ` +
+            `Only active campaigns (ai_generated, saved, completed) are allowed.`,
+            422
+          )
+        );
+      }
+    }
 
     const request = await requestService.invite({
       ownerId,
@@ -21,14 +50,12 @@ exports.invite = async (req, res, next) => {
     });
 
     try {
-      // Get campaign name for the notification
-      const campaign = await Campaign.findByPk(campaignId, { attributes: ['campaignName'] });
-      const campaignName = campaign ? campaign.campaignName : 'a campaign';
-      
+      const campaignName = campaign?.campaignName ?? 'a campaign';
+
       await notificationService.notifyCollaborationRequest(
-        influencerId, 
-        ownerId, 
-        request.id, 
+        influencerId,
+        ownerId,
+        request.id,
         campaignName
       );
     } catch (notifErr) {

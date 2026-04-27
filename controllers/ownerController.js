@@ -255,12 +255,12 @@ exports.getInfluencerById = async (req, res, next) => {
 exports.getActiveInfluencers = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
-    
-    // Instead of querying Users directly, we query Collaborations to get Campaign and Influencer context together
+    const { Op } = require('sequelize');
+
     const collaborations = await Collaboration.findAll({
       where: {
         ownerId,
-        status: { [require('sequelize').Op.in]: ['in_progress', 'live'] }
+        status: { [Op.in]: ['in_progress', 'live', 'pending_contract_sign'] }
       },
       include: [
         {
@@ -282,25 +282,27 @@ exports.getActiveInfluencers = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
-    const formattedResults = collaborations.map(collab => ({
-      collaborationId: collab.id,
-      status: collab.status,
-      startDate: collab.startDate,
-      endDate: collab.endDate,
-      influencer: {
-        id: collab.influencer.id,
-        firstName: collab.influencer.firstName,
-        lastName: collab.influencer.lastName,
-        email: collab.influencer.email,
-        profileImage: collab.influencer.influencerProfile?.image || null,
-        primaryPlatform: collab.influencer.influencerProfile?.primaryPlatform || null,
-        followersCount: collab.influencer.influencerProfile?.followersCount || null
-      },
-      campaign: {
-        id: collab.campaign.id,
-        title: collab.campaign.campaignName
-      }
-    }));
+    const formattedResults = collaborations
+      .filter(collab => collab.influencer && collab.campaign)
+      .map(collab => ({
+        collaborationId: collab.id,
+        status: collab.status,
+        startDate: collab.startDate,
+        endDate: collab.endDate,
+        influencer: {
+          id: collab.influencer.id,
+          firstName: collab.influencer.firstName,
+          lastName: collab.influencer.lastName,
+          email: collab.influencer.email,
+          profileImage: collab.influencer.influencerProfile?.image || null,
+          primaryPlatform: collab.influencer.influencerProfile?.primaryPlatform || null,
+          followersCount: collab.influencer.influencerProfile?.followersCount || null
+        },
+        campaign: {
+          id: collab.campaign.id,
+          title: collab.campaign.campaignName
+        }
+      }));
 
     sendSuccess(res, 200, 'Active influencers retrieved successfully', {
       collaborations: formattedResults
@@ -340,10 +342,12 @@ exports.getPastInfluencers = async (req, res, next) => {
           attributes: ['id', 'campaignName']
         }
       ],
-      order: [['completedAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']]
+      order: [['completedAt', 'DESC'], ['createdAt', 'DESC']]
     });
 
-    const formattedResults = collaborations.map(collab => ({
+    const formattedResults = collaborations
+      .filter(collab => collab.influencer && collab.campaign)
+      .map(collab => ({
       collaborationId: collab.id,
       status: collab.status,
       completedAt: collab.completedAt,
