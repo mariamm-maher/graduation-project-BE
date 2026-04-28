@@ -11,7 +11,7 @@ const ScheduledPost = sequelize.define('ScheduledPost', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'channel',
+      model: 'Channels',
       key: 'id'
     },
     onDelete: 'CASCADE'
