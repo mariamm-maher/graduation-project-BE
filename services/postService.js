@@ -1,215 +1,287 @@
-const {
-  ScheduledPost,
-  PostChannel,
-  Channel,
-  Campaign,
-  ContentCalendar,
-  CollaborationTask,
-  sequelize
-} = require('../models/index');
-const PostAnalytics = require('../models/PostAnalytics');
+const axios = require('axios');
+const { Op } = require('sequelize');
+const ScheduledPost = require('../models/ScheduledPost');
+const Channel = require('../models/channel');
 
-function throwBadRequest(message) {
+const GRAPH_BASE_URL = 'https://graph.facebook.com/v19.0';
+
+function badRequest(message) {
   throw { status: 400, message };
 }
 
-function normalizeChannelId(raw) {
-  if (raw === null || raw === undefined) return null;
-  if (typeof raw === 'number' || typeof raw === 'string') {
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }
-  if (typeof raw === 'object') {
-    const candidate = raw.id ?? raw.value ?? raw.channelId ?? raw.channel_id;
-    const parsed = Number(candidate);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }
-  return null;
+function toNumberList(values) {
+  return [...new Set(
+    (Array.isArray(values) ? values : [])
+      .map((v) => Number(v))
+      .filter((v) => Number.isFinite(v) && v > 0)
+  )];
 }
 
-async function createPost({
+async function publishToFacebook({ channel, content, mediaUrls }) {
+  const hasImage = Array.isArray(mediaUrls) && mediaUrls.length > 0 && !!mediaUrls[0];
+  const endpoint = hasImage ? `${GRAPH_BASE_URL}/${channel.accountId}/photos` : `${GRAPH_BASE_URL}/${channel.accountId}/feed`;
+  const payload = hasImage
+    ? { url: mediaUrls[0], caption: content, access_token: channel.accessToken }
+    : { message: content, access_token: channel.accessToken };
+
+  const res = await axios.post(endpoint, payload);
+  return res.data?.post_id || res.data?.id || null;
+}
+
+async function createPosts({
   userId,
-  channelIds,
-  channelId,
-  channels,
   content,
-  caption,
-  text,
-  mediaUrls,
-  media,
-  scheduledAt,
-  scheduleAt,
-  scheduledDate: scheduledDateInput,
-  publishAt,
-  contentType,
-  options,
-  campaignId,
-  contentCalendarId,
-  collaborationTaskId
+  channelIds,
+  platforms = [],
+  mediaUrls = [],
+  publishNow = false,
+  scheduledAt = null
 }) {
-  const normalizedContent = content || caption || text;
-  if (!normalizedContent || !String(normalizedContent).trim()) {
-    throwBadRequest('Content must not be empty');
-  }
+  if (!content || !String(content).trim()) badRequest('content is required');
 
-  const rawChannelIds = (
-    Array.isArray(channelIds) ? channelIds :
-    Array.isArray(channels) ? channels :
-    channelId !== undefined && channelId !== null ? [channelId] :
-    []
-  );
+  const normalizedChannelIds = toNumberList(channelIds);
+  if (normalizedChannelIds.length === 0) badRequest('channelIds must be a non-empty array');
 
-  const normalizedChannelIds = [...new Set(
-    rawChannelIds
-      .map((id) => normalizeChannelId(id))
-      .filter((id) => id !== null)
-  )];
-
-  if (normalizedChannelIds.length === 0) {
-    throwBadRequest('channelIds must be a non-empty array of valid channel IDs');
-  }
-
-  const normalizedScheduledAt = scheduledAt || scheduleAt || scheduledDateInput || publishAt;
-  const scheduledDate = new Date(normalizedScheduledAt);
-  if (!normalizedScheduledAt || Number.isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
-    throwBadRequest('scheduledAt must be in the future');
-  }
-
-  const owned = await Channel.findAll({
+  const channels = await Channel.findAll({
     where: {
       id: normalizedChannelIds,
       userId
     }
   });
-  if (owned.length !== normalizedChannelIds.length) {
-    throwBadRequest('One or more channels not found for this user');
+
+  if (channels.length !== normalizedChannelIds.length) {
+    badRequest('One or more channels not found');
   }
 
-  if (collaborationTaskId) {
-    const task = await CollaborationTask.findByPk(collaborationTaskId);
-    if (!task) {
-      throwBadRequest('CollaborationTask not found');
-    }
-  }
+  const normalizedPlatforms = (Array.isArray(platforms) ? platforms : [])
+    .map((p) => String(p).toLowerCase());
 
-  if (contentCalendarId) {
-    const calendar = await ContentCalendar.findByPk(contentCalendarId);
-    if (!calendar) {
-      throwBadRequest('ContentCalendar not found');
-    }
-    if (campaignId && Number(calendar.campaignId) !== Number(campaignId)) {
-      throwBadRequest('ContentCalendar does not belong to campaign');
-    }
-  }
+  const selectedChannels = channels.filter((ch) => {
+    if (normalizedPlatforms.length === 0) return true;
+    return normalizedPlatforms.includes(ch.platform.toLowerCase());
+  });
 
-  const post = await sequelize.transaction(async (t) => {
-    const createdPost = await ScheduledPost.create(
-      {
-        userId,
-        // Current model still requires channelId, so we keep primary channel here
-        // and maintain per-channel targets in PostChannel records.
-        channelId: normalizedChannelIds[0],
-        content: normalizedContent,
-        mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : (Array.isArray(media) ? media : []),
+  const posts = [];
+  for (const channel of selectedChannels) {
+    if (channel.platform.toLowerCase() !== 'facebook') {
+      continue;
+    }
+
+    if (!publishNow) {
+      if (!scheduledAt) badRequest('scheduledAt is required when publishNow is false');
+      const scheduledDate = new Date(scheduledAt);
+      if (Number.isNaN(scheduledDate.getTime())) badRequest('scheduledAt must be a valid ISO date');
+
+      const post = await ScheduledPost.create({
+        channelId: channel.id,
+        content,
+        mediaUrls,
         scheduledAt: scheduledDate,
-        contentType: contentType || 'post',
-        options: options || {},
-        status: 'scheduled',
-        campaignId: campaignId || null,
-        contentCalendarId: contentCalendarId || null,
-        collaborationTaskId: collaborationTaskId || null
-      },
-      { transaction: t }
-    );
+        status: 'scheduled'
+      });
 
-    for (const currentChannelId of normalizedChannelIds) {
-      await PostChannel.create(
-        {
-          scheduledPostId: createdPost.id,
-          channelId: currentChannelId,
-          status: 'pending'
-        },
-        { transaction: t }
-      );
+      posts.push({
+        id: post.id,
+        userId,
+        channelId: channel.id,
+        platform: channel.platform,
+        content: post.content,
+        mediaUrls: post.mediaUrls,
+        status: post.status,
+        scheduledAt: post.scheduledAt,
+        fbPostId: null,
+        createdAt: post.createdAt
+      });
+      continue;
     }
 
-    return ScheduledPost.findByPk(createdPost.id, {
-      include: [{ model: PostChannel, as: 'postChannels' }],
-      transaction: t
-    });
-  });
+    try {
+      const fbPostId = await publishToFacebook({ channel, content, mediaUrls });
+      const post = await ScheduledPost.create({
+        channelId: channel.id,
+        content,
+        mediaUrls,
+        scheduledAt: new Date(),
+        status: 'published',
+        platformPostId: fbPostId,
+        publishedAt: new Date()
+      });
 
-  return post;
-}
+      posts.push({
+        id: post.id,
+        userId,
+        channelId: channel.id,
+        platform: channel.platform,
+        content: post.content,
+        mediaUrls: post.mediaUrls,
+        status: post.status,
+        scheduledAt: post.scheduledAt,
+        fbPostId: post.platformPostId,
+        createdAt: post.createdAt
+      });
+    } catch (error) {
+      const post = await ScheduledPost.create({
+        channelId: channel.id,
+        content,
+        mediaUrls,
+        scheduledAt: new Date(),
+        status: 'failed',
+        errorMessage: error.response?.data?.error?.message || error.message
+      });
 
-async function getPostsByUser(userId, filters = {}) {
-  const where = { userId };
-
-  if (filters.status) where.status = filters.status;
-  if (filters.campaignId) where.campaignId = filters.campaignId;
-  if (filters.collaborationTaskId) where.collaborationTaskId = filters.collaborationTaskId;
-
-  return ScheduledPost.findAll({
-    where,
-    include: [
-      {
-        model: PostChannel,
-        as: 'postChannels',
-        include: [
-          {
-            model: Channel,
-            as: 'channel',
-            attributes: ['id', 'platform', 'accountName', 'accountUsername']
-          }
-        ]
-      },
-      { model: Campaign, as: 'campaign', attributes: ['id', 'campaignName'] },
-      { model: ContentCalendar, as: 'contentCalendar', attributes: ['id', 'day', 'platform'] },
-      { model: CollaborationTask, as: 'collaborationTask', attributes: ['id', 'taskName'] }
-    ],
-    order: [['scheduledAt', 'DESC']]
-  });
-}
-
-async function getPostById(postId, userId) {
-  const post = await ScheduledPost.findOne({
-    where: { id: postId, userId },
-    include: [
-      {
-        model: PostChannel,
-        as: 'postChannels',
-        include: [
-          { model: Channel, as: 'channel' },
-          { model: PostAnalytics, as: 'analytics' }
-        ]
-      }
-    ]
-  });
-
-  if (!post) {
-    throw { status: 404, message: 'Post not found' };
+      posts.push({
+        id: post.id,
+        userId,
+        channelId: channel.id,
+        platform: channel.platform,
+        content: post.content,
+        mediaUrls: post.mediaUrls,
+        status: post.status,
+        scheduledAt: post.scheduledAt,
+        fbPostId: null,
+        createdAt: post.createdAt
+      });
+    }
   }
 
-  return post;
+  return { posts };
+}
+
+async function getPostsByUser(userId) {
+  const posts = await ScheduledPost.findAll({
+    include: [
+      {
+        model: Channel,
+        as: 'Channel',
+        where: { userId },
+        attributes: ['id', 'platform', 'accountName', 'accountUsername', 'userId']
+      }
+    ],
+    order: [['createdAt', 'DESC']]
+  });
+
+  return {
+    posts: posts.map((post) => ({
+      id: post.id,
+      userId: post.Channel.userId,
+      channelId: post.channelId,
+      platform: post.Channel.platform,
+      content: post.content,
+      mediaUrls: post.mediaUrls,
+      status: post.status,
+      scheduledAt: post.scheduledAt,
+      fbPostId: post.platformPostId || null,
+      createdAt: post.createdAt
+    }))
+  };
 }
 
 async function deletePost(postId, userId) {
-  const post = await ScheduledPost.findOne({ where: { id: postId, userId } });
-  if (!post) {
-    throw { status: 404, message: 'Post not found' };
-  }
+  const post = await ScheduledPost.findOne({
+    where: { id: postId },
+    include: [{ model: Channel, as: 'Channel', where: { userId } }]
+  });
 
-  if (post.status === 'published') {
-    throw { status: 400, message: 'Cannot delete a published post' };
+  if (!post) throw { status: 404, message: 'Post not found' };
+
+  if (post.status === 'published' && post.platformPostId) {
+    try {
+      await axios.delete(`${GRAPH_BASE_URL}/${post.platformPostId}`, {
+        params: { access_token: post.Channel.accessToken }
+      });
+    } catch (error) {
+      throw {
+        status: 400,
+        message: error.response?.data?.error?.message || 'Failed to delete post from Facebook'
+      };
+    }
   }
 
   await post.destroy();
   return { success: true };
 }
 
+async function getPostAnalytics(postId, userId) {
+  const post = await ScheduledPost.findOne({
+    where: { id: postId },
+    include: [{ model: Channel, as: 'Channel', where: { userId } }]
+  });
+
+  if (!post) throw { status: 404, message: 'Post not found' };
+  if (!post.platformPostId) {
+    throw {
+      status: 400,
+      message: 'Post has no Facebook post ID yet (it may be scheduled or failed)'
+    };
+  }
+
+  try {
+    const postResponse = await axios.get(`${GRAPH_BASE_URL}/${post.platformPostId}`, {
+      params: {
+        fields: 'likes.summary(true),comments.summary(true)',
+        access_token: post.Channel.accessToken
+      }
+    });
+
+    let reach = 0;
+    try {
+      const insightsResponse = await axios.get(`${GRAPH_BASE_URL}/${post.platformPostId}/insights`, {
+        params: {
+          metric: 'post_impressions',
+          access_token: post.Channel.accessToken
+        }
+      });
+      reach = insightsResponse.data?.data?.[0]?.values?.[0]?.value || 0;
+    } catch (insightsErr) {
+      // Some posts/tokens don't allow insights; keep likes/comments response usable.
+      reach = 0;
+    }
+
+    const likes = postResponse.data?.likes?.summary?.total_count || 0;
+    const comments = postResponse.data?.comments?.summary?.total_count || 0;
+
+    return { likes, comments, reach };
+  } catch (error) {
+    const fbMessage = error.response?.data?.error?.message;
+    const fallbackMessage = error.message || 'Failed to fetch Facebook post analytics';
+    throw {
+      status: error.response?.status || 400,
+      message: fbMessage || fallbackMessage
+    };
+  }
+}
+
+async function getDueScheduledPosts() {
+  return ScheduledPost.findAll({
+    where: {
+      status: 'scheduled',
+      scheduledAt: { [Op.lte]: new Date() }
+    },
+    include: [{ model: Channel, as: 'Channel' }]
+  });
+}
+
+async function markPostPublished(postId, fbPostId) {
+  await ScheduledPost.update(
+    { status: 'published', platformPostId: fbPostId, publishedAt: new Date(), errorMessage: null },
+    { where: { id: postId } }
+  );
+}
+
+async function markPostFailed(postId, message) {
+  await ScheduledPost.update(
+    { status: 'failed', errorMessage: message },
+    { where: { id: postId } }
+  );
+}
+
 module.exports = {
-  createPost,
+  createPosts,
   getPostsByUser,
-  getPostById,
-  deletePost
+  deletePost,
+  getPostAnalytics,
+  getDueScheduledPosts,
+  markPostPublished,
+  markPostFailed,
+  publishToFacebook
 };
