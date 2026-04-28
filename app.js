@@ -6,7 +6,7 @@ const { sequelize } = require('./models');
 const seedRoles = require('./config/seedRoles');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const cors = require('cors');
-//const { startScheduler } = require('./jobs/postScheduler');
+const { startScheduler } = require('./jobs/postScheduler');
 const { startCampaignEngine } = require('./jobs/campaignEngine');
 const { startTokenRefresher } = require('./jobs/tokenRefresher');
 const swaggerUi = require('swagger-ui-express');
@@ -58,7 +58,7 @@ app.use('/auth',         require('./routes/tiktokAuthRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
-//startScheduler();
+startScheduler();
 startCampaignEngine();
 startTokenRefresher();
 // Documentation Route

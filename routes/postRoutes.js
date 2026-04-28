@@ -1,7 +1,6 @@
 const express = require('express');
 const postService = require('../services/postService');
 const { authenticate: authMiddleware } = require('../middleware/auth');
-const notificationService = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -9,19 +8,11 @@ router.use(authMiddleware);
 
 router.post('/', async (req, res) => {
   try {
-    const post = await postService.createPost({
+    const result = await postService.createPosts({
       userId: req.user.id,
       ...req.body
     });
-
-    await notificationService.create({
-      userId: req.user.id,
-      title: 'Post scheduled',
-      message: `Post scheduled for ${post.scheduledAt}`,
-      type: 'post'
-    });
-
-    return res.status(201).json({ success: true, data: post });
+    return res.status(201).json({ success: true, data: result });
   } catch (err) {
     return res.status(err.status || 500).json({
       success: false,
@@ -33,7 +24,7 @@ router.post('/', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const posts = await postService.getPostsByUser(req.user.id, req.query);
+    const posts = await postService.getPostsByUser(req.user.id);
     return res.json({ success: true, data: posts });
   } catch (err) {
     return res.status(err.status || 500).json({
@@ -61,6 +52,19 @@ router.delete('/:id', async (req, res) => {
   try {
     await postService.deletePost(req.params.id, req.user.id);
     return res.json({ success: true, message: 'Post deleted' });
+  } catch (err) {
+    return res.status(err.status || 500).json({
+      success: false,
+      message: err.message,
+      error: err.message
+    });
+  }
+});
+
+router.get('/:id/analytics', async (req, res) => {
+  try {
+    const analytics = await postService.getPostAnalytics(req.params.id, req.user.id);
+    return res.json({ success: true, data: analytics });
   } catch (err) {
     return res.status(err.status || 500).json({
       success: false,

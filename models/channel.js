@@ -72,6 +72,8 @@ const Channel = sequelize.define('Channel', {
   }
 }, {
   timestamps: true,
+  tableName: 'channel',
+  freezeTableName: true
 });
 
 module.exports = Channel;
