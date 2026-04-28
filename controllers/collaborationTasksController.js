@@ -143,6 +143,28 @@ exports.terminalRejectTask = async (req, res, next) => {
   }
 };
 
+// GET /api/collaboration-tasks/my/owner
+// Role: Owner — all collaborations with nested tasks
+exports.getMyTasksAsOwner = async (req, res, next) => {
+  try {
+    const data = await taskService.listTasksGroupedByOwner({ ownerId: req.user.id });
+    sendSuccess(res, 200, 'Tasks grouped by collaboration', { collaborations: data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/collaboration-tasks/my/influencer
+// Role: Influencer — all collaborations with nested tasks
+exports.getMyTasksAsInfluencer = async (req, res, next) => {
+  try {
+    const data = await taskService.listTasksGroupedByInfluencer({ influencerId: req.user.id });
+    sendSuccess(res, 200, 'Tasks grouped by collaboration', { collaborations: data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // PATCH /api/collaboration-tasks/:id/move
 // Role: Owner — drag-and-drop status change
 exports.moveTask = async (req, res, next) => {

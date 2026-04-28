@@ -1,5 +1,5 @@
 // services/collaboration/taskService.js
-const { CollaborationTask, Collaboration } = require('../../models');
+const { CollaborationTask, Collaboration, Campaign, User } = require('../../models');
 const AppError = require('../../utils/AppError');
 const notificationService = require('../notificationService');
 
@@ -328,6 +328,84 @@ async function createTask({ collaborationId, userId, taskName, description, dueD
   return task;
 }
 
+// ─── listTasksGroupedByOwner ──────────────────────────────────────────────────
+// Returns all collaborations owned by userId, each with nested tasks.
+
+async function listTasksGroupedByOwner({ ownerId }) {
+  const collaborations = await Collaboration.findAll({
+    where: { ownerId },
+    include: [
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName'],
+      },
+      {
+        model: User,
+        as: 'influencer',
+        attributes: ['id', 'firstName', 'lastName'],
+      },
+      {
+        model: CollaborationTask,
+        as: 'tasks',
+        required: false,
+      },
+    ],
+    order: [['createdAt', 'DESC']],
+  });
+
+  return collaborations.map((c) => ({
+    collaborationId: c.id,
+    campaignName: c.campaign?.campaignName || `Campaign #${c.campaignId}`,
+    influencerName: c.influencer
+      ? `${c.influencer.firstName} ${c.influencer.lastName || ''}`.trim()
+      : `Influencer #${c.influencerId}`,
+    status: c.status,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    tasks: (c.tasks || []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || new Date(a.createdAt) - new Date(b.createdAt)),
+  }));
+}
+
+// ─── listTasksGroupedByInfluencer ─────────────────────────────────────────────
+// Returns all collaborations where influencerId matches, each with nested tasks.
+
+async function listTasksGroupedByInfluencer({ influencerId }) {
+  const collaborations = await Collaboration.findAll({
+    where: { influencerId },
+    include: [
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName'],
+      },
+      {
+        model: User,
+        as: 'owner',
+        attributes: ['id', 'firstName', 'lastName'],
+      },
+      {
+        model: CollaborationTask,
+        as: 'tasks',
+        required: false,
+      },
+    ],
+    order: [['createdAt', 'DESC']],
+  });
+
+  return collaborations.map((c) => ({
+    collaborationId: c.id,
+    campaignName: c.campaign?.campaignName || `Campaign #${c.campaignId}`,
+    ownerName: c.owner
+      ? `${c.owner.firstName} ${c.owner.lastName || ''}`.trim()
+      : `Owner #${c.ownerId}`,
+    status: c.status,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    tasks: (c.tasks || []).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || new Date(a.createdAt) - new Date(b.createdAt)),
+  }));
+}
+
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -342,4 +420,6 @@ module.exports = {
   getTasksByCollaboration,
   createTask,
   moveTask,
+  listTasksGroupedByOwner,
+  listTasksGroupedByInfluencer,
 };

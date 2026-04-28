@@ -10,6 +10,12 @@ router.use(authenticate);
 // Base: /api/collaboration-tasks
 // =============================================================================
 
+// All collaborations + nested tasks for the authenticated owner
+router.get('/my/owner',      taskCtrl.getMyTasksAsOwner);
+
+// All collaborations + nested tasks for the authenticated influencer
+router.get('/my/influencer', taskCtrl.getMyTasksAsInfluencer);
+
 // Board view — get all tasks nested under a specific collaboration
 router.get('/collaboration/:collaborationId', taskCtrl.getTasksByCollaboration);
 
