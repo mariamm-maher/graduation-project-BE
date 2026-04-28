@@ -3,6 +3,15 @@ const { Op } = require('sequelize');
 const { emitToUser } = require('../socket');
 
 class NotificationService {
+  // async create({ userId, title, message, type }) {
+  //   return this.createNotification({
+  //     userId,
+  //     type: 'CAMPAIGN_PUBLISHED',
+  //     message: title ? `${title}: ${message}` : message,
+  //     entityType: type || 'notification'
+  //   });
+  // }
+
   /**
    * Create a new notification
    */

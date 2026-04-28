@@ -6,6 +6,9 @@ const { sequelize } = require('./models');
 const seedRoles = require('./config/seedRoles');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const cors = require('cors');
+//const { startScheduler } = require('./jobs/postScheduler');
+const { startCampaignEngine } = require('./jobs/campaignEngine');
+const { startTokenRefresher } = require('./jobs/tokenRefresher');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-bundled.json');
 const path = require('path');
@@ -17,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
 
@@ -47,7 +50,17 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/influencer', require('./routes/influencerOverviewRoutes'));
 
+// Mount with correct prefixes — no /api inside the route files
+app.use('/api/channels', require('./routes/channelRoutes'));
+app.use('/channels', require('./routes/channelRoutes'));
+app.use('/auth',         require('./routes/metaAuthRoutes'));
+app.use('/auth',         require('./routes/tiktokAuthRoutes'));
+app.use('/api/posts', require('./routes/postRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
+//startScheduler();
+startCampaignEngine();
+startTokenRefresher();
 // Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

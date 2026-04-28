@@ -361,7 +361,7 @@ exports.deleteAccount = async (req, res, next) => {
 // =======================
 exports.exportUserData = async (req, res, next) => {
   try {
-    const { User, OwnerProfile, InfluencerProfile, Campaign, Collaboration, SocialMediaAccount } = require('../models');
+    const { User, OwnerProfile, InfluencerProfile, Campaign, Collaboration, Channel } = require('../models');
     
     const user = await User.findByPk(req.user.id, {
       attributes: ['id', 'email', 'firstName', 'lastName', 'image', 'createdAt', 'updatedAt',
@@ -380,7 +380,7 @@ exports.exportUserData = async (req, res, next) => {
     const collaborations = await Collaboration.findAll({ 
       where: { $or: [{ ownerId: req.user.id }, { influencerId: req.user.id }] } 
     });
-    const socialAccounts = await SocialMediaAccount.findAll({ where: { userId: req.user.id } });
+    const socialAccounts = await Channel.findAll({ where: { userId: req.user.id } });
 
     const userData = {
       user: user.toJSON(),

@@ -21,8 +21,10 @@ const Review = require('./Review');
 
 const Session = require('./Session');
 const Log = require('./Log');
-//const SocialMediaAccount = require('./SocialMediaAccount');
+const Channel = require('./channel');
 const Notification = require('./Notification');
+const PostAnalytics = require('./PostAnalytics');
+const ScheduledPost = require('./ScheduledPost');
 // UploadedFile model removed — using Cloudinary only (no local DB model)
 // Define relationships
 
@@ -287,6 +289,17 @@ Review.belongsTo(User, { foreignKey: 'influencerId', as: 'reviewee' });
 Collaboration.hasMany(Review, { foreignKey: 'collaborationId', as: 'reviews', onDelete: 'SET NULL' });
 Review.belongsTo(Collaboration, { foreignKey: 'collaborationId', as: 'collaboration' });
 
+User.hasMany(Channel, { foreignKey: 'userId', as: 'channels', onDelete: 'CASCADE' });
+Channel.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+ScheduledPost.hasOne(PostAnalytics, { foreignKey: 'scheduledPostId', as: 'postAnalytics' });
+PostAnalytics.belongsTo(ScheduledPost, { foreignKey: 'scheduledPostId' });
+
+Channel.hasMany(ScheduledPost, { foreignKey: 'channelId', as: 'scheduledPosts' });
+ScheduledPost.belongsTo(Channel, { foreignKey: 'channelId' });
+
+Campaign.hasMany(ScheduledPost, { foreignKey: 'campaignId', as: 'scheduledPosts' });
+ScheduledPost.belongsTo(Campaign, { foreignKey: 'campaignId' });
 // UploadedFile associations removed
 module.exports = {
   sequelize,
@@ -309,6 +322,7 @@ module.exports = {
   ChatParticipant,
   Message,
   Session,
+  Channel,
   Notification,
   Log,
   Review

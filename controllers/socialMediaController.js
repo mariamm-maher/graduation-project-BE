@@ -1,5 +1,5 @@
-const { SocialMediaAccount, ScheduledPost } = require('../models');
-const PlatformFactory = require('../services/socialMedia/platformFactory');
+const { Channel, ScheduledPost } = require('../models');
+const PlatformFactory = require('../services/channels/platformFactory');
 const AppError = require('../utils/AppError');
 const { sendSuccess } = require('../utils/sendSuccess');
 const crypto = require('crypto');
@@ -71,7 +71,7 @@ exports.handleCallback = async (req, res, next) => {
       : null;
 
     // Save or update account
-    const [account, created] = await SocialMediaAccount.findOrCreate({
+    const [account, created] = await Channel.findOrCreate({
       where: {
         userId: userId,
         platform: platform.toLowerCase(),
@@ -137,7 +137,7 @@ exports.getAccounts = async (req, res, next) => {
       where.platform = platform.toLowerCase();
     }
 
-    const accounts = await SocialMediaAccount.findAll({
+    const accounts = await Channel.findAll({
       where,
       attributes: {
         exclude: ['accessToken', 'refreshToken'] 
@@ -162,7 +162,7 @@ exports.getAccount = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const account = await SocialMediaAccount.findOne({
+    const account = await Channel.findOne({
       where: {
         id,
         userId
@@ -190,7 +190,7 @@ exports.disconnectAccount = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const account = await SocialMediaAccount.findOne({
+    const account = await Channel.findOne({
       where: {
         id,
         userId
@@ -229,7 +229,7 @@ exports.refreshAccountToken = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const account = await SocialMediaAccount.findOne({
+    const account = await Channel.findOne({
       where: {
         id,
         userId

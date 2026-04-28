@@ -1,8 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const User = require('./User');
 
-const SocialMediaAccount = sequelize.define('SocialMediaAccount', {
+const Channel = sequelize.define('Channel', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -41,7 +40,7 @@ const SocialMediaAccount = sequelize.define('SocialMediaAccount', {
     allowNull: true,
     comment: 'URL to profile picture'
   },
-  
+
   accessToken: {
     type: DataTypes.TEXT,
     allowNull: false,
@@ -62,10 +61,10 @@ const SocialMediaAccount = sequelize.define('SocialMediaAccount', {
     allowNull: true,
     defaultValue: {}
   },
-  isActive: {
-    type: DataTypes.BOOLEAN,
+  status: {
+    type: DataTypes.ENUM('active', 'disconnected','expired'),
     allowNull: false,
-    defaultValue: true
+    defaultValue: 'active'
   },
   lastSyncAt: {
     type: DataTypes.DATE,
@@ -73,17 +72,6 @@ const SocialMediaAccount = sequelize.define('SocialMediaAccount', {
   }
 }, {
   timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['userId', 'platform', 'accountId'],
-      name: 'unique_user_platform_account'
-    }
-  ]
 });
 
-User.hasMany(SocialMediaAccount, { foreignKey: 'userId', as: 'socialMediaAccounts' });
-SocialMediaAccount.belongsTo(User, { foreignKey: 'userId' });
-
-module.exports = SocialMediaAccount;
-
+module.exports = Channel;

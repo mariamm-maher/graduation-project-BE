@@ -354,7 +354,7 @@ erDiagram
         timestamp updatedAt
     }
 
-    SocialMediaAccount {
+    channel {
         int id PK
         int userId FK
         enum platform "instagram facebook twitter linkedin tiktok youtube"
@@ -375,7 +375,7 @@ erDiagram
     ScheduledPost {
         int id PK
         int userId FK
-        int socialMediaAccountId FK
+        int channelId FK
         int campaignId FK "nullable"
         int contentCalendarId FK "nullable"
         enum platform "instagram facebook twitter linkedin tiktok youtube"
