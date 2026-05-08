@@ -10,29 +10,14 @@ const ScheduledPost = sequelize.define('ScheduledPost', {
   channelId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Channels',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
   },
   CollaborationTaskId: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'CollaborationTasks',
-      key: 'id'
-    },
-    onDelete: 'SET NULL'
   },
   contentCalendarId: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'ContentCalendars',
-      key: 'id'
-    },
-    onDelete: 'SET NULL'
   },
   content: {
     type: DataTypes.TEXT,

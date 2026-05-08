@@ -34,4 +34,7 @@ router.get('/influencers/past', authenticate, authorize('OWNER'), ownerControlle
  */
 router.get('/influencers/:id', authenticate, authorize('OWNER'), ownerController.getInfluencerById);
 
+router.get('/interest-messages', authenticate, authorize('OWNER'), ownerController.getInterestMessages);
+router.patch('/interest-messages/:id/read', authenticate, authorize('OWNER'), ownerController.markInterestMessageRead);
+
 module.exports = router;

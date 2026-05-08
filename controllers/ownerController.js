@@ -8,7 +8,8 @@ const {
   ChatParticipant,
   Message,
   Notification,
-  Review
+  Review,
+  InterestMessage
 } = require('../models');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
@@ -373,5 +374,77 @@ exports.getPastInfluencers = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+exports.getInterestMessages = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+    const { page = 1, limit = 30, isRead } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const where = { ownerId };
+    if (isRead === 'true') where.isRead = true;
+    if (isRead === 'false') where.isRead = false;
+
+    const { count, rows } = await InterestMessage.findAndCountAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: Number(limit),
+      offset
+    });
+
+    const messages = rows.map(m => ({
+      id: m.id,
+      campaignId: m.campaignId,
+      campaignName: m.campaign?.campaignName || '',
+      influencerId: m.influencerId,
+      influencerName: `${m.influencer?.firstName || ''} ${m.influencer?.lastName || ''}`.trim(),
+      influencerEmail: m.influencer?.email || '',
+      message: m.message,
+      isRead: m.isRead,
+      readAt: m.readAt,
+      createdAt: m.createdAt
+    }));
+
+    return sendSuccess(res, 200, 'Interest messages retrieved', {
+      messages,
+      pagination: {
+        total: count,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(count / Number(limit))
+      },
+      unreadCount: rows.filter(m => !m.isRead).length
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.markInterestMessageRead = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+    const { id } = req.params;
+
+    const msg = await InterestMessage.findOne({ where: { id, ownerId } });
+    if (!msg) throw new AppError('Message not found', 404);
+
+    await msg.update({ isRead: true, readAt: new Date() });
+    return sendSuccess(res, 200, 'Marked as read', { id: msg.id });
+  } catch (error) {
+    return next(error);
   }
 };

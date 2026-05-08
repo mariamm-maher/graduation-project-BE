@@ -6,6 +6,8 @@ const {
   ChatRoom,
   ChatParticipant,
   User,
+  Campaign,
+  OwnerProfile,
 } = require('../../models');
 const AppError = require('../../utils/AppError');
 const notificationService = require('../notificationService');
@@ -180,14 +182,52 @@ async function createContract({ collaborationId, ownerId, startDate, endDate, de
 
 async function getOwnerContracts(ownerId) {
   return CollaborationContract.findAll({
-    include: [{ model: Collaboration, as: 'collaboration', where: { ownerId } }],
+    include: [
+      {
+        model: Collaboration,
+        as: 'collaboration',
+        where: { ownerId },
+        include: [
+          {
+            model: Campaign,
+            as: 'campaign',
+            attributes: ['id', 'campaignName']
+          },
+          {
+            model: User,
+            as: 'influencer',
+            attributes: ['id', 'firstName', 'lastName'],
+            include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'] }]
+          }
+        ]
+      }
+    ],
     order: [['createdAt', 'DESC']],
   });
 }
 
 async function getInfluencerContracts(influencerId) {
   return CollaborationContract.findAll({
-    include: [{ model: Collaboration, as: 'collaboration', where: { influencerId } }],
+    include: [
+      {
+        model: Collaboration,
+        as: 'collaboration',
+        where: { influencerId },
+        include: [
+          {
+            model: Campaign,
+            as: 'campaign',
+            attributes: ['id', 'campaignName']
+          },
+          {
+            model: User,
+            as: 'owner',
+            attributes: ['id', 'firstName', 'lastName'],
+            include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'] }]
+          }
+        ]
+      }
+    ],
     order: [['createdAt', 'DESC']],
   });
 }

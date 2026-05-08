@@ -10,5 +10,6 @@ router.get('/overview/stats', authenticate, authorize('OWNER'), influncerControl
 router.get('/campaigns/explore', authenticate, authorize('INFLUENCER'), influncerController.exploreCampaigns);
 router.get('/campaigns/:id', authenticate, authorize('INFLUENCER'), influncerController.getCampaignById);
 router.post('/campaigns/:id/apply', authenticate, authorize('INFLUENCER'), influncerController.applyToCampaign);
+router.post('/campaigns/:id/contact', authenticate, authorize('INFLUENCER'), influncerController.contactOwner);
 
 module.exports = router;
