@@ -13,7 +13,8 @@ const {
   revokeSession,
   getProfile,
   onboardInfluencer,
-  onboardOwner
+  onboardOwner,
+  switchRole
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
@@ -48,6 +49,11 @@ router.get('/google', googleAuth);
 // @desc    Google OAuth callback
 // @access  Public
 router.get('/google/callback', googleAuthCallback);
+
+// @route   POST /api/auth/switch-role
+// @desc    Switch active role (for users with multiple roles)
+// @access  Private
+router.post('/switch-role', authenticate, switchRole);
 
 // @route   POST /api/auth/logout
 // @desc    Logout current session

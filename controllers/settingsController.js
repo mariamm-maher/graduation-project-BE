@@ -9,47 +9,21 @@ exports.getSettings = async (req, res, next) => {
   try {
     const { User } = require('../models');
     const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'email', 'firstName', 'lastName', 'image', 'createdAt', 'updatedAt',
-        'privacySettings', 'notificationPreferences', 'twoFactorEnabled', 'language', 'timezone'
-      ]
+      attributes: ['id', 'email', 'firstName', 'lastName', 'createdAt', 'updatedAt']
     });
 
     if (!user) {
       return next(new AppError('User not found', 404));
     }
 
-    // Return settings with defaults if not set
+    // Return only basic account settings
     const settings = {
       account: {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        profileImage: user.image,
         memberSince: user.createdAt,
         lastUpdated: user.updatedAt
-      },
-      privacy: user.privacySettings || {
-        profileVisibility: 'public', // public, private, connections_only
-        showEmail: false,
-        showPhone: false,
-        allowSearchByEmail: true,
-        allowDataCollection: true,
-        shareActivityStatus: true
-      },
-      notifications: user.notificationPreferences || {
-        emailNotifications: true,
-        pushNotifications: true,
-        marketingEmails: false,
-        newCollaborationRequests: true,
-        collaborationUpdates: true,
-        messages: true,
-        systemAnnouncements: true,
-        weeklyDigest: true
-      },
-      preferences: {
-        language: user.language || 'en',
-        timezone: user.timezone || 'UTC',
-        twoFactorEnabled: user.twoFactorEnabled || false
       }
     };
 
@@ -60,111 +34,11 @@ exports.getSettings = async (req, res, next) => {
 };
 
 // =======================
-// UPDATE PRIVACY SETTINGS
-// =======================
-exports.updatePrivacySettings = async (req, res, next) => {
-  try {
-    const { profileVisibility, showEmail, showPhone, allowSearchByEmail, 
-            allowDataCollection, shareActivityStatus } = req.body;
-
-    const { User } = require('../models');
-    const user = await User.findByPk(req.user.id);
-
-    if (!user) {
-      return next(new AppError('User not found', 404));
-    }
-
-    // Get current settings or defaults
-    const currentSettings = user.privacySettings || {};
-
-    // Update privacy settings
-    const newSettings = {
-      profileVisibility: profileVisibility || currentSettings.profileVisibility || 'public',
-      showEmail: typeof showEmail === 'boolean' ? showEmail : currentSettings.showEmail || false,
-      showPhone: typeof showPhone === 'boolean' ? showPhone : currentSettings.showPhone || false,
-      allowSearchByEmail: typeof allowSearchByEmail === 'boolean' ? allowSearchByEmail : currentSettings.allowSearchByEmail || true,
-      allowDataCollection: typeof allowDataCollection === 'boolean' ? allowDataCollection : currentSettings.allowDataCollection || true,
-      shareActivityStatus: typeof shareActivityStatus === 'boolean' ? shareActivityStatus : currentSettings.shareActivityStatus || true
-    };
-
-    await user.update({ privacySettings: newSettings });
-
-    // Log the action
-    try {
-      await logAction({
-        req,
-        action: 'UPDATE_PRIVACY_SETTINGS',
-        entity: 'User',
-        entityId: user.id,
-        meta: { email: user.email }
-      });
-    } catch (logError) {
-      // Non-blocking
-    }
-
-    sendSuccess(res, 200, 'Privacy settings updated successfully', { privacySettings: newSettings });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-// =======================
-// UPDATE NOTIFICATION PREFERENCES
-// =======================
-exports.updateNotificationPreferences = async (req, res, next) => {
-  try {
-    const { emailNotifications, pushNotifications, marketingEmails, newCollaborationRequests,
-            collaborationUpdates, messages, systemAnnouncements, weeklyDigest } = req.body;
-
-    const { User } = require('../models');
-    const user = await User.findByPk(req.user.id);
-
-    if (!user) {
-      return next(new AppError('User not found', 404));
-    }
-
-    // Get current preferences or defaults
-    const currentPreferences = user.notificationPreferences || {};
-
-    // Update notification preferences
-    const newPreferences = {
-      emailNotifications: typeof emailNotifications === 'boolean' ? emailNotifications : currentPreferences.emailNotifications || true,
-      pushNotifications: typeof pushNotifications === 'boolean' ? pushNotifications : currentPreferences.pushNotifications || true,
-      marketingEmails: typeof marketingEmails === 'boolean' ? marketingEmails : currentPreferences.marketingEmails || false,
-      newCollaborationRequests: typeof newCollaborationRequests === 'boolean' ? newCollaborationRequests : currentPreferences.newCollaborationRequests || true,
-      collaborationUpdates: typeof collaborationUpdates === 'boolean' ? collaborationUpdates : currentPreferences.collaborationUpdates || true,
-      messages: typeof messages === 'boolean' ? messages : currentPreferences.messages || true,
-      systemAnnouncements: typeof systemAnnouncements === 'boolean' ? systemAnnouncements : currentPreferences.systemAnnouncements || true,
-      weeklyDigest: typeof weeklyDigest === 'boolean' ? weeklyDigest : currentPreferences.weeklyDigest || true
-    };
-
-    await user.update({ notificationPreferences: newPreferences });
-
-    // Log the action
-    try {
-      await logAction({
-        req,
-        action: 'UPDATE_NOTIFICATION_PREFERENCES',
-        entity: 'User',
-        entityId: user.id,
-        meta: { email: user.email }
-      });
-    } catch (logError) {
-      // Non-blocking
-    }
-
-    sendSuccess(res, 200, 'Notification preferences updated successfully', { notificationPreferences: newPreferences });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-// =======================
 // UPDATE ACCOUNT SETTINGS
 // =======================
 exports.updateAccountSettings = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, language, timezone } = req.body;
+    const { firstName, lastName, email } = req.body;
 
     const { User } = require('../models');
     const user = await User.findByPk(req.user.id);
@@ -177,8 +51,6 @@ exports.updateAccountSettings = async (req, res, next) => {
 
     if (firstName !== undefined) updates.firstName = firstName.trim();
     if (lastName !== undefined) updates.lastName = lastName.trim();
-    if (language !== undefined) updates.language = language;
-    if (timezone !== undefined) updates.timezone = timezone;
 
     // Handle email change separately - check if email already exists
     if (email !== undefined && email !== user.email) {
@@ -187,7 +59,6 @@ exports.updateAccountSettings = async (req, res, next) => {
         return next(new AppError('Email already in use by another account', 400));
       }
       updates.email = email.toLowerCase();
-      updates.emailVerified = false; // Require re-verification
     }
 
     if (Object.keys(updates).length === 0) {
@@ -213,11 +84,7 @@ exports.updateAccountSettings = async (req, res, next) => {
       account: {
         email: user.email,
         firstName: user.firstName,
-        lastName: user.lastName,
-        profileImage: user.image,
-        language: user.language,
-        timezone: user.timezone,
-        emailVerified: user.emailVerified
+        lastName: user.lastName
       }
     });
   } catch (error) {
@@ -226,7 +93,7 @@ exports.updateAccountSettings = async (req, res, next) => {
 };
 
 // =======================
-// CHANGE PASSWORD (Alternative endpoint in settings)
+// CHANGE PASSWORD
 // =======================
 exports.changePassword = async (req, res, next) => {
   try {
@@ -253,7 +120,7 @@ exports.changePassword = async (req, res, next) => {
 
     // Check if user has a password (not OAuth-only user)
     if (!user.password) {
-      return next(new AppError('Cannot change password for OAuth-only accounts. Please set a password first.', 400));
+      return next(new AppError('Cannot change password for OAuth-only accounts', 400));
     }
 
     // Verify current password
@@ -295,7 +162,7 @@ exports.deleteAccount = async (req, res, next) => {
       return next(new AppError('Please confirm account deletion', 400));
     }
 
-    const { User, OwnerProfile, InfluencerProfile, Session, Campaign, Collaboration } = require('../models');
+    const { User, OwnerProfile, InfluencerProfile, Session } = require('../models');
     const user = await User.findByPk(req.user.id);
 
     if (!user) {
@@ -322,18 +189,6 @@ exports.deleteAccount = async (req, res, next) => {
     await InfluencerProfile.destroy({ where: { userId } });
     await Session.destroy({ where: { userId } });
 
-    // Soft delete or anonymize campaigns and collaborations instead of hard deleting
-    // This maintains data integrity for other users involved
-    await Campaign.update(
-      { ownerId: null, status: 'archived' },
-      { where: { ownerId: userId } }
-    );
-
-    await Collaboration.update(
-      { status: 'terminated', terminationReason: 'User account deleted' },
-      { where: { $or: [{ ownerId: userId }, { influencerId: userId }] } }
-    );
-
     // Finally delete the user
     await user.destroy();
 
@@ -351,65 +206,6 @@ exports.deleteAccount = async (req, res, next) => {
     }
 
     sendSuccess(res, 200, 'Account deleted successfully', null);
-  } catch (error) {
-    return next(error);
-  }
-};
-
-// =======================
-// EXPORT USER DATA (GDPR compliance)
-// =======================
-exports.exportUserData = async (req, res, next) => {
-  try {
-    const { User, OwnerProfile, InfluencerProfile, Campaign, Collaboration, Channel } = require('../models');
-    
-    const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'email', 'firstName', 'lastName', 'image', 'createdAt', 'updatedAt',
-        'privacySettings', 'notificationPreferences', 'language', 'timezone'
-      ]
-    });
-
-    if (!user) {
-      return next(new AppError('User not found', 404));
-    }
-
-    // Get all related data
-    const ownerProfile = await OwnerProfile.findOne({ where: { userId: req.user.id } });
-    const influencerProfile = await InfluencerProfile.findOne({ where: { userId: req.user.id } });
-    const campaigns = await Campaign.findAll({ where: { ownerId: req.user.id } });
-    const collaborations = await Collaboration.findAll({ 
-      where: { $or: [{ ownerId: req.user.id }, { influencerId: req.user.id }] } 
-    });
-    const socialAccounts = await Channel.findAll({ where: { userId: req.user.id } });
-
-    const userData = {
-      user: user.toJSON(),
-      ownerProfile: ownerProfile ? ownerProfile.toJSON() : null,
-      influencerProfile: influencerProfile ? influencerProfile.toJSON() : null,
-      campaigns: campaigns.map(c => c.toJSON()),
-      collaborations: collaborations.map(c => c.toJSON()),
-      socialMediaAccounts: socialAccounts.map(s => ({
-        platform: s.platform,
-        username: s.username,
-        connectedAt: s.createdAt
-      })),
-      exportDate: new Date().toISOString()
-    };
-
-    // Log the action
-    try {
-      await logAction({
-        req,
-        action: 'EXPORT_USER_DATA',
-        entity: 'User',
-        entityId: user.id,
-        meta: { email: user.email }
-      });
-    } catch (logError) {
-      // Non-blocking
-    }
-
-    sendSuccess(res, 200, 'User data exported successfully', userData);
   } catch (error) {
     return next(error);
   }

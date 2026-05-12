@@ -804,7 +804,7 @@ exports.forgotPassword = async (req, res, next) => {
     });
 
     // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
 
     // Email template
     const htmlMessage = `
@@ -840,39 +840,31 @@ This link will expire in 1 hour.
 If you didn't request this, please ignore this email. Your password will not be changed.
     `;
 
-    // Send email
+    // MOCK EMAIL - Log reset URL to console (for development)
+    console.log('\n========================================');
+    console.log('🔑 PASSWORD RESET LINK (MOCK EMAIL)');
+    console.log('========================================');
+    console.log('Email would be sent to:', user.email);
+    console.log('Reset URL:', resetUrl);
+    console.log('========================================\n');
+
+    // Log the password reset request
     try {
-      await sendEmail({
-        to: user.email,
-        subject: 'Password Reset Request',
-        html: htmlMessage,
-        text: textMessage
+      await logAction({ 
+        req, 
+        action: 'REQUEST_PASSWORD_RESET', 
+        entity: 'User', 
+        entityId: user.id, 
+        meta: { email: user.email, mock: true } 
       });
-
-      // Log the password reset request
-      try {
-        await logAction({ 
-          req, 
-          action: 'REQUEST_PASSWORD_RESET', 
-          entity: 'User', 
-          entityId: user.id, 
-          meta: { email: user.email } 
-        });
-      } catch (logError) {
-        // Non-blocking: log errors are not critical
-      }
-
-      sendSuccess(res, 200, 'If that email exists, a password reset link has been sent', null);
-    } catch (emailError) {
-      // Revert the token if email fails
-      await user.update({
-        resetPasswordToken: null,
-        resetPasswordExpires: null
-      });
-
-      console.error('Error sending password reset email:', emailError);
-      return next(new AppError('Error sending password reset email. Please try again later.', 500));
+    } catch (logError) {
+      // Non-blocking: log errors are not critical
     }
+
+    sendSuccess(res, 200, 'Password reset link generated! Check server console for the link.', {
+      mockResetUrl: resetUrl,
+      email: user.email
+    });
   } catch (error) {
     return next(error);
   }
@@ -1005,6 +997,91 @@ exports.changePassword = async (req, res, next) => {
     }
 
     sendSuccess(res, 200, 'Password changed successfully', null);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Switch active role (for users with multiple roles)
+exports.switchRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    const userId = req.user.id;
+
+    if (!role) {
+      return next(new AppError('Role is required', 400));
+    }
+
+    // Validate role
+    const validRoles = ['OWNER', 'INFLUENCER', 'ADMIN'];
+    if (!validRoles.includes(role)) {
+      return next(new AppError('Invalid role', 400));
+    }
+
+    const { User, Role } = require('../models');
+
+    // Get user with roles
+    const user = await User.findByPk(userId, {
+      include: [{
+        model: Role,
+        as: 'roles',
+        attributes: ['id', 'name'],
+        through: { attributes: [] }
+      }]
+    });
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    const userRoles = user.roles ? user.roles.map(r => r.name) : [];
+
+    // Check if user has the requested role
+    if (!userRoles.includes(role)) {
+      return next(new AppError(`You do not have the ${role} role`, 403));
+    }
+
+    // Generate new tokens with the switched role as primary
+    const roleId = role === 'ADMIN' ? 3 : role === 'OWNER' ? 1 : 2;
+    const accessToken = generateToken(userId, roleId);
+    const refreshToken = generateRefreshToken(userId);
+
+    // Update session
+    await Session.upsert({
+      userId: userId,
+      token: accessToken,
+      refreshToken: refreshToken,
+      roleId: roleId,
+      lastActive: new Date()
+    });
+
+    // Set refresh token in cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    // Log the role switch
+    try {
+      await logAction({
+        req,
+        action: 'SWITCH_ROLE',
+        entity: 'User',
+        entityId: userId,
+        meta: { fromRole: req.user.role, toRole: role }
+      });
+    } catch (logError) {
+      // Non-blocking
+    }
+
+    sendSuccess(res, 200, `Switched to ${role} successfully`, {
+      accessToken,
+      role,
+      roleId,
+      roles: userRoles
+    });
   } catch (error) {
     return next(error);
   }

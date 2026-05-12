@@ -19,9 +19,9 @@ const {
   updateCollaborationStatus,
   deleteCampaign,
   getLogs,
-  getRecentActivity
-
-
+  getRecentActivity,
+  getHeaderStats,
+  search
 } = require('../controllers/adminController');
 
 // All admin routes require authentication and ADMIN role
@@ -123,6 +123,16 @@ router.get('/logs', getLogs);
 // @desc    Get recent admin activity
 // @access  Private (ADMIN only)
 router.get('/recent-activity', getRecentActivity);
+
+// @route   GET /api/admin/header-stats
+// @desc    Get header stats for admin dashboard
+// @access  Private (ADMIN only)
+router.get('/header-stats', getHeaderStats);
+
+// @route   GET /api/admin/search
+// @desc    Search across users, sessions, and collaborations
+// @access  Private (ADMIN only)
+router.get('/search', search);
 
 module.exports = router;
 

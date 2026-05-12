@@ -84,17 +84,22 @@ exports.getAllInfluencers = async (req, res, next) => {
     
     // Do not restrict by user status here — return influencers with any status
     
-    // Fetch influencer profiles with user data
+    // Fetch influencer profiles with user data and reviews
     const { count, rows: influencers } = await InfluencerProfile.findAndCountAll({
       where,
-      include: [{
+      include: [
+        {
           model: User,
           as: 'user',
           // Only expose basic user info useful to Owners
           attributes: ['firstName', 'lastName', 'email', 'status'],
           where: userWhere,
-          required: true
-        }],
+          required: true,
+          include: [
+            { model: Review, as: 'receivedReviews', attributes: ['rating'], required: false }
+          ]
+        }
+      ],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['followersCount', 'DESC']], // Default sort by followers
@@ -128,7 +133,16 @@ exports.getAllInfluencers = async (req, res, next) => {
         audienceGender: profile.audienceGender,
         audienceLocation: profile.audienceLocation,
         interests: profile.interests,
-        completionPercentage: profile.completionPercentage
+        completionPercentage: profile.completionPercentage,
+        // Rating summary
+        rating: (() => {
+          const reviews = profile.user?.receivedReviews || [];
+          const total = reviews.length;
+          const average = total > 0
+            ? (reviews.reduce((sum, r) => sum + r.rating, 0) / total).toFixed(1)
+            : 0;
+          return { average: Number(average), total };
+        })()
       })),
       pagination: {
         currentPage: parseInt(page),

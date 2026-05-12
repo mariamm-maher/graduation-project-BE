@@ -1,4 +1,4 @@
-const { User, Session, Campaign, Collaboration, CollaborationRequest, Role, OwnerProfile, InfluencerProfile, ChatRoom, ChatParticipant, Message, Log } = require('../models');
+const { User, Session, Campaign, Collaboration, CollaborationRequest, Role, OwnerProfile, InfluencerProfile, ChatRoom, ChatParticipant, Message, Log, Review } = require('../models');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { Op } = require('sequelize');
@@ -64,7 +64,7 @@ exports.getAnalytics = async (req, res, next) => {
     // Recent registrations (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const recentUsers = await User.count({
       where: {
         createdAt: {
@@ -72,6 +72,22 @@ exports.getAnalytics = async (req, res, next) => {
         }
       }
     });
+
+    // Get recent activity logs (last 100 entries)
+    const recentLogs = await Log.findAll({
+      include: [{ model: User, as: 'actorUser', attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      limit: 6,
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Process campaign stats - map lifecycle stages to frontend expectations
+    const campaignStatsMap = campaignStats.reduce((acc, stat) => {
+      acc[stat.lifecycleStage] = parseInt(stat.dataValues.count);
+      return acc;
+    }, {});
+
+    // Calculate "active" campaigns (all non-draft, non-cancelled campaigns)
+    const activeCampaigns = totalCampaigns - (campaignStatsMap.draft || 0) - (campaignStatsMap.cancelled || 0);
 
     sendSuccess(res, 200, 'Analytics retrieved successfully', {
       overview: {
@@ -85,14 +101,20 @@ exports.getAnalytics = async (req, res, next) => {
         owners: ownerCount?.users?.length || 0,
         influencers: influencerCount?.users?.length || 0
       },
-      campaignStats: campaignStats.reduce((acc, stat) => {
-        acc[stat.lifecycleStage] = parseInt(stat.dataValues.count);
-        return acc;
-      }, {}),
+      campaignStats: {
+        active: Math.max(0, activeCampaigns),
+        draft: campaignStatsMap.draft || 0,
+        ai_generated: campaignStatsMap.ai_generated || 0,
+        saved: campaignStatsMap.saved || 0,
+        completed: campaignStatsMap.completed || 0,
+        cancelled: campaignStatsMap.cancelled || 0,
+        ...campaignStatsMap
+      },
       collaborationStats: collaborationStats.reduce((acc, stat) => {
         acc[stat.status] = parseInt(stat.dataValues.count);
         return acc;
-      }, {})
+      }, {}),
+      recentLogs: recentLogs
     });
   } catch (error) {
     return next(error);
@@ -136,7 +158,7 @@ exports.getUsers = async (req, res, next) => {
     const { count, rows: users } = await User.findAndCountAll({
       where: whereClause,
       include: includeClause,
-      attributes: ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'status', 'createdAt', 'updatedAt'],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']],
@@ -367,6 +389,56 @@ exports.deleteUser = async (req, res, next) => {
         }
       }
     }
+
+    // Handle collaborations - delete collaborations where user is owner
+    const ownedCollaborations = await Collaboration.findAll({
+      where: { ownerId: id }
+    });
+
+    for (const collab of ownedCollaborations) {
+      await collab.destroy();
+    }
+
+    // Delete collaboration requests where user is owner or influencer
+    await CollaborationRequest.destroy({
+      where: {
+        [Op.or]: [
+          { ownerId: id },
+          { influencerId: id }
+        ]
+      }
+    });
+
+    // Delete reviews where user is owner or influencer
+    await Review.destroy({
+      where: {
+        [Op.or]: [
+          { ownerId: id },
+          { influencerId: id }
+        ]
+      }
+    });
+
+    // Delete collaborations where user is the influencer
+    const influencerCollaborations = await Collaboration.findAll({
+      where: { influencerId: id }
+    });
+
+    for (const collab of influencerCollaborations) {
+      await collab.destroy();
+    }
+
+    // Delete user's campaigns (this will cascade to campaign-related data if configured)
+    await Campaign.destroy({ where: { userId: id } });
+
+    // Delete user's owner profile if exists
+    await OwnerProfile.destroy({ where: { userId: id } });
+
+    // Delete user's influencer profile if exists
+    await InfluencerProfile.destroy({ where: { userId: id } });
+
+    // Delete all user sessions
+    await Session.destroy({ where: { userId: id } });
 
     await user.destroy();
 
@@ -946,5 +1018,59 @@ exports.getSessions = async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+};
+
+
+
+// @desc    Get header stats for admin dashboard
+exports.getHeaderStats = async (req, res, next) => {
+  try {
+    const activeSessions = await Session.count({ where: { revokedAt: null, expiresAt: { [Op.gt]: new Date() } } });
+    const totalUsers = await User.count();
+    const unreadNotifications = await Log.count({
+      where: { action: { [Op.in]: ['CREATE_CAMPAIGN', 'CREATE_COLLABORATION', 'SIGN_CONTRACT', 'CREATE_REVIEW', 'SIGNUP'] }, createdAt: { [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+    });
+    const recentMessages = await Log.count({
+      where: { action: { [Op.in]: ['SEND_MESSAGE', 'CREATE_CHAT'] }, createdAt: { [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+    });
+    const onlineUsers = await Session.findAll({
+      where: { revokedAt: null, expiresAt: { [Op.gt]: new Date() } },
+      include: [{ model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      attributes: ['userId'], group: ['userId', 'user.id', 'user.firstName', 'user.lastName', 'user.email'], limit: 5
+    });
+    sendSuccess(res, 200, 'Header stats retrieved', {
+      activeSessions, totalUsers, unreadNotifications, recentMessages,
+      onlineUsers: onlineUsers.map(s => ({ id: s.user?.id, firstName: s.user?.firstName, lastName: s.user?.lastName, email: s.user?.email })).filter(u => u.id)
+    });
+  } catch (error) { return next(error); }
+};
+
+// @desc    Search across users, sessions, and collaborations
+exports.search = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    const searchTerm = q ? q.trim().toLowerCase() : '';
+    if (!searchTerm || searchTerm.length < 2) return sendSuccess(res, 200, 'Search results', { results: [] });
+    const users = await User.findAll({
+      where: { [Op.or]: [{ firstName: { [Op.iLike]: '%' + searchTerm + '%' } }, { lastName: { [Op.iLike]: '%' + searchTerm + '%' } }, { email: { [Op.iLike]: '%' + searchTerm + '%' } }] },
+      include: [{ model: Role, as: 'roles', attributes: ['name'] }], attributes: ['id', 'firstName', 'lastName', 'email', 'status'], limit: 5
+    });
+    const sessions = await Session.findAll({
+      where: { revokedAt: null, expiresAt: { [Op.gt]: new Date() } },
+      include: [{ model: User, as: 'user', where: { [Op.or]: [{ firstName: { [Op.iLike]: '%' + searchTerm + '%' } }, { lastName: { [Op.iLike]: '%' + searchTerm + '%' } }, { email: { [Op.iLike]: '%' + searchTerm + '%' } }] }, attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      attributes: ['id', 'ip', 'userAgent', 'createdAt'], limit: 5
+    });
+    const collaborations = await Collaboration.findAll({
+      where: { '$campaign.campaignName$': { [Op.iLike]: '%' + searchTerm + '%' } },
+      include: [{ model: Campaign, as: 'campaign', attributes: ['id', 'campaignName'] }, { model: User, as: 'owner', attributes: ['id', 'firstName', 'lastName', 'email'] }, { model: User, as: 'influencer', attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      attributes: ['id', 'status', 'createdAt'], limit: 5
+    });
+    const results = [
+      ...users.map(u => ({ type: 'account', id: u.id, name: ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email, role: u.roles?.[0]?.name || 'User', status: u.status, email: u.email })),
+      ...sessions.map(s => ({ type: 'session', id: s.id, name: ((s.user?.firstName || '') + ' ' + (s.user?.lastName || '')).trim() || s.user?.email, status: 'Active', ip: s.ip, userAgent: s.userAgent })),
+      ...collaborations.map(c => ({ type: 'collaboration', id: c.id, name: c.campaign?.campaignName || 'Unnamed Collaboration', status: c.status, owner: c.owner ? ((c.owner.firstName || '') + ' ' + (c.owner.lastName || '')).trim() : '', influencer: c.influencer ? ((c.influencer.firstName || '') + ' ' + (c.influencer.lastName || '')).trim() : '' }))
+    ];
+    sendSuccess(res, 200, 'Search results', { results: results.slice(0, 10) });
+  } catch (error) { return next(error); }
 };
 
