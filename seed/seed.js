@@ -17,7 +17,8 @@ const {
   ChatParticipant,
   Message,
   Notification,
-  Review
+  Review,
+  PostAnalytics
 } = require('../models');
 const influencerAccounts = require('./influencer/data');
 const ownerAccounts = require('./owner/data');
@@ -27,6 +28,7 @@ const taskSeeds = require('./tasks/data');
 const messageSeeds = require('./messages/data');
 const notificationSeeds = require('./notifications/data');
 const reviewSeeds = require('./reviews/data');
+const { seedTrackingCampaigns } = require('./tracking/seed');
 
 async function ensureRole(user, role) {
   const roles = await user.getRoles({ where: { id: role.id } });
@@ -498,6 +500,9 @@ async function runAllSeeds() {
     await seedMessages();
     await seedNotifications();
     await seedReviews();
+    await seedTrackingCampaigns({
+      Campaign, KPI, TargetAudience, ContentCalendar, PostAnalytics, User
+    }, 'owner01@example.com');
 
     console.log('Done. All entities seeded successfully.');
     process.exit(0);

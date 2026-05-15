@@ -184,6 +184,42 @@ exports.markRoomAsRead = async (req, res, next) => {
 };
 
 /**
+ * Get total unread message count across all rooms
+ * @route GET /api/chat/unread-count
+ */
+exports.getUnreadCount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { ChatParticipant, Message } = require('../models');
+    const { Op } = require('sequelize');
+
+    // Get all room IDs the user is part of
+    const participations = await ChatParticipant.findAll({
+      where: { userId },
+      attributes: ['chatRoomId']
+    });
+
+    const roomIds = participations.map(p => p.chatRoomId);
+
+    if (roomIds.length === 0) {
+      return sendSuccess(res, 200, 'Unread count retrieved', { unreadCount: 0 });
+    }
+
+    const unreadCount = await Message.count({
+      where: {
+        chatRoomId: { [Op.in]: roomIds },
+        senderId: { [Op.ne]: userId },
+        status: { [Op.ne]: 'read' }
+      }
+    });
+
+    sendSuccess(res, 200, 'Unread count retrieved', { unreadCount });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * Get chat room details
  * @route GET /api/chat/rooms/:roomId
  */

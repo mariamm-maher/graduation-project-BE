@@ -1163,21 +1163,15 @@ exports.getActiveCampaigns = async (req, res, next) => {
     const activeCampaigns = await Campaign.findAll({
       where: {
         userId: ownerId,
-        lifecycleStage: { [Op.notIn]: ['cancelled', 'draft'] },
+        // Must be published and not cancelled/draft
+        isPublished: true,
+        lifecycleStage: { [Op.notIn]: ['cancelled', 'draft', 'completed'] },
+        // Must have started (startDate <= today)
+        startDate: { [Op.lte]: today },
+        // Must not have ended yet (endDate >= today OR no endDate)
         [Op.or]: [
-          { isPublished: true },
-          { lifecycleStage: 'completed' },
-          {
-            [Op.and]: [
-              { startDate: { [Op.lte]: today } },
-              {
-                [Op.or]: [
-                  { endDate: { [Op.gte]: today } },
-                  { endDate: null }
-                ]
-              }
-            ]
-          }
+          { endDate: { [Op.gte]: today } },
+          { endDate: null }
         ]
       },
       include: [
@@ -1212,7 +1206,7 @@ exports.getActiveCampaigns = async (req, res, next) => {
     const campaignsWithTracking = activeCampaigns.map((campaignModel) => {
       const campaign = campaignModel.toJSON();
 
-      const start = new Date(campaign.createdAt);
+      const start = new Date(campaign.startDate || campaign.createdAt);
       const totalDurationDays = Math.max(1, Number(campaign.campaign_duration_weeks || 1) * 7);
       const elapsedDurationDays = Math.max(0, Math.min(totalDurationDays, Math.ceil((today - start) / (1000 * 60 * 60 * 24))));
       const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedDurationDays / totalDurationDays) * 100)));

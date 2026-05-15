@@ -335,5 +335,7 @@ module.exports = {
   Notification,
   Log,
   Review,
-  InterestMessage
+  InterestMessage,
+  PostAnalytics,
+  ScheduledPost
 };
