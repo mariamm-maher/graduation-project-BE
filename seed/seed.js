@@ -492,6 +492,9 @@ async function seedReviews() {
 async function runAllSeeds() {
   try {
     await sequelize.authenticate();
+    console.log('Syncing database...');
+    await sequelize.sync({ alter: true });
+    console.log('Database synced.');
     await seedInfluencers();
     await seedOwners();
     await seedCampaigns();

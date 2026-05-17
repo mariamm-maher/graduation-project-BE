@@ -144,16 +144,8 @@ class NotificationFactory {
       entityId: collaboration.id
     }));
 
-    // Task notifications
+    // Task notifications — influencer only for new assignments
     tasks.forEach(task => {
-      // Owner gets task assignment notification
-      notifications.push(this.generateNotification(ownerId, 'TASK_ASSIGNED', {
-        entityType: 'CollaborationTask',
-        entityId: task.id,
-        metadata: { taskName: task.taskName }
-      }, { isRead: true }));
-
-      // Influencer gets task assignment
       notifications.push(this.generateNotification(influencerId, 'TASK_ASSIGNED', {
         entityType: 'CollaborationTask',
         entityId: task.id,

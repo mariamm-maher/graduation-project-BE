@@ -1,8 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const { setEngine } = require('crypto');
 
-const Brand = sequelize.define('Brand',{
+const Brand = sequelize.define('Brand', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -20,7 +19,6 @@ const Brand = sequelize.define('Brand',{
   name: {
     type: DataTypes.STRING(150),
     allowNull: false,
-    unique: true,
     comment: 'Official brand name',
   },
   segment: {
@@ -31,7 +29,6 @@ const Brand = sequelize.define('Brand',{
   slug: {
     type: DataTypes.STRING(150),
     allowNull: false,
-    unique: true,
     comment: 'URL-friendly version of the brand name (e.g. "my-brand")',
   },
 
@@ -101,6 +98,11 @@ const Brand = sequelize.define('Brand',{
     allowNull: false,
     defaultValue: DataTypes.NOW,
   },
+}, {
+  indexes: [
+    { unique: true, fields: ['name'] },
+    { unique: true, fields: ['slug'] },
+  ],
 });
 
 
