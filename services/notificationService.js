@@ -50,7 +50,7 @@ class NotificationService {
 
         // Update unread count
         const unreadCount = await this.getUnreadCount(userId);
-        emitToUser(userId, 'notification_count_updated', { unreadCount });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount });
       } catch (socketError) {
         // Log but don't fail if socket emission fails
         console.error('Socket emission failed:', socketError);
@@ -86,7 +86,7 @@ class NotificationService {
           });
 
           const unreadCount = await this.getUnreadCount(notification.userId);
-          emitToUser(notification.userId, 'notification_count_updated', { unreadCount });
+          emitToUser(notification.userId, 'notification_count_updated', { userId: notification.userId, unreadCount });
         } catch (socketError) {
           console.error('Socket emission failed:', socketError);
         }
@@ -175,9 +175,9 @@ class NotificationService {
 
       // Emit update via Socket.io
       try {
-        emitToUser(userId, 'notification_read', { notificationId });
+        emitToUser(userId, 'notification_read', { userId, notificationId });
         const unreadCount = await this.getUnreadCount(userId);
-        emitToUser(userId, 'notification_count_updated', { unreadCount });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount });
       } catch (socketError) {
         console.error('Socket emission failed:', socketError);
       }
@@ -206,8 +206,8 @@ class NotificationService {
 
       // Emit update via Socket.io
       try {
-        emitToUser(userId, 'all_notifications_read');
-        emitToUser(userId, 'notification_count_updated', { unreadCount: 0 });
+        emitToUser(userId, 'all_notifications_read', { userId });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount: 0 });
       } catch (socketError) {
         console.error('Socket emission failed:', socketError);
       }
@@ -231,7 +231,7 @@ class NotificationService {
       if (result > 0) {
         // Update unread count
         const unreadCount = await this.getUnreadCount(userId);
-        emitToUser(userId, 'notification_count_updated', { unreadCount });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount });
       }
 
       return result > 0;
@@ -256,6 +256,23 @@ class NotificationService {
       return result;
     } catch (error) {
       console.error('Error deleting read notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all notifications for a user
+   */
+  async deleteAllNotifications(userId) {
+    try {
+      await Notification.destroy({
+        where: { userId }
+      });
+
+      // Emit real-time notification update via Socket.io
+      emitToUser(userId, 'all_notifications_deleted', { userId });
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
       throw error;
     }
   }

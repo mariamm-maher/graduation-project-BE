@@ -137,3 +137,23 @@ exports.deleteNotification = async (req, res, next) => {
     return next(error);
   }
 };
+
+// @desc    Delete all notifications
+// @route   DELETE /api/notifications/delete-all
+// @access  Private (authenticated user)
+exports.deleteAllNotifications = async (req, res, next) => {
+  try {
+    await notificationService.deleteAllNotifications(req.user.id);
+
+    // Log the bulk delete
+    try {
+      await logAction({ req, action: 'DELETE_ALL_NOTIFICATIONS', entity: 'Notification', entityId: null, meta: { userId: req.user.id } });
+    } catch (e) {
+      // non-blocking
+    }
+
+    sendSuccess(res, 200, 'All notifications deleted successfully', null);
+  } catch (error) {
+    return next(error);
+  }
+};
