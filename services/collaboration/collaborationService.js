@@ -259,6 +259,11 @@ async function listByOwner({ ownerId, status }) {
         model: User,
         as: 'influencer',
         attributes: ['id', 'firstName', 'lastName'],
+      },
+      {
+        model: CollaborationRequest,
+        as: 'request',
+        attributes: ['id', 'proposedBudget', 'counterPrice', 'ownerId', 'influencerId', 'status']
       }
     ]
   });

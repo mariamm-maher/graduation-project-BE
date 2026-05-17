@@ -7,13 +7,9 @@ const PostAnalytics = sequelize.define('PostAnalytics', {
     primaryKey: true,
     autoIncrement: true
   },
-  ScheduledpostId: {
+  scheduledPostId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'ScheduledPosts',
-      key: 'id'
-    }
   },
   note:{
     type: DataTypes.TEXT,

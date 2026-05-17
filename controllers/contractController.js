@@ -1,6 +1,7 @@
 // controllers/contractController.js
 const contractService = require('../services/collaboration/contractService');
 const sendSuccess     = require('../utils/sendSuccess');
+const { logAction } = require('../services/logServices');
 
 // POST /api/collaborations/:collaborationId/contract
 // Role: Owner — create a draft contract for an accepted collaboration
@@ -15,6 +16,24 @@ exports.createContract = async (req, res, next) => {
       endDate,
       deliverables,
     });
+
+    // Log contract creation
+    try {
+      await logAction({
+        req,
+        action: 'CREATE_CONTRACT',
+        entity: 'CollaborationContract',
+        entityId: contract.id,
+        meta: {
+          collaborationId: req.params.collaborationId,
+          agreedPrice: contract.agreedPrice,
+          startDate,
+          endDate
+        }
+      });
+    } catch (e) {
+      // non-blocking
+    }
 
     sendSuccess(res, 201, 'Contract created', { contract });
   } catch (err) {
@@ -53,6 +72,22 @@ exports.signContractOwner = async (req, res, next) => {
       ownerId: req.user.id,
     });
 
+    // Log contract signing
+    try {
+      await logAction({
+        req,
+        action: 'SIGN_CONTRACT',
+        entity: 'CollaborationContract',
+        entityId: req.params.id,
+        meta: {
+          signerRole: 'owner',
+          fullySigned: result.contract?.ownerSigned && result.contract?.influencerSigned
+        }
+      });
+    } catch (e) {
+      // non-blocking
+    }
+
     sendSuccess(res, 200, 'Contract signed by owner', result);
   } catch (err) {
     next(err);
@@ -67,6 +102,22 @@ exports.signContractInfluencer = async (req, res, next) => {
       contractId: req.params.id,
       influencerId: req.user.id,
     });
+
+    // Log contract signing
+    try {
+      await logAction({
+        req,
+        action: 'SIGN_CONTRACT',
+        entity: 'CollaborationContract',
+        entityId: req.params.id,
+        meta: {
+          signerRole: 'influencer',
+          fullySigned: result.contract?.ownerSigned && result.contract?.influencerSigned
+        }
+      });
+    } catch (e) {
+      // non-blocking
+    }
 
     sendSuccess(res, 200, 'Contract signed by influencer', result);
   } catch (err) {

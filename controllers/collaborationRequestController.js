@@ -4,6 +4,7 @@ const notificationService = require('../services/notificationService');
 const Campaign = require('../models/Campaign');
 const sendSuccess    = require('../utils/sendSuccess');
 const AppError       = require('../utils/AppError');
+const { logAction } = require('../services/logServices');
 
 const INVALID_CAMPAIGN_STAGES = ['draft', 'cancelled'];
 
@@ -62,6 +63,24 @@ exports.invite = async (req, res, next) => {
       console.error('Failed to send notification for collaboration request:', notifErr);
     }
 
+    // Log the collaboration request
+    try {
+      await logAction({
+        req,
+        action: 'SEND_COLLABORATION_REQUEST',
+        entity: 'CollaborationRequest',
+        entityId: request.id,
+        meta: {
+          campaignId,
+          influencerId,
+          proposedBudget,
+          campaignName: campaign?.campaignName
+        }
+      });
+    } catch (e) {
+      // non-blocking
+    }
+
     sendSuccess(res, 201, 'Collaboration request sent', { request });
   } catch (err) {
     next(err);
@@ -83,6 +102,27 @@ exports.respond = async (req, res, next) => {
       newBudget,
       responseMessage,
     });
+
+    // Log collaboration response actions
+    try {
+      const logActionType = action === 'accept' ? 'ACCEPT_COLLABORATION' : 
+                           action === 'reject' ? 'REJECT_COLLABORATION' : 
+                           'UPDATE_COLLABORATION_REQUEST';
+      await logAction({
+        req,
+        action: logActionType,
+        entity: 'CollaborationRequest',
+        entityId: req.params.id,
+        meta: {
+          action,
+          newBudget,
+          responseMessage,
+          collaborationId: result.collaboration?.id
+        }
+      });
+    } catch (e) {
+      // non-blocking
+    }
 
     sendSuccess(res, 200, 'Request updated', result);
   } catch (err) {

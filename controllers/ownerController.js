@@ -8,7 +8,8 @@ const {
   ChatParticipant,
   Message,
   Notification,
-  Review
+  Review,
+  InterestMessage
 } = require('../models');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
@@ -83,17 +84,22 @@ exports.getAllInfluencers = async (req, res, next) => {
     
     // Do not restrict by user status here — return influencers with any status
     
-    // Fetch influencer profiles with user data
+    // Fetch influencer profiles with user data and reviews
     const { count, rows: influencers } = await InfluencerProfile.findAndCountAll({
       where,
-      include: [{
+      include: [
+        {
           model: User,
           as: 'user',
           // Only expose basic user info useful to Owners
           attributes: ['firstName', 'lastName', 'email', 'status'],
           where: userWhere,
-          required: true
-        }],
+          required: true,
+          include: [
+            { model: Review, as: 'receivedReviews', attributes: ['rating'], required: false }
+          ]
+        }
+      ],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['followersCount', 'DESC']], // Default sort by followers
@@ -127,7 +133,16 @@ exports.getAllInfluencers = async (req, res, next) => {
         audienceGender: profile.audienceGender,
         audienceLocation: profile.audienceLocation,
         interests: profile.interests,
-        completionPercentage: profile.completionPercentage
+        completionPercentage: profile.completionPercentage,
+        // Rating summary
+        rating: (() => {
+          const reviews = profile.user?.receivedReviews || [];
+          const total = reviews.length;
+          const average = total > 0
+            ? (reviews.reduce((sum, r) => sum + r.rating, 0) / total).toFixed(1)
+            : 0;
+          return { average: Number(average), total };
+        })()
       })),
       pagination: {
         currentPage: parseInt(page),
@@ -373,5 +388,77 @@ exports.getPastInfluencers = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+exports.getInterestMessages = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+    const { page = 1, limit = 30, isRead } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const where = { ownerId };
+    if (isRead === 'true') where.isRead = true;
+    if (isRead === 'false') where.isRead = false;
+
+    const { count, rows } = await InterestMessage.findAndCountAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'influencer',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: Campaign,
+          as: 'campaign',
+          attributes: ['id', 'campaignName']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: Number(limit),
+      offset
+    });
+
+    const messages = rows.map(m => ({
+      id: m.id,
+      campaignId: m.campaignId,
+      campaignName: m.campaign?.campaignName || '',
+      influencerId: m.influencerId,
+      influencerName: `${m.influencer?.firstName || ''} ${m.influencer?.lastName || ''}`.trim(),
+      influencerEmail: m.influencer?.email || '',
+      message: m.message,
+      isRead: m.isRead,
+      readAt: m.readAt,
+      createdAt: m.createdAt
+    }));
+
+    return sendSuccess(res, 200, 'Interest messages retrieved', {
+      messages,
+      pagination: {
+        total: count,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(count / Number(limit))
+      },
+      unreadCount: rows.filter(m => !m.isRead).length
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.markInterestMessageRead = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+    const { id } = req.params;
+
+    const msg = await InterestMessage.findOne({ where: { id, ownerId } });
+    if (!msg) throw new AppError('Message not found', 404);
+
+    await msg.update({ isRead: true, readAt: new Date() });
+    return sendSuccess(res, 200, 'Marked as read', { id: msg.id });
+  } catch (error) {
+    return next(error);
   }
 };

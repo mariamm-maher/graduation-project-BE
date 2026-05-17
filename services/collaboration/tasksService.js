@@ -62,17 +62,6 @@ async function updateTask({ taskId, userId, updates }) {
 
   await task.save();
 
-  try {
-    await notificationService.notifyTaskAssigned(
-      collaboration.influencerId,
-      task.id,
-      task.taskName,
-      collaboration.id
-    );
-  } catch (err) {
-    console.error('Failed to send TASK_ASSIGNED notification:', err);
-  }
-
   return task;
 }
 
@@ -319,7 +308,8 @@ async function createTask({ collaborationId, userId, taskName, description, dueD
       collaboration.influencerId,
       task.id,
       task.taskName,
-      collaboration.id
+      collaboration.id,
+      { ownerId: collaboration.ownerId }
     );
   } catch (err) {
     console.error('Failed to send TASK_ASSIGNED notification:', err);

@@ -11,12 +11,24 @@ const {
   CampaignAIVersion,
   CollaborationRequest,
   Collaboration,
-  CollaborationContract
+  CollaborationContract,
+  CollaborationTask,
+  ChatRoom,
+  ChatParticipant,
+  Message,
+  Notification,
+  Review,
+  PostAnalytics
 } = require('../models');
 const influencerAccounts = require('./influencer/data');
 const ownerAccounts = require('./owner/data');
 const campaignSeeds = require('./compagins/data');
 const collaborationSeeds = require('./collaboration/data');
+const taskSeeds = require('./tasks/data');
+const messageSeeds = require('./messages/data');
+const notificationSeeds = require('./notifications/data');
+const reviewSeeds = require('./reviews/data');
+const { seedTrackingCampaigns } = require('./tracking/seed');
 
 async function ensureRole(user, role) {
   const roles = await user.getRoles({ where: { id: role.id } });
@@ -276,15 +288,190 @@ async function seedCollaborations() {
   console.log(`Seeded ${collaborationSeeds.length} collaboration flow records.`);
 }
 
+async function seedTasks() {
+  console.log('Seeding collaboration tasks...');
+
+  const firstOwnerEmail = ownerAccounts[0]?.user?.email;
+  const firstInfluencerEmail = influencerAccounts[0]?.user?.email;
+  const owner = await User.findOne({ where: { email: firstOwnerEmail } });
+  const influencer = await User.findOne({ where: { email: firstInfluencerEmail } });
+  if (!owner || !influencer) { console.log('SKIPPED tasks: users not found.'); return; }
+
+  for (const seed of taskSeeds) {
+    const collabSeed = collaborationSeeds.find(c => c.key === seed.collaborationKey);
+    if (!collabSeed?.campaign?.campaignName) continue;
+
+    const campaign = await Campaign.findOne({ where: { userId: owner.id, campaignName: collabSeed.campaign.campaignName } });
+    if (!campaign) { console.log(`SKIPPED tasks for key "${seed.collaborationKey}": campaign not found.`); continue; }
+
+    const collab = await Collaboration.findOne({ where: { campaignId: campaign.id, ownerId: owner.id, influencerId: influencer.id } });
+    if (!collab) { console.log(`SKIPPED tasks for key "${seed.collaborationKey}": collaboration not found.`); continue; }
+
+    for (const task of seed.tasks) {
+      const [, created] = await CollaborationTask.findOrCreate({
+        where: { collaborationId: collab.id, taskName: task.taskName },
+        defaults: { collaborationId: collab.id, ...task }
+      });
+      if (!created) await CollaborationTask.update(task, { where: { collaborationId: collab.id, taskName: task.taskName } });
+      console.log(`  ${created ? 'CREATED' : 'UPDATED'} task "${task.taskName}" [${seed.collaborationKey}]`);
+    }
+  }
+  console.log('Done seeding tasks.');
+}
+
+async function seedMessages() {
+  console.log('Seeding chat rooms and messages...');
+
+  const firstOwnerEmail = ownerAccounts[0]?.user?.email;
+  const firstInfluencerEmail = influencerAccounts[0]?.user?.email;
+  const owner = await User.findOne({ where: { email: firstOwnerEmail } });
+  const influencer = await User.findOne({ where: { email: firstInfluencerEmail } });
+  if (!owner || !influencer) { console.log('SKIPPED messages: users not found.'); return; }
+
+  for (const seed of messageSeeds) {
+    const collabSeed = collaborationSeeds.find(c => c.key === seed.collaborationKey);
+    if (!collabSeed?.campaign?.campaignName) continue;
+
+    const campaign = await Campaign.findOne({ where: { userId: owner.id, campaignName: collabSeed.campaign.campaignName } });
+    if (!campaign) { console.log(`SKIPPED messages for key "${seed.collaborationKey}": campaign not found.`); continue; }
+
+    const collab = await Collaboration.findOne({ where: { campaignId: campaign.id, ownerId: owner.id, influencerId: influencer.id } });
+    if (!collab) { console.log(`SKIPPED messages for key "${seed.collaborationKey}": collaboration not found.`); continue; }
+
+    const [room] = await ChatRoom.findOrCreate({
+      where: { collaborationId: collab.id },
+      defaults: { collaborationId: collab.id, type: 'one_to_one', name: seed.roomName }
+    });
+
+    await ChatParticipant.findOrCreate({ where: { chatRoomId: room.id, userId: owner.id },      defaults: { chatRoomId: room.id, userId: owner.id,      role: 'owner' } });
+    await ChatParticipant.findOrCreate({ where: { chatRoomId: room.id, userId: influencer.id }, defaults: { chatRoomId: room.id, userId: influencer.id, role: 'influencer' } });
+
+    const existingCount = await Message.count({ where: { chatRoomId: room.id } });
+    if (existingCount === 0) {
+      const now = Date.now();
+      for (const msg of seed.messages) {
+        const senderId = msg.senderRole === 'owner' ? owner.id : influencer.id;
+        const sentAt = new Date(now - msg.minutesAgo * 60 * 1000);
+        await Message.create({ chatRoomId: room.id, senderId, content: msg.content, sentAt, status: msg.status });
+      }
+      console.log(`  CREATED room + ${seed.messages.length} messages [${seed.collaborationKey}]`);
+    } else {
+      console.log(`  EXISTS room (${existingCount} messages) [${seed.collaborationKey}]`);
+    }
+  }
+  console.log('Done seeding messages.');
+}
+
+async function seedNotifications() {
+  console.log('Seeding notifications...');
+
+  const firstOwnerEmail = ownerAccounts[0]?.user?.email;
+  const firstInfluencerEmail = influencerAccounts[0]?.user?.email;
+  const owner = await User.findOne({ where: { email: firstOwnerEmail } });
+  const influencer = await User.findOne({ where: { email: firstInfluencerEmail } });
+  if (!owner || !influencer) { console.log('SKIPPED notifications: users not found.'); return; }
+
+  await Notification.destroy({ where: { userId: [owner.id, influencer.id] } });
+
+  for (const n of notificationSeeds) {
+    const userId = n.recipientRole === 'owner' ? owner.id : influencer.id;
+
+    let entityId = null;
+    if (n.collaborationKey) {
+      const collabSeed = collaborationSeeds.find(c => c.key === n.collaborationKey);
+      if (collabSeed?.campaign?.campaignName) {
+        const campaign = await Campaign.findOne({ where: { userId: owner.id, campaignName: collabSeed.campaign.campaignName } });
+        if (campaign) {
+          if (n.entityType === 'CollaborationRequest') {
+            const req = await CollaborationRequest.findOne({ where: { campaignId: campaign.id, ownerId: owner.id, influencerId: influencer.id } });
+            entityId = req?.id ?? null;
+          } else if (n.entityType === 'CollaborationContract' || n.entityType === 'CollaborationTask' || n.entityType === 'ChatRoom') {
+            const collab = await Collaboration.findOne({ where: { campaignId: campaign.id, ownerId: owner.id, influencerId: influencer.id } });
+            if (collab) {
+              if (n.entityType === 'CollaborationContract') {
+                const contract = await CollaborationContract.findOne({ where: { collaborationId: collab.id } });
+                entityId = contract?.id ?? null;
+              } else if (n.entityType === 'CollaborationTask') {
+                const task = await CollaborationTask.findOne({ where: { collaborationId: collab.id, taskName: n.metadata?.taskName } });
+                entityId = task?.id ?? null;
+              } else if (n.entityType === 'ChatRoom') {
+                const room = await ChatRoom.findOne({ where: { collaborationId: collab.id } });
+                entityId = room?.id ?? null;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    await Notification.create({
+      userId,
+      type: n.type,
+      message: n.message,
+      entityType: n.entityType,
+      entityId,
+      metadata: n.metadata || null,
+      isRead: n.isRead
+    });
+    console.log(`  CREATED notification [${n.type}] for ${n.recipientRole}`);
+  }
+  console.log('Done seeding notifications.');
+}
+
+async function seedReviews() {
+  console.log('Seeding reviews...');
+
+  const firstOwnerEmail = ownerAccounts[0]?.user?.email;
+  const firstInfluencerEmail = influencerAccounts[0]?.user?.email;
+  const owner = await User.findOne({ where: { email: firstOwnerEmail } });
+  const influencer = await User.findOne({ where: { email: firstInfluencerEmail } });
+  if (!owner || !influencer) { console.log('SKIPPED reviews: users not found.'); return; }
+
+  for (const seed of reviewSeeds) {
+    const collabSeed = collaborationSeeds.find(c => c.key === seed.collaborationKey);
+    if (!collabSeed?.campaign?.campaignName) continue;
+
+    const campaign = await Campaign.findOne({ where: { userId: owner.id, campaignName: collabSeed.campaign.campaignName } });
+    if (!campaign) { console.log(`SKIPPED review for key "${seed.collaborationKey}": campaign not found.`); continue; }
+
+    const collab = await Collaboration.findOne({ where: { campaignId: campaign.id, ownerId: owner.id, influencerId: influencer.id } });
+    if (!collab) { console.log(`SKIPPED review for key "${seed.collaborationKey}": collaboration not found.`); continue; }
+
+    const reviewerId = seed.reviewerRole === 'owner' ? owner.id : influencer.id;
+    const [, created] = await Review.findOrCreate({
+      where: { collaborationId: collab.id, ownerId: owner.id, influencerId: influencer.id, reviewText: seed.reviewText },
+      defaults: {
+        ownerId: owner.id,
+        influencerId: influencer.id,
+        collaborationId: collab.id,
+        rating: seed.rating,
+        reviewText: seed.reviewText
+      }
+    });
+    console.log(`  ${created ? 'CREATED' : 'EXISTS'} review by ${seed.reviewerRole} [${seed.collaborationKey}]`);
+  }
+  console.log('Done seeding reviews.');
+}
+
 async function runAllSeeds() {
   try {
     await sequelize.authenticate();
-    //await seedInfluencers();
-    //await seedOwners();
+    console.log('Syncing database...');
+    await sequelize.sync({ alter: true });
+    console.log('Database synced.');
+    await seedInfluencers();
+    await seedOwners();
     await seedCampaigns();
-    // await seedCollaborations();
-    
-    console.log('Done. Seeded all accounts and campaigns successfully.');
+    await seedCollaborations();
+    await seedTasks();
+    await seedMessages();
+    await seedNotifications();
+    await seedReviews();
+    await seedTrackingCampaigns({
+      Campaign, KPI, TargetAudience, ContentCalendar, PostAnalytics, User
+    }, 'owner01@example.com');
+
+    console.log('Done. All entities seeded successfully.');
     process.exit(0);
   } catch (error) {
     console.error('Error seeding data:', error);

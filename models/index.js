@@ -18,6 +18,7 @@ const ChatRoom = require('./ChatRoom');
 const ChatParticipant = require('./ChatParticipant');
 const Message = require('./Message');
 const Review = require('./Review');
+const InterestMessage = require('./InterestMessage');
 
 const Session = require('./Session');
 const Log = require('./Log');
@@ -25,6 +26,7 @@ const Channel = require('./channel');
 const Notification = require('./Notification');
 const PostAnalytics = require('./PostAnalytics');
 const ScheduledPost = require('./ScheduledPost');
+
 // UploadedFile model removed — using Cloudinary only (no local DB model)
 // Define relationships
 
@@ -289,6 +291,13 @@ Review.belongsTo(User, { foreignKey: 'influencerId', as: 'reviewee' });
 Collaboration.hasMany(Review, { foreignKey: 'collaborationId', as: 'reviews', onDelete: 'SET NULL' });
 Review.belongsTo(Collaboration, { foreignKey: 'collaborationId', as: 'collaboration' });
 
+// InterestMessage associations
+InterestMessage.belongsTo(Campaign, { foreignKey: 'campaignId', as: 'campaign' });
+Campaign.hasMany(InterestMessage, { foreignKey: 'campaignId', as: 'interestMessages', onDelete: 'CASCADE' });
+
+InterestMessage.belongsTo(User, { foreignKey: 'influencerId', as: 'influencer' });
+InterestMessage.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
+
 User.hasMany(Channel, { foreignKey: 'userId', as: 'channels', onDelete: 'CASCADE' });
 Channel.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
@@ -330,6 +339,8 @@ module.exports = {
   Notification,
   Log,
   Review,
-  ScheduledPost,
-  PostAnalytics
+  InterestMessage,
+  PostAnalytics,
+  ScheduledPost
+
 };

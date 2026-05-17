@@ -1,4 +1,4 @@
-const { Notification, User } = require('../models');
+const { Notification, User, Collaboration } = require('../models');
 const { Op } = require('sequelize');
 const { emitToUser } = require('../socket');
 
@@ -38,6 +38,7 @@ class NotificationService {
       try {
         emitToUser(userId, 'notification', {
           id: notification.id,
+          userId: notification.userId,
           type: notification.type,
           message: notification.message,
           entityType: notification.entityType,
@@ -49,7 +50,7 @@ class NotificationService {
 
         // Update unread count
         const unreadCount = await this.getUnreadCount(userId);
-        emitToUser(userId, 'notification_count_updated', { unreadCount });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount });
       } catch (socketError) {
         // Log but don't fail if socket emission fails
         console.error('Socket emission failed:', socketError);
@@ -74,6 +75,7 @@ class NotificationService {
         try {
           emitToUser(notification.userId, 'notification', {
             id: notification.id,
+            userId: notification.userId,
             type: notification.type,
             message: notification.message,
             entityType: notification.entityType,
@@ -84,7 +86,7 @@ class NotificationService {
           });
 
           const unreadCount = await this.getUnreadCount(notification.userId);
-          emitToUser(notification.userId, 'notification_count_updated', { unreadCount });
+          emitToUser(notification.userId, 'notification_count_updated', { userId: notification.userId, unreadCount });
         } catch (socketError) {
           console.error('Socket emission failed:', socketError);
         }
@@ -173,9 +175,9 @@ class NotificationService {
 
       // Emit update via Socket.io
       try {
-        emitToUser(userId, 'notification_read', { notificationId });
+        emitToUser(userId, 'notification_read', { userId, notificationId });
         const unreadCount = await this.getUnreadCount(userId);
-        emitToUser(userId, 'notification_count_updated', { unreadCount });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount });
       } catch (socketError) {
         console.error('Socket emission failed:', socketError);
       }
@@ -204,8 +206,8 @@ class NotificationService {
 
       // Emit update via Socket.io
       try {
-        emitToUser(userId, 'all_notifications_read');
-        emitToUser(userId, 'notification_count_updated', { unreadCount: 0 });
+        emitToUser(userId, 'all_notifications_read', { userId });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount: 0 });
       } catch (socketError) {
         console.error('Socket emission failed:', socketError);
       }
@@ -229,7 +231,7 @@ class NotificationService {
       if (result > 0) {
         // Update unread count
         const unreadCount = await this.getUnreadCount(userId);
-        emitToUser(userId, 'notification_count_updated', { unreadCount });
+        emitToUser(userId, 'notification_count_updated', { userId, unreadCount });
       }
 
       return result > 0;
@@ -254,6 +256,23 @@ class NotificationService {
       return result;
     } catch (error) {
       console.error('Error deleting read notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all notifications for a user
+   */
+  async deleteAllNotifications(userId) {
+    try {
+      await Notification.destroy({
+        where: { userId }
+      });
+
+      // Emit real-time notification update via Socket.io
+      emitToUser(userId, 'all_notifications_deleted', { userId });
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
       throw error;
     }
   }
@@ -338,18 +357,37 @@ class NotificationService {
   }
 
   /**
-   * Notify about task assigned
+   * Notify the collaboration influencer about a new or updated task assignment.
+   * Never notifies the campaign owner.
    */
-  async notifyTaskAssigned(userId, taskId, taskTitle, collaborationId) {
+  async notifyTaskAssigned(influencerId, taskId, taskTitle, collaborationId, { ownerId } = {}) {
+    if (!influencerId) {
+      console.warn('notifyTaskAssigned: missing influencerId, skipping notification');
+      return null;
+    }
+
+    const collaboration = await Collaboration.findByPk(collaborationId, {
+      attributes: ['ownerId', 'influencerId']
+    });
+    const actualOwnerId = ownerId ?? collaboration?.ownerId;
+    const actualInfluencerId = collaboration?.influencerId ?? influencerId;
+
+    if (actualOwnerId != null && Number(actualInfluencerId) === Number(actualOwnerId)) {
+      console.warn('notifyTaskAssigned: influencerId equals ownerId, skipping notification');
+      return null;
+    }
+
     return this.createNotification({
-      userId,
+      userId: actualInfluencerId,
       type: 'TASK_ASSIGNED',
       message: `You have been assigned a new task: "${taskTitle}"`,
       entityType: 'CollaborationTask',
       entityId: taskId,
       metadata: {
-        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`
-      }
+        actionUrl: `/collaborations/${collaborationId}/tasks/${taskId}`,
+        collaborationId,
+        recipientRole: 'influencer',
+      },
     });
   }
 

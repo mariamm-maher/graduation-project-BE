@@ -6,7 +6,10 @@ const {
   ContentCalendar,
   User,
   OwnerProfile,
-  InfluencerProfile
+  InfluencerProfile,
+  KPI,
+  TargetAudience,
+  InterestMessage
 } = require('../models');
 const AppError = require('../utils/AppError');
 
@@ -20,17 +23,25 @@ const getCampaignPlatforms = (contentCalendar = []) => {
 };
 
 const toCampaignDTO = (campaign, { applied = false } = {}) => {
-  const brandName = campaign.user?.ownerProfile?.brand_name
+  const profile = campaign.user?.ownerProfile;
+  const brandName = profile?.brand_name
     || `${campaign.user?.firstName || ''} ${campaign.user?.lastName || ''}`.trim()
     || 'Brand';
 
   return {
     id: String(campaign.id),
     name: campaign.campaignName,
-    description: campaign.campaign_goal ? `Goal: ${campaign.campaign_goal}` : null,
+    description: campaign.campaign_goal
+      ? `${campaign.campaign_goal} campaign${profile?.product_or_service ? ' for ' + profile.product_or_service : ''}`
+      : null,
     brand: {
       id: String(campaign.user?.id || ''),
-      name: brandName
+      name: brandName,
+      industry: profile?.industry || null,
+      website: profile?.website || null,
+      companySize: profile?.company_size || null,
+      targetMarket: profile?.target_market || [],
+      image: profile?.image || null,
     },
     budget: {
       total: parseNumber(campaign.budget_amount),
@@ -38,9 +49,20 @@ const toCampaignDTO = (campaign, { applied = false } = {}) => {
     },
     campaignGoal: campaign.campaign_goal,
     durationWeeks: campaign.campaign_duration_weeks,
+    startDate: campaign.startDate || null,
+    endDate: campaign.endDate || null,
     lifecycleStage: campaign.lifecycleStage,
     isPublished: campaign.isPublished,
     platforms: getCampaignPlatforms(campaign.contentCalendar || []),
+    kpis: (campaign.kpis || []).map((k) => ({ metric: k.metric, targetValue: k.targetValue })),
+    targetAudience: campaign.targetAudience
+      ? {
+          ageRange: campaign.targetAudience.ageRange,
+          gender: campaign.targetAudience.gender,
+          interests: campaign.targetAudience.interests || [],
+          platformsUsed: campaign.targetAudience.platformsUsed || []
+        }
+      : null,
     applied
   };
 };
@@ -132,7 +154,7 @@ exports.exploreCampaigns = async ({ influencerId, query }) => {
         include: [{
           model: OwnerProfile,
           as: 'ownerProfile',
-          attributes: ['brand_name'],
+          attributes: ['brand_name', 'industry', 'website', 'company_size', 'target_market', 'product_or_service', 'image'],
           required: false
         }]
       },
@@ -140,6 +162,17 @@ exports.exploreCampaigns = async ({ influencerId, query }) => {
         model: ContentCalendar,
         as: 'contentCalendar',
         attributes: ['platform'],
+        required: false
+      },
+      {
+        model: KPI,
+        as: 'kpis',
+        attributes: ['metric', 'targetValue'],
+        required: false
+      },
+      {
+        model: TargetAudience,
+        as: 'targetAudience',
         required: false
       }
     ],
@@ -174,14 +207,25 @@ exports.getCampaignById = async ({ influencerId, campaignId }) => {
         include: [{
           model: OwnerProfile,
           as: 'ownerProfile',
-          attributes: ['brand_name'],
+          attributes: ['brand_name', 'industry', 'website', 'company_size', 'target_market', 'product_or_service', 'image'],
           required: false
         }]
       },
       {
         model: ContentCalendar,
         as: 'contentCalendar',
-        attributes: ['platform', 'date', 'contentType', 'task'],
+        attributes: ['platform', 'date', 'contentType', 'task', 'caption', 'status'],
+        required: false
+      },
+      {
+        model: KPI,
+        as: 'kpis',
+        attributes: ['metric', 'targetValue'],
+        required: false
+      },
+      {
+        model: TargetAudience,
+        as: 'targetAudience',
         required: false
       }
     ]
@@ -292,6 +336,43 @@ exports.applyToCampaign = async ({ influencerId, campaignId, payload }) => {
       message: request.message,
       createdAt: request.createdAt
     }
+  };
+};
+
+exports.sendInterestMessage = async ({ influencerId, campaignId, message }) => {
+  if (!message || !String(message).trim()) {
+    throw new AppError('Message is required', 400);
+  }
+
+  const campaign = await Campaign.findOne({
+    where: { id: campaignId, isPublished: true },
+    attributes: ['id', 'userId', 'campaignName']
+  });
+
+  if (!campaign) {
+    throw new AppError('Campaign not found', 404);
+  }
+
+  const influencer = await User.findByPk(influencerId, {
+    attributes: ['id', 'firstName', 'lastName']
+  });
+
+  const influencerName = `${influencer?.firstName || ''} ${influencer?.lastName || ''}`.trim() || 'An influencer';
+
+  const record = await InterestMessage.create({
+    campaignId: campaign.id,
+    ownerId: campaign.userId,
+    influencerId,
+    message: String(message).trim()
+  });
+
+  return {
+    sent: true,
+    id: record.id,
+    campaignId: String(campaignId),
+    ownerId: String(campaign.userId),
+    influencerName,
+    message: String(message).trim()
   };
 };
 

@@ -71,6 +71,7 @@ const ScheduledPost = sequelize.define(
       type: DataTypes.JSONB,
       defaultValue: {},
     },
+
   },
   {
     timestamps: true,

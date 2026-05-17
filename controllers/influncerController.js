@@ -41,6 +41,19 @@ exports.applyToCampaign = async (req, res, next) => {
 	}
 };
 
+exports.contactOwner = async (req, res, next) => {
+	try {
+		const result = await influencerCampaignService.sendInterestMessage({
+			influencerId: req.user.id,
+			campaignId: req.params.id,
+			message: req.body.message
+		});
+		return sendSuccess(res, 200, 'Interest message sent successfully', result);
+	} catch (error) {
+		return next(error);
+	}
+};
+
 exports.getOverviewStats = async (req, res, next) => {
 	try {
 		const result = await influencerCampaignService.getOverviewStats({

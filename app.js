@@ -33,6 +33,8 @@ app.use(passport.initialize());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/campaigns', require('./routes/campaign'));
+app.use('/api/campaigns', require('./routes/campaignTracking'));
+app.use('/api/campaigns', require('./routes/campaignReport'));
 
 app.use('/api/collaborations', require('./routes/collaboration'));
 app.use('/api/collaboration-requests', require('./routes/collaborationRequest'));

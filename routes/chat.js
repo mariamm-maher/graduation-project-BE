@@ -11,6 +11,11 @@ router.use(authenticate);
 // @access  Private (owner or influencer of collaboration)
 router.get('/collaborations/:collaborationId/room', chatController.getCollaborationChatRoom);
 
+// @route   GET /api/chat/unread-count
+// @desc    Get total unread message count across all rooms
+// @access  Private
+router.get('/unread-count', chatController.getUnreadCount);
+
 // @route   GET /api/chat/rooms
 // @desc    Get all chat rooms for authenticated user
 // @access  Private
