@@ -73,6 +73,12 @@ const OwnerProfile = sequelize.define('OwnerProfile', {
     type: DataTypes.JSONB, // {ageRange: "18-24", gender: "all", location: "Egypt"}
     allowNull: true
   },
+  brandTone: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Brand voice profile: tone_formality, tone_playfulness, tone_boldness, preferred_vocabulary, avoided_vocabulary'
+  },
   image: {
     type: DataTypes.STRING,
     allowNull: true

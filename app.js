@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://localhost:5173','http://localhost:5174'],
   credentials: true
 }));
 
@@ -55,6 +55,7 @@ app.use('/api/channels', require('./routes/channelRoutes'));
 app.use('/channels', require('./routes/channelRoutes'));
 app.use('/auth',         require('./routes/metaAuthRoutes'));
 app.use('/auth',         require('./routes/tiktokAuthRoutes'));
+app.use('/auth',         require('./routes/youtubeAuthRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
@@ -68,7 +69,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 sequelize.authenticate()
   .then(() => {
     console.log('Database connected successfully');
-    return sequelize.sync();
+    return sequelize.sync({alter:true});
   })
   .then(async () => {
     console.log('Database synchronized');

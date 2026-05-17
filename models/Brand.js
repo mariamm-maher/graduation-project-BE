@@ -20,7 +20,6 @@ const Brand = sequelize.define('Brand',{
   name: {
     type: DataTypes.STRING(150),
     allowNull: false,
-    unique: true,
     comment: 'Official brand name',
   },
   segment: {
@@ -31,7 +30,6 @@ const Brand = sequelize.define('Brand',{
   slug: {
     type: DataTypes.STRING(150),
     allowNull: false,
-    unique: true,
     comment: 'URL-friendly version of the brand name (e.g. "my-brand")',
   },
 

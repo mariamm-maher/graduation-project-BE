@@ -7,7 +7,7 @@ async function handler() {
   for (const post of duePosts) {
     try {
       const fbPostId = await postService.publishToFacebook({
-        channel: post.Channel,
+        channel: post.channel,
         content: post.content,
         mediaUrls: post.mediaUrls || []
       });

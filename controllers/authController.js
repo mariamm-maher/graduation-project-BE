@@ -3,6 +3,7 @@ const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
 const { calculateOwnerProfileCompletion, calculateInfluencerProfileCompletion } = require('../utils/profileCompletion');
+const { normalizeBrandToneFromBody } = require('../utils/normalizeBrandTone');
 const { Session, UserRole } = require('../models');
 const { logAction } = require('../services/logServices');
 const sendEmail = require('../config/email');
@@ -705,6 +706,7 @@ exports.updateOwnerProfile = async (req, res, next) => {
       'website',
       'platforms',
       'image',
+      'brandTone',
       'isOnboarded',
       'isCompleted'
     ];
@@ -715,7 +717,13 @@ exports.updateOwnerProfile = async (req, res, next) => {
     }
 
     const updates = {};
+    const normalisedBrandTone = normalizeBrandToneFromBody(req.body);
+    if (normalisedBrandTone !== undefined) {
+      updates.brandTone = normalisedBrandTone;
+    }
+
     for (const key of allowed) {
+      if (key === 'brandTone') continue;
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
         let val = req.body[key];
 
@@ -1174,6 +1182,7 @@ exports.onboardOwner = async (req, res, next) => {
       'website',
       'platforms',
       'image',
+      'brandTone',
       'isOnboarded',
       'isCompleted'
     ];
@@ -1190,7 +1199,13 @@ exports.onboardOwner = async (req, res, next) => {
 
     // Build updates object
     const updates = {};
+    const normalisedBrandTone = normalizeBrandToneFromBody(req.body);
+    if (normalisedBrandTone !== undefined) {
+      updates.brandTone = normalisedBrandTone;
+    }
+
     for (const key of allowedFields) {
+      if (key === 'brandTone') continue;
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
         let val = req.body[key];
         

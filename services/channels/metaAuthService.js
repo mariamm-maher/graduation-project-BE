@@ -12,7 +12,9 @@ const SCOPES = [
   'pages_manage_posts',
   'pages_read_engagement',
   'pages_manage_metadata',
-  'pages_read_user_content'
+  'pages_read_user_content',
+  'instagram_basic',
+  'instagram_content_publish'
 ].join(',');
 
 function getMetaEnv() {
@@ -27,14 +29,13 @@ function getMetaEnv() {
   };
 }
 
-async function getOAuthUrl(userId, stateToken) {
+async function getOAuthUrl(userId) {
   const { appId, redirectUri } = getMetaEnv();
-  const oauthState =
-    stateToken ||
-    jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-      expiresIn: '15m'
-    });
-
+  const oauthState = jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
   const params = new URLSearchParams({
     client_id: appId || '',
     redirect_uri: redirectUri || '',
@@ -42,7 +43,6 @@ async function getOAuthUrl(userId, stateToken) {
     state: oauthState,
     response_type: 'code'
   });
-
   return `${OAUTH_BASE_URL}?${params.toString()}`;
 }
 
@@ -87,6 +87,13 @@ async function handleCallback(code, userId) {
   });
 
   const pages = pagesResponse.data?.data || [];
+  console.log('[META] Pages returned from Graph API:', pages.length);
+  if (pages.length === 0) {
+    console.warn('[META] /me/accounts returned empty — check app permissions and that user has a Facebook Page');
+    console.warn('[META] Full response:', JSON.stringify(pagesResponse.data));
+  } else {
+    console.log('[META] Pages:', pages.map(p => ({ id: p.id, name: p.name })));
+  }
   let channelsAdded = 0;
 
   for (const page of pages) {
@@ -125,29 +132,39 @@ async function handleCallback(code, userId) {
         }
       });
 
+      console.log('[META] IG data for page', page.id, ':', pageDataResponse.data);
+
       const igAccount = pageDataResponse.data?.instagram_business_account;
       if (!igAccount?.id) {
+        console.log('[META] No Instagram linked to page:', page.id);
         continue;
       }
+      console.log('[META] Instagram account found:', igAccount.id);
 
       const igResponse = await axios.get(`${GRAPH_BASE_URL}/${igAccount.id}`, {
         params: {
-          fields: 'id,name,username,profile_picture_url',
+          fields: 'id,name,username,profile_picture_url,followers_count,biography',
           access_token: page.access_token
         }
       });
 
       const ig = igResponse.data;
+      console.log('[META] Instagram profile:', ig);
+
       await channelService.createChannel({
         userId,
         platform: 'instagram',
         accountId: ig.id,
-        accountName: ig.name,
+        accountName: ig.name || ig.username,
         accountUsername: ig.username,
         profilePicture: ig.profile_picture_url,
         accessToken: page.access_token,
         tokenExpiresAt,
-        platformData: { isSimulated: false }
+        platformData: {
+          isSimulated: false,
+          followerCount: ig.followers_count ?? null,
+          bio: ig.biography ?? null
+        }
       });
       channelsAdded += 1;
     } catch (igErr) {

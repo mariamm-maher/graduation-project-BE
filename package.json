@@ -44,7 +44,8 @@
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@redocly/cli": "^1.34.6",
