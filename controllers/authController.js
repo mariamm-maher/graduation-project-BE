@@ -1054,13 +1054,16 @@ exports.switchRole = async (req, res, next) => {
     const accessToken = generateToken(userId, roleId);
     const refreshToken = generateRefreshToken(userId);
 
-    // Update session
-    await Session.upsert({
+    // Hash refresh token before saving
+    const refreshTokenHash = Session.hashToken(refreshToken);
+
+    // Create new session in DB with correct field names
+    await Session.create({
       userId: userId,
-      token: accessToken,
-      refreshToken: refreshToken,
-      roleId: roleId,
-      lastActive: new Date()
+      refreshTokenHash: refreshTokenHash,
+      ip: req.ip || null,
+      userAgent: req.headers['user-agent'] || null,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
     });
 
     // Set refresh token in cookie
