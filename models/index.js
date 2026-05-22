@@ -303,12 +303,16 @@ Channel.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 ScheduledPost.hasOne(PostAnalytics, { foreignKey: 'scheduledPostId', as: 'postAnalytics' });
 PostAnalytics.belongsTo(ScheduledPost, { foreignKey: 'scheduledPostId' });
+Channel.hasMany(ScheduledPost, {
+  foreignKey: 'channelId',
+  as: 'scheduledPosts',
+  onDelete: 'CASCADE',
+});
 
-Channel.hasMany(ScheduledPost, { foreignKey: 'channelId', as: 'scheduledPosts' });
-ScheduledPost.belongsTo(Channel, { foreignKey: 'channelId' });
-
-Campaign.hasMany(ScheduledPost, { foreignKey: 'campaignId', as: 'scheduledPosts' });
-ScheduledPost.belongsTo(Campaign, { foreignKey: 'campaignId' });
+ScheduledPost.belongsTo(Channel, {
+  foreignKey: 'channelId',
+  as: 'channel',
+});
 // UploadedFile associations removed
 module.exports = {
   sequelize,
@@ -338,4 +342,5 @@ module.exports = {
   InterestMessage,
   PostAnalytics,
   ScheduledPost
+
 };

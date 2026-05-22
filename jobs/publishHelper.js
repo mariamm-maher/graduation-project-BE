@@ -12,6 +12,22 @@ async function publishToChannel({
   content,
   mediaUrls
 }) {
+  if (platform === 'tiktok') {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    console.log('[TIKTOK - SIMULATED PUBLISH] Real account connected but posting requires API review');
+    console.log('[TIKTOK] Account:', accountId);
+    return { platformPostId: `tiktok_sim_post_${Date.now()}` };
+  }
+
+  if (platform === 'youtube') {
+    await new Promise((r) => setTimeout(r, 1500));
+    console.log(
+      '[YOUTUBE - SIMULATED PUBLISH] Channel stats available but upload not in scope'
+    );
+    console.log('[YOUTUBE] Channel:', accountId);
+    return { platformPostId: `youtube_sim_post_${Date.now()}` };
+  }
+
   if (isSimulated === true) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('[SIMULATED] TikTok publish — accountId:', accountId);

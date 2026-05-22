@@ -1,13 +1,13 @@
 const campaignSeeds = [
   // ─── 1. Awareness ────────────────────────────────────────────────────────
   {
-    ownerEmail: 'owner01@example.com',
+    ownerEmail: "technochill353@gmail.com",
     campaign: {
-      campaignName: 'Tech Haven Summer Smart Home Push',
-      lifecycleStage: 'saved',
-      campaign_goal: 'Awareness',
-      budget_amount: 2500,
-      budget_currency: 'USD',
+      campaignName: "GlowUp Summer Launch",
+      lifecycleStage: "ai_generated",
+      campaign_goal: "AWARENESS",
+      budget_amount: 5000,
+      budget_currency: "USD",
       campaign_duration_weeks: 4,
       startDate: '2026-05-05T10:00:00.000Z',
       endDate: '2026-06-02T10:00:00.000Z',
@@ -106,7 +106,7 @@ const campaignSeeds = [
 
   // ─── 2. Leads ─────────────────────────────────────────────────────────────
   {
-    ownerEmail: 'owner01@example.com',
+    ownerEmail: "technochill353@gmail.com",
     campaign: {
       campaignName: 'Tech Haven Lead Capture Sprint',
       lifecycleStage: 'saved',

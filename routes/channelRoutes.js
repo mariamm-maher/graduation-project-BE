@@ -7,6 +7,49 @@ const axios = require('axios');
 const router = express.Router();
 router.use(authMiddleware);
 
+function randomFourDigits() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+function randomIntInclusive(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// POST /channels/tiktok/simulate — demo-only simulated TikTok (no real TikTok API)
+router.post('/tiktok/simulate', async (req, res) => {
+  try {
+    const { username: bodyUsername, displayName: bodyDisplayName } = req.body || {};
+    const username = bodyUsername || `tiktok_user_${randomFourDigits()}`;
+    const displayName = bodyDisplayName || `TikTok Creator ${randomFourDigits()}`;
+    const now = Date.now();
+
+    const channel = await channelService.createChannel({
+      userId: req.user.id,
+      platform: 'tiktok',
+      accountId: `sim_${now}`,
+      accountName: displayName,
+      accountUsername: username,
+      profilePicture: null,
+      accessToken: `simulated_token_${now}`,
+      tokenExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      platformData: {
+        isSimulated: true,
+        followerCount: randomIntInclusive(1000, 50000),
+        following: randomIntInclusive(100, 500),
+        likes: randomIntInclusive(5000, 200000),
+        engagement: parseFloat((Math.random() * 5 + 1).toFixed(2)),
+        bio: 'Simulated TikTok account for demo purposes',
+        verified: false,
+        canPost: true,
+      },
+    });
+
+    return res.status(201).json({ success: true, data: { channel } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /channels
 router.get('/', async (req, res) => {
   try {

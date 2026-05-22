@@ -1,4 +1,5 @@
 const { User, OwnerProfile, InfluencerProfile } = require('../models');
+const { normalizeBrandToneFromBody } = require('../utils/normalizeBrandTone');
 const sendSuccess = require('../utils/sendSuccess');
 const AppError = require('../utils/AppError');
 
@@ -89,6 +90,7 @@ exports.getOwnerProfile = async (req, res, next) => {
           'platforms',
           'image',
           'targetAudience',
+          'brandTone',
           'completionPercentage',
           'isOnboarded',
           'isCompleted',
@@ -147,7 +149,14 @@ exports.updateOwnerProfile = async (req, res, next) => {
     }
 
     const profileUpdateData = { ...req.body };
-    userFields.forEach(field => delete profileUpdateData[field]); 
+    userFields.forEach(field => delete profileUpdateData[field]);
+    delete profileUpdateData.brand_tone;
+    delete profileUpdateData.brandTone;
+
+    const normalisedBrandTone = normalizeBrandToneFromBody(req.body);
+    if (normalisedBrandTone !== undefined) {
+      profileUpdateData.brandTone = normalisedBrandTone;
+    }
 
     if (Object.keys(profileUpdateData).length > 0) {
       await profile.update(profileUpdateData);

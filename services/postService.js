@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { Op } = require('sequelize');
 const ScheduledPost = require('../models/ScheduledPost');
-const Channel = require('../models/channel');
+const channel = require('../models/channel');
 
 const GRAPH_BASE_URL = 'https://graph.facebook.com/v19.0';
 
@@ -42,7 +42,7 @@ async function createPosts({
   const normalizedChannelIds = toNumberList(channelIds);
   if (normalizedChannelIds.length === 0) badRequest('channelIds must be a non-empty array');
 
-  const channels = await Channel.findAll({
+  const channels = await channel.findAll({
     where: {
       id: normalizedChannelIds,
       userId
@@ -152,7 +152,7 @@ async function getPostsByUser(userId) {
     include: [
       {
         model: Channel,
-        as: 'Channel',
+        as: 'channel',
         where: { userId },
         attributes: ['id', 'platform', 'accountName', 'accountUsername', 'userId']
       }
@@ -179,7 +179,7 @@ async function getPostsByUser(userId) {
 async function deletePost(postId, userId) {
   const post = await ScheduledPost.findOne({
     where: { id: postId },
-    include: [{ model: Channel, as: 'Channel', where: { userId } }]
+    include: [{ model: channel, as: 'channel', where: { userId } }]
   });
 
   if (!post) throw { status: 404, message: 'Post not found' };
@@ -204,7 +204,7 @@ async function deletePost(postId, userId) {
 async function getPostAnalytics(postId, userId) {
   const post = await ScheduledPost.findOne({
     where: { id: postId },
-    include: [{ model: Channel, as: 'Channel', where: { userId } }]
+    include: [{ model: channel, as: 'channel', where: { userId } }]
   });
 
   if (!post) throw { status: 404, message: 'Post not found' };
@@ -257,7 +257,7 @@ async function getDueScheduledPosts() {
       status: 'scheduled',
       scheduledAt: { [Op.lte]: new Date() }
     },
-    include: [{ model: Channel, as: 'Channel' }]
+    include: [{ model: channel, as: 'channel' }]
   });
 }
 

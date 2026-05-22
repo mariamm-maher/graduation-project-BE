@@ -44,7 +44,9 @@ const Notification = sequelize.define('Notification', {
       'TASK_FINAL_REJECTED',
 
       'FILE_UPLOADED',
-      'MESSAGE_RECEIVED'
+      'MESSAGE_RECEIVED',
+
+      'CHANNEL_CONNECTED'
     ),
     allowNull: false
   },

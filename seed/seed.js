@@ -104,91 +104,55 @@ async function seedOwners() {
 }
 
 async function seedCampaigns() {
-  console.log('Seeding campaigns...');
+  console.log("Seeding campaigns...");
 
   for (const seed of campaignSeeds) {
-    const owner = await User.findOne({ where: { email: seed.ownerEmail } });
-    if (!owner) {
-      console.log(`SKIPPED campaign "${seed.campaign.campaignName}": owner ${seed.ownerEmail} not found`);
-      continue;
-    }
-
-    const [campaign, campaignCreated] = await Campaign.findOrCreate({
-      where: {
-        userId: owner.id,
-        campaignName: seed.campaign.campaignName
-      },
-      defaults: {
-        userId: owner.id,
-        ...seed.campaign
+    try {
+      // 1. Validate seed
+      if (!seed?.ownerEmail || !seed?.campaign?.campaignName) {
+        console.log("SKIPPED invalid campaign seed:", seed);
+        continue;
       }
-    });
 
-    if (!campaignCreated) {
-      await campaign.update(seed.campaign);
-    }
+      // 2. Find owner by email
+      const owner = await User.findOne({
+        where: { email: seed.ownerEmail }
+      });
 
-    if (seed.targetAudience) {
-      const [audience, audienceCreated] = await TargetAudience.findOrCreate({
-        where: { campaignId: campaign.id },
+      if (!owner) {
+        console.log(
+          `SKIPPED campaign "${seed.campaign.campaignName}": owner not found (${seed.ownerEmail})`
+        );
+        continue;
+      }
+
+      // 3. Create or update campaign
+      const [campaign, created] = await Campaign.findOrCreate({
+        where: {
+          userId: owner.id,
+          campaignName: seed.campaign.campaignName
+        },
         defaults: {
-          campaignId: campaign.id,
-          ...seed.targetAudience
+          userId: owner.id,
+          ...seed.campaign
         }
       });
 
-      if (!audienceCreated) {
-        await audience.update(seed.targetAudience);
+      if (!created) {
+        await campaign.update(seed.campaign);
       }
-    }
 
-    await KPI.destroy({ where: { campaignId: campaign.id } });
-    if (Array.isArray(seed.kpis) && seed.kpis.length) {
-      await KPI.bulkCreate(
-        seed.kpis.map((item) => ({
-          campaignId: campaign.id,
-          metric: item.metric,
-          targetValue: item.targetValue
-        }))
+      console.log(
+        `${created ? "CREATED" : "UPDATED"} campaign: ${campaign.campaignName}`
       );
+    } catch (err) {
+      console.error("Error seeding campaign:", err);
     }
-
-    await ContentCalendar.destroy({ where: { campaignId: campaign.id } });
-    if (Array.isArray(seed.contentCalendar) && seed.contentCalendar.length) {
-      await ContentCalendar.bulkCreate(
-        seed.contentCalendar.map((item) => ({
-          campaignId: campaign.id,
-          day: item.day,
-          date: item.date,
-          platform: item.platform,
-          contentType: item.contentType,
-          caption: item.caption,
-          mediaUrl: item.mediaUrl,
-          task: item.task,
-          status: item.status
-        }))
-      );
-    }
-
-    await CampaignAIVersion.destroy({ where: { campaignId: campaign.id } });
-    if (seed.aiVersion) {
-      await CampaignAIVersion.create({
-        campaignId: campaign.id,
-        versionNumber: seed.aiVersion.versionNumber || 1,
-        strategy: seed.aiVersion.strategy || null,
-        execution: seed.aiVersion.execution || null,
-        estimations: seed.aiVersion.estimations || null,
-        isActive: seed.aiVersion.isActive !== undefined ? seed.aiVersion.isActive : true
-      });
-    }
-
-    console.log(
-      `${campaignCreated ? 'CREATED' : 'UPDATED'} campaign "${campaign.campaignName}" for ${seed.ownerEmail}`
-    );
   }
 
   console.log(`Seeded ${campaignSeeds.length} campaigns.`);
 }
+
 
 async function seedCollaborations() {
   console.log('Seeding collaboration pipeline records...');

@@ -32,14 +32,16 @@ class ChannelService {
   }
 
   async getUserChannels(userId) {
-    return Channel.findAll({
+    const channels = await Channel.findAll({
       where: { userId },
       attributes: [
         'id', 'platform', 'accountName', 'accountUsername',
         'profilePicture', 'status', 'platformData', 'lastSyncAt', 'createdAt'
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
+    console.log('[CHANNELS] Found:', channels.length, 'channels');
+    return channels;
   }
 
   async getChannelById(channelId, userId) {
@@ -117,7 +119,27 @@ class ChannelService {
   async refreshToken(channelId, userId) {
     const channel = await this.getChannelById(channelId, userId);
 
-    // Simulated channel (TikTok) — just extend expiry, no API call
+    // 1) Real TikTok channels
+    if (channel.platform === 'tiktok' && channel.platformData?.isSimulated !== true) {
+      const tokens = await tiktokAuthService.refreshTikTokToken(channel);
+      return this.updateChannelTokens(channelId, {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        tokenExpiresAt: new Date(Date.now() + Number(tokens.expires_in || 0) * 1000)
+      });
+    }
+
+    // 2) Real YouTube channels
+    if (channel.platform === 'youtube' && channel.platformData?.isSimulated !== true) {
+      const tokens = await youtubeAuthService.refreshYouTubeToken(channel);
+      return this.updateChannelTokens(channelId, {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        tokenExpiresAt: new Date(Date.now() + Number(tokens.expires_in || 3600) * 1000)
+      });
+    }
+
+    // 3) Simulated channels (any platform) — just extend expiry, no API call
     if (channel.platformData?.isSimulated === true) {
       const tokenExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       return this.updateChannelTokens(channelId, {
@@ -127,7 +149,7 @@ class ChannelService {
       });
     }
 
-    // Real Meta channels
+    // 3) Real Meta channels
     if (channel.platform === 'facebook' || channel.platform === 'instagram') {
       const axios = require('axios');
       const response = await axios.get('https://graph.facebook.com/oauth/access_token', {
@@ -151,6 +173,7 @@ class ChannelService {
       });
     }
 
+    // 5) Fallback
     return channel;
   }
 }
