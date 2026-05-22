@@ -3,11 +3,11 @@ const { Sequelize } = require('sequelize');
 const sequelize = new Sequelize(
   'gradproject',        // database name
   'postgres',    // username
-  'waad123', // password
+  'mariam', // password
   {
     host: 'localhost',
     dialect: 'postgres',
-    password:'waad123',
+    password:'mariam',
     port: 5432,
     logging: false, 
   }
