@@ -1,119 +1,47 @@
 ════════════════════════════════════════════════════════════
-  SEED2 ACCOUNTS - Generated from Seed Run
+  SEED2 ACCOUNTS - All Data on Demo Owner & Influencer
 ════════════════════════════════════════════════════════════
 
-TEST ACCOUNTS (5 accounts):
+DEMO OWNER (All brands, campaigns, and collaborations):
 ────────────────────────────────────────────────────────────
+Name:                 Demo Owner
 Email:                demo.owner@example.com
 Role:                 Owner
 Password:             password123
+Phone:                +1 (555) 000-0001
 ────────────────────────────────────────────────────────────
+Data Distribution:
+  - Brands: All brands created (normally distributed among owners)
+  - Campaigns: All campaigns created for demo owner
+  - Collaborations: All collaborations between demo owner and demo influencer
+  - Tasks: All tasks assigned to the influencer
+
+
+DEMO INFLUENCER (All social channels, collaborations, and tasks):
+────────────────────────────────────────────────────────────
+Name:                 Demo Influencer
 Email:                demo.influencer@example.com
 Role:                 Influencer
 Password:             password123
+Phone:                +1 (555) 000-0002
 ────────────────────────────────────────────────────────────
-Email:                admin@example.com
-Role:                 Admin
-Password:             password123
-────────────────────────────────────────────────────────────
-Email:                onboarding@example.com
-Role:                 Admin
-Password:             password123
-────────────────────────────────────────────────────────────
-Email:                suspended@example.com
-Role:                 Admin
-Password:             password123
-
-
-OWNERS (8 created + 1 test = 9 total):
-────────────────────────────────────────────────────────────
-Name:                 Santiago Lee
-Email:                santiago@cuttingedgetoil.com
-────────────────────────────────────────────────────────────
-Name:                 Gabriel Greco
-Email:                gabriel.greco@fierceframe.io
-────────────────────────────────────────────────────────────
-Name:                 Nicolas Greco
-Email:                nicolas_greco@ferrariwilson.net
-────────────────────────────────────────────────────────────
-Name:                 Anthony Baker
-Email:                anthonyba@yoonspace.co
-────────────────────────────────────────────────────────────
-Name:                 Cynthia Nguyen
-Email:                cynthia@katoyoung.com
-────────────────────────────────────────────────────────────
-Name:                 Barbara Jimenez
-Email:                barbara@gonzalezcoleman.com
-────────────────────────────────────────────────────────────
-Name:                 Emma Sousa
-Email:                sousa.emma@castilloscope.com
-────────────────────────────────────────────────────────────
-Name:                 Patrick Torres
-Email:                patrick.torres@calmpattern.com
-────────────────────────────────────────────────────────────
-+ Test Owner: demo.owner@example.com
-
-
-INFLUENCERS (12 created + 1 test = 13 total):
-────────────────────────────────────────────────────────────
-Name:                 Ivy Schneider
-Email:                ivy@innovatedomain.com
-────────────────────────────────────────────────────────────
-Name:                 Finley Peterson
-Email:                finley@intenseradiance.com
-────────────────────────────────────────────────────────────
-Name:                 Hassan Chung
-Email:                hassan_chung@directbrain.net
-────────────────────────────────────────────────────────────
-Name:                 Willow Sokolov
-Email:                sokolov.willow@chenscope.com
-────────────────────────────────────────────────────────────
-Name:                 Dorothy Schulz
-Email:                dorothy@elitethink.com
-────────────────────────────────────────────────────────────
-Name:                 Gary Morgan
-Email:                morgan.gary@purewave.com
-────────────────────────────────────────────────────────────
-Name:                 Manon Garcia
-Email:                manon@sparkweber.com
-────────────────────────────────────────────────────────────
-Name:                 Ibrahim Hughes
-Email:                hughes.ibrahim@softglow.com
-────────────────────────────────────────────────────────────
-Name:                 Charlotte Adams
-Email:                charlotte@purescope.co
-────────────────────────────────────────────────────────────
-Name:                 Lucas Nakamura
-Email:                lucas_nakamura@puresoul.net
-────────────────────────────────────────────────────────────
-Name:                 Ivy Bennett
-Email:                ivy@cheerli.com
-────────────────────────────────────────────────────────────
-Name:                 Sandra Sokolov
-Email:                sandra@brightworks.com
-────────────────────────────────────────────────────────────
-+ Test Influencer: demo.influencer@example.com
-
-
-ADMINS (2 created + 3 test = 5 total):
-────────────────────────────────────────────────────────────
-Name:                 Emily Lim
-Email:                emily.lim@gentlegoods.io
-────────────────────────────────────────────────────────────
-Name:                 Jerry Patel
-Email:                jerry@taylorjackson.com
-────────────────────────────────────────────────────────────
-+ Test Admins: admin@example.com, onboarding@example.com, suspended@example.com
+Data Distribution:
+  - Social Channels: All social media accounts
+  - Collaborations: All collaborations with demo owner
+  - Tasks: All tasks from all collaborations
 
 
 ════════════════════════════════════════════════════════════
   SUMMARY
 ════════════════════════════════════════════════════════════
-Total Users Created:    27
-  - Owners:           9 (8 + test)
-  - Influencers:      13 (12 + test)
-  - Admins:           5 (2 + 3 test)
+Total Users Created:    2
+  - Owners:           1 (demo.owner)
+  - Influencers:      1 (demo.influencer)
+  - Admins:           0 (admins not created)
 
 All accounts use password: password123
+
+All seed data (brands, campaigns, collaborations, tasks, messages, etc.)
+is now distributed to these two demo accounts only.
 
 ════════════════════════════════════════════════════════════
