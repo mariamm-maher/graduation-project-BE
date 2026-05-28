@@ -3,6 +3,8 @@ const KPI = require('../models/KPI');
 const TargetAudience = require('../models/TargetAudience');
 const ContentCalendar = require('../models/ContentCalendar');
 const CampaignAIVersion = require('../models/CampaignAIVersion');
+const Collaboration = require('../models/Collaboration');
+const User = require('../models/User');
 const { generateCampaignWithAI } = require('../services/campaignAIService');
 const { logAction } = require('../services/logServices');
 const notificationService = require('../services/notificationService');
@@ -608,7 +610,20 @@ exports.getCampaigns = async (req, res, next) => {
 
     // Build where clause for owner's campaigns
     const whereClause = { userId: ownerId };
-    if (lifecycleStage) whereClause.lifecycleStage = lifecycleStage;
+
+    if (lifecycleStage === 'completed') {
+      const today = new Date();
+      whereClause[Op.or] = [
+        { lifecycleStage: 'completed' },
+        {
+          endDate: { [Op.lt]: today },
+          lifecycleStage: { [Op.notIn]: ['cancelled', 'draft'] }
+        }
+      ];
+    } else if (lifecycleStage) {
+      whereClause.lifecycleStage = lifecycleStage;
+    }
+
     if (goalType) {
       whereClause.campaign_goal = goalType;
     }
@@ -1163,9 +1178,7 @@ exports.getActiveCampaigns = async (req, res, next) => {
     const activeCampaigns = await Campaign.findAll({
       where: {
         userId: ownerId,
-        // Must be published and not cancelled/draft
-        isPublished: true,
-        lifecycleStage: { [Op.notIn]: ['cancelled', 'draft', 'completed'] },
+        lifecycleStage: { [Op.notIn]: ['cancelled', 'draft'] },
         // Must have started (startDate <= today)
         startDate: { [Op.lte]: today },
         // Must not have ended yet (endDate >= today OR no endDate)
@@ -1198,6 +1211,17 @@ exports.getActiveCampaigns = async (req, res, next) => {
           as: 'aiVersions',
           attributes: ['id', 'versionNumber', 'generatedAt', 'isActive'],
           required: false
+        },
+        {
+          model: Collaboration,
+          as: 'collaborations',
+          attributes: ['id', 'status', 'startDate', 'endDate'],
+          required: false,
+          include: [{
+            model: User,
+            as: 'influencer',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          }]
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -1219,6 +1243,8 @@ exports.getActiveCampaigns = async (req, res, next) => {
       const activeAIVersion = Array.isArray(campaign.aiVersions)
         ? campaign.aiVersions.find((version) => version.isActive) || null
         : null;
+
+      const collaborations = Array.isArray(campaign.collaborations) ? campaign.collaborations : [];
 
       return {
         ...campaign,
@@ -1242,6 +1268,18 @@ exports.getActiveCampaigns = async (req, res, next) => {
           ai: {
             totalVersions: Array.isArray(campaign.aiVersions) ? campaign.aiVersions.length : 0,
             activeVersion: activeAIVersion
+          },
+          collaborators: {
+            total: collaborations.length,
+            list: collaborations.map(c => ({
+              id: c.id,
+              status: c.status,
+              startDate: c.startDate,
+              endDate: c.endDate,
+              influencer: c.influencer
+                ? { id: c.influencer.id, firstName: c.influencer.firstName, lastName: c.influencer.lastName, email: c.influencer.email }
+                : null
+            }))
           }
         }
       };

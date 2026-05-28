@@ -30,9 +30,20 @@ async function finalizeSignedContract({ contract, collaboration, transaction }) 
   contract.status = CONTRACT_STATUSES.SIGNED;
   await contract.save({ transaction });
 
-  collaboration.status    = COLLAB_STATUSES.LIVE;
+  const now = new Date();
+  const contractEnd = contract.endDate ? new Date(contract.endDate) : null;
+  const isAlreadyExpired = contractEnd && contractEnd < now;
+
   collaboration.startDate = contract.startDate || null;
   collaboration.endDate   = contract.endDate   || null;
+
+  if (isAlreadyExpired) {
+    collaboration.status      = COLLAB_STATUSES.COMPLETED;
+    collaboration.completedAt = now;
+  } else {
+    collaboration.status = COLLAB_STATUSES.LIVE;
+  }
+
   await collaboration.save({ transaction });
 
   let chatRoom = await ChatRoom.findOne({
