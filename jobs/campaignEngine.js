@@ -90,11 +90,12 @@ async function processCalendarEntries() {
       await post.update({ status: 'published', publishedAt: new Date() });
       await ContentCalendar.update({ status: 'posted' }, { where: { id: entry.id } });
 
-      await notificationService.create({
+      await notificationService.createNotification({
         userId: entry.campaign.userId,
-        title: 'Campaign post published',
+        type: 'CAMPAIGN_PUBLISHED',
         message: `Campaign post published on ${entry.platform}`,
-        type: 'campaign'
+        entityType: 'Campaign',
+        entityId: entry.campaignId
       });
     } catch (err) {
       if (postChannel) {
@@ -190,11 +191,12 @@ async function processCollaborationTasks() {
         { where: { id: task.id } }
       );
 
-      await notificationService.create({
+      await notificationService.createNotification({
         userId: task.collaboration.influencerId,
-        title: 'Task published',
+        type: 'TASK_APPROVED',
         message: `Your task "${task.taskName}" was posted on ${task.platform}`,
-        type: 'collaboration'
+        entityType: 'CollaborationTask',
+        entityId: task.id
       });
 
       let ownerUserId = task.collaboration.ownerId;
@@ -206,11 +208,12 @@ async function processCollaborationTasks() {
       }
 
       if (ownerUserId) {
-        await notificationService.create({
+        await notificationService.createNotification({
           userId: ownerUserId,
-          title: 'Task published',
+          type: 'TASK_APPROVED',
           message: `Task "${task.taskName}" was posted on ${task.platform}`,
-          type: 'collaboration'
+          entityType: 'CollaborationTask',
+          entityId: task.id
         });
       }
     } catch (err) {
@@ -221,11 +224,12 @@ async function processCollaborationTasks() {
         await post.update({ status: 'failed', errorMessage: err.message });
       }
 
-      await notificationService.create({
+      await notificationService.createNotification({
         userId: task.collaboration.influencerId,
-        title: 'Task publish failed',
+        type: 'TASK_REJECTED',
         message: `Publishing failed for "${task.taskName}" on ${task.platform}`,
-        type: 'collaboration'
+        entityType: 'CollaborationTask',
+        entityId: task.id
       });
     }
   }

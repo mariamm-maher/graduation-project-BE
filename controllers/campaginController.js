@@ -94,7 +94,7 @@ const buildCampaignPayload = ({ body, userId, status, isPublished }) => {
   return {
     userId,
     ...campaignData,
-    status,
+    lifecycleStage: status,
     isPublished,
   };
 };
@@ -176,7 +176,7 @@ const loadCampaignDetail = async (campaignId, userId) => {
     attributes: [
       'id',
       'campaignName',
-      'status',
+      'lifecycleStage',
       'campaign_goal',
       'budget_amount',
       'budget_currency',
@@ -241,7 +241,8 @@ const loadCampaignDetail = async (campaignId, userId) => {
 const campaignResponse = (campaign) => ({
   id: campaign.id,
   campaignName: campaign.campaignName,
-  status: campaign.status,
+  status: campaign.lifecycleStage,
+  lifecycleStage: campaign.lifecycleStage,
   isPublished: campaign.isPublished,
   userId: campaign.userId,
   campaign_goal: campaign.campaign_goal,
@@ -474,7 +475,7 @@ exports.saveAndPublish = async (req, res, next) => {
         entityType: 'Campaign',
         entityId: campaign.id,
         metadata: {
-          status: campaign.status,
+          status: campaign.lifecycleStage,
         }
       });
     } catch (notifError) {
@@ -551,7 +552,7 @@ exports.saveCampaign = async (req, res, next) => {
           entityType: 'Campaign',
           entityId: campaign.id,
           metadata: {
-            status: campaign.status,
+            status: campaign.lifecycleStage,
           }
         });
       } catch (notifError) {
@@ -584,11 +585,11 @@ exports.completeCampaign = async (req, res, next) => {
       return next(new AppError('Not authorized to complete this campaign', 403));
     }
 
-    if (campaign.status !== 'active') {
+    if (campaign.lifecycleStage !== 'active') {
       return next(new AppError('Only active campaigns can be completed', 400));
     }
 
-    campaign.status = 'completed';
+    campaign.lifecycleStage = 'completed';
     await campaign.save();
 
     try {
@@ -599,7 +600,7 @@ exports.completeCampaign = async (req, res, next) => {
         entityType: 'Campaign',
         entityId: campaign.id,
         metadata: {
-            status: campaign.status 
+            status: campaign.lifecycleStage 
         }
       });
     } catch (notifError) {
@@ -610,7 +611,8 @@ exports.completeCampaign = async (req, res, next) => {
       campaign: {
         id: campaign.id,
         campaignName: campaign.campaignName,
-        status: campaign.status,
+        status: campaign.lifecycleStage,
+        lifecycleStage: campaign.lifecycleStage,
         updatedAt: campaign.updatedAt
       }
     });
@@ -637,11 +639,11 @@ exports.cancelCampaign = async (req, res, next) => {
     }
 
     // Cannot cancel completed campaigns
-    if (campaign.status === 'completed') {
+    if (campaign.lifecycleStage === 'completed') {
       return next(new AppError('Completed campaigns cannot be cancelled', 400));
     }
 
-    campaign.status = 'cancelled';
+    campaign.lifecycleStage = 'cancelled';
     await campaign.save();
 
     try {
@@ -652,7 +654,7 @@ exports.cancelCampaign = async (req, res, next) => {
         entityType: 'Campaign',
         entityId: campaign.id,
         metadata: {
-          status: campaign.status
+          status: campaign.lifecycleStage
         }
       });
     } catch (notifError) {
@@ -663,7 +665,8 @@ exports.cancelCampaign = async (req, res, next) => {
       campaign: {
         id: campaign.id,
         campaignName: campaign.campaignName,
-        status: campaign.status,
+        status: campaign.lifecycleStage,
+        lifecycleStage: campaign.lifecycleStage,
         updatedAt: campaign.updatedAt
       }
     });
@@ -684,7 +687,7 @@ exports.getCampaigns = async (req, res, next) => {
 
     // Build where clause for owner's campaigns
     const whereClause = { userId: ownerId };
-    if (status) whereClause.status = status;
+    if (status) whereClause.lifecycleStage = status;
     if (goalType) {
       whereClause.campaign_goal = goalType;
     }
@@ -697,7 +700,7 @@ exports.getCampaigns = async (req, res, next) => {
       attributes: [
         'id',
         'campaignName',
-        'status',
+        'lifecycleStage',
         'campaign_goal',
         'budget_amount',
         'budget_currency',
@@ -757,14 +760,14 @@ exports.getCampaignsOverview = async (req, res, next) => {
     }
 
     const totalCampaigns = await Campaign.count({ where: { userId: ownerId } });
-    const totalDraft = await Campaign.count({ where: { userId: ownerId, status: 'draft' } });
+    const totalDraft = await Campaign.count({ where: { userId: ownerId, lifecycleStage: 'draft' } });
 
     const recent = await Campaign.findAll({
       where: { userId: ownerId },
       attributes: [
         'id',
         'campaignName',
-        'status',
+        'lifecycleStage',
         'campaign_goal',
         'budget_amount',
         'budget_currency',
@@ -872,7 +875,7 @@ exports.getCampaignAnalytics = async (req, res, next) => {
       attributes: [
         'id',
         'campaignName',
-        'status',
+        'lifecycleStage',
         'campaign_goal',
         'budget_amount',
         'budget_currency',
@@ -938,12 +941,12 @@ exports.getCampaignAnalytics = async (req, res, next) => {
     let activeAIVersions = 0;
 
     for (const campaign of rows) {
-      const stage = campaign.status || 'unknown';
-      statusByStage[stage] = (statusByStage[stage] || 0) + 1;
+      const stage = campaign.lifecycleStage || 'unknown';
+      lifecycleByStage[stage] = (lifecycleByStage[stage] || 0) + 1;
 
       if (campaign.isPublished) publishedCampaigns += 1;
-      if (campaign.status === 'completed') completedCampaigns += 1;
-      if (campaign.status === 'cancelled') cancelledCampaigns += 1;
+      if (campaign.lifecycleStage === 'completed') completedCampaigns += 1;
+      if (campaign.lifecycleStage === 'cancelled') cancelledCampaigns += 1;
 
       const goal = campaign.campaign_goal || 'unknown';
       goalsByType[goal] = (goalsByType[goal] || 0) + 1;
@@ -1257,7 +1260,7 @@ exports.getActiveCampaigns = async (req, res, next) => {
         userId: ownerId,
         // Must be published and not cancelled/draft
         isPublished: true,
-        status: { [Op.in]: ['active'] },
+        lifecycleStage: { [Op.in]: ['active'] },
         // Must have started (startDate <= today)
         startDate: { [Op.lte]: today },
         // Must not have ended yet (endDate >= today OR no endDate)
@@ -1314,6 +1317,7 @@ exports.getActiveCampaigns = async (req, res, next) => {
 
       return {
         ...campaign,
+        status: campaign.lifecycleStage,
         tracking: {
           duration: {
             totalDurationDays,

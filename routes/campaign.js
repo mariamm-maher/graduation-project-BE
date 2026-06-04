@@ -3,7 +3,6 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const {
   generateAICampaign,
-  draftCampaign,
   saveAndPublish,
   createCampaign,
   saveCampaign,
@@ -14,8 +13,14 @@ const {
   getCampaignsOverview,
   getCampaignAnalytics,
   getActiveCampaigns,
-  deleteCampaign
-} = require('../controllers/compaginController');
+  deleteCampaign,
+  
+} = require('../controllers/campaginController');
+const {
+  createDraft,
+  updateDraft,
+  getDraft
+} = require('../controllers/draftController');
 
 // @route   GET /api/campaigns
 // @desc    Get all campaigns for authenticated user
@@ -33,6 +38,10 @@ router.get('/overview', authenticate, authorize('OWNER'), getCampaignsOverview);
 // @desc    Get owner campaigns analytics insights
 router.get('/analytics', authenticate, authorize('OWNER'), getCampaignAnalytics);
 
+// @route   GET /api/campaigns/draft/:draft_id
+// @desc    Load a generation-workflow draft
+router.get('/draft/:draft_id', authenticate, authorize('OWNER'), getDraft);
+
 // @route   GET /api/campaigns/:id
 // @desc    Get single campaign with all relations
 router.get('/:id', authenticate, authorize('OWNER'), getCampaignById);
@@ -42,8 +51,12 @@ router.get('/:id', authenticate, authorize('OWNER'), getCampaignById);
 router.post('/ai/generate', authenticate, authorize('OWNER'), generateAICampaign);
 
 // @route   POST /api/campaigns/draft
-// @desc    Save AI preview or manual campaign as draft
-router.post('/draft', authenticate, authorize('OWNER'), draftCampaign);
+// @desc    Save a new generation-workflow draft
+router.post('/draft', authenticate, authorize('OWNER'), createDraft);
+
+// @route   PUT /api/campaigns/draft/:draft_id
+// @desc    Update an existing generation-workflow draft
+router.put('/draft/:draft_id', authenticate, authorize('OWNER'), updateDraft);
 
 // @route   POST /api/campaigns/save-and-publish
 // @desc    Save and publish campaign in one step

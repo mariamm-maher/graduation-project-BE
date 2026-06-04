@@ -328,8 +328,8 @@ function formatCampaignWithRelations(campaignModel) {
   return {
     id: campaign.id,
     campaignName: campaign.campaignName,
-    status: campaign.status,
-    lifecycleStage: campaign.status,
+    status: campaign.lifecycleStage,
+    lifecycleStage: campaign.lifecycleStage,
     isPublished: campaign.isPublished,
     userId: campaign.userId,
     campaign_goal: campaign.campaign_goal,

@@ -24,7 +24,7 @@ const Campaign = sequelize.define('Campaign', {
     }
   },
   lifecycleStage: {
-    type: DataTypes.ENUM('draft', 'ai_generated', 'saved', 'completed', 'cancelled'),
+    type: DataTypes.ENUM('draft', 'ai_generated', 'saved', 'active', 'completed', 'cancelled'),
     defaultValue: 'ai_generated',
     allowNull: false
   },
@@ -62,6 +62,18 @@ const Campaign = sequelize.define('Campaign', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  version_history:{
+    type: DataTypes.JSONB,
+    allowNull:true
+  },
+  inputs:{
+    type: DataTypes.JSONB,
+    allowNull:true
+  },
+  currentOutput:{
+    type: DataTypes.JSONB,
+    allowNull:true
+  }
  
 }, {
   timestamps: true
