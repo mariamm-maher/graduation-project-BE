@@ -221,10 +221,8 @@ const loadCampaignDetail = async (campaignId, userId) => {
           'versionNumber',
           'generatedAt',
           'strategy',
-          'calendar',
-          'influencer_matches',
-          'influencer_strategy_note',
-          'influencer_stage_skipped',
+          'execution',
+          'estimations',
           'isActive',
         ],
       },
@@ -277,9 +275,9 @@ exports.generateAICampaign = async (req, res, next) => {
       website,
       platforms,
       campaign_duration_weeks,
-       budget_amount,
-       campaign_goal,
-       budget_currency,
+      budget_amount,
+      campaign_goal,
+      budget_currency,
     } = req.body;
 
    
@@ -1098,8 +1096,7 @@ exports.getCampaignById = async (req, res, next) => {
       return next(new AppError('Campaign not found or you do not have access', 404));
     }
 
-    sendSuccess(res, 200, 'Campaign retrieved successfully', 
-    );
+    sendSuccess(res, 200, 'Campaign retrieved successfully', campaign);
   } catch (error) {
     next(error);
   }
