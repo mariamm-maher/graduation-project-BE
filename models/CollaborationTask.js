@@ -69,6 +69,13 @@ const CollaborationTask = sequelize.define('CollaborationTask', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  submissionUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    validate: {
+      isUrl: true
+    }
+  },
   submittedAt: {
     type: DataTypes.DATE,
     allowNull: true

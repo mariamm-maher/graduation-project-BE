@@ -212,69 +212,57 @@ async function seedRoles(transaction) {
 }
 
 async function seedUsers(transaction) {
-  logger.info(`Creating ${COUNT.owners} owners, ${COUNT.influencers} influencers, ${COUNT.admins} admins...`);
-  
+  logger.info('Creating ONLY demo owner and demo influencer...');
+
   const allUsers = [];
-  
-  // Generate owners
-  const ownerData = userFactory.generateOwners(COUNT.owners);
-  for (const data of ownerData) {
-    const [user, created] = await models.User.findOrCreate({
-      where: { email: data.email },
-      defaults: data,
-      transaction
-    });
-    user._role = 'OWNER';
-    allUsers.push(user);
-    logger.track('User', created ? 'created' : 'skipped');
-    if (created) logger.created('User', user.email, `Owner: ${user.firstName} ${user.lastName}`);
+
+  // Create ONLY Demo Owner
+  const demoOwnerData = {
+    firstName: 'Demo',
+    lastName: 'Owner',
+    email: 'demo.owner@example.com',
+    password: 'password123',
+    phone: '+1 (555) 000-0001',
+    isEmailVerified: true,
+    isActive: true,
+  };
+  const [ownerUser, ownerCreated] = await models.User.findOrCreate({
+    where: { email: demoOwnerData.email },
+    defaults: demoOwnerData,
+    transaction
+  });
+  ownerUser._role = 'OWNER';
+  allUsers.push(ownerUser);
+  if (ownerCreated) {
+    logger.created('User', ownerUser.email, 'DEMO OWNER');
+  } else {
+    logger.skipped('User', ownerUser.email);
   }
-  
-  // Generate influencers
-  const influencerData = userFactory.generateInfluencers(COUNT.influencers);
-  for (const data of influencerData) {
-    const [user, created] = await models.User.findOrCreate({
-      where: { email: data.email },
-      defaults: data,
-      transaction
-    });
-    user._role = 'INFLUENCER';
-    allUsers.push(user);
-    logger.track('User', created ? 'created' : 'skipped');
-    if (created) logger.created('User', user.email, `Influencer: ${user.firstName} ${user.lastName}`);
+
+  // Create ONLY Demo Influencer
+  const demoInfluencerData = {
+    firstName: 'Demo',
+    lastName: 'Influencer',
+    email: 'demo.influencer@example.com',
+    password: 'password123',
+    phone: '+1 (555) 000-0002',
+    isEmailVerified: true,
+    isActive: true,
+  };
+  const [influencerUser, influencerCreated] = await models.User.findOrCreate({
+    where: { email: demoInfluencerData.email },
+    defaults: demoInfluencerData,
+    transaction
+  });
+  influencerUser._role = 'INFLUENCER';
+  allUsers.push(influencerUser);
+  if (influencerCreated) {
+    logger.created('User', influencerUser.email, 'DEMO INFLUENCER');
+  } else {
+    logger.skipped('User', influencerUser.email);
   }
-  
-  // Generate admins
-  const adminData = userFactory.generateAdmins(COUNT.admins);
-  for (const data of adminData) {
-    const [user, created] = await models.User.findOrCreate({
-      where: { email: data.email },
-      defaults: data,
-      transaction
-    });
-    user._role = 'ADMIN';
-    allUsers.push(user);
-    logger.track('User', created ? 'created' : 'skipped');
-    if (created) logger.created('User', user.email, `Admin: ${user.firstName} ${user.lastName}`);
-  }
-  
-  // Add test accounts
-  const testAccounts = userFactory.generateTestAccounts();
-  for (const data of testAccounts) {
-    const [user, created] = await models.User.findOrCreate({
-      where: { email: data.email },
-      defaults: data,
-      transaction
-    });
-    if (created) {
-      user._role = data.email.includes('owner') ? 'OWNER' : 
-                   data.email.includes('influencer') ? 'INFLUENCER' : 'ADMIN';
-      allUsers.push(user);
-      logger.created('User', user.email, 'TEST ACCOUNT');
-    }
-  }
-  
-  logger.success(`Users: ${allUsers.length} total`);
+
+  logger.success(`Users: ${allUsers.length} total (1 demo owner, 1 demo influencer)`);
   return allUsers;
 }
 

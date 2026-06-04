@@ -4,6 +4,7 @@ const {
   Campaign,
   Collaboration,
   CollaborationRequest,
+  CollaborationTask,
   ChatRoom,
   ChatParticipant,
   Message,
@@ -275,7 +276,7 @@ exports.getActiveInfluencers = async (req, res, next) => {
     const collaborations = await Collaboration.findAll({
       where: {
         ownerId,
-        status: { [Op.in]: ['in_progress', 'live', 'pending_contract_sign'] }
+        status: { [Op.in]: ['in_progress', 'live'] }
       },
       include: [
         {
@@ -292,32 +293,56 @@ exports.getActiveInfluencers = async (req, res, next) => {
           model: Campaign,
           as: 'campaign',
           attributes: ['id', 'campaignName']
+        },
+        {
+          model: CollaborationTask,
+          as: 'tasks',
+          attributes: ['id', 'taskName', 'status', 'dueDate', 'description'],
+          required: false
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC'], [{ model: CollaborationTask, as: 'tasks' }, 'createdAt', 'ASC']]
     });
 
     const formattedResults = collaborations
       .filter(collab => collab.influencer && collab.campaign)
-      .map(collab => ({
-        collaborationId: collab.id,
-        status: collab.status,
-        startDate: collab.startDate,
-        endDate: collab.endDate,
-        influencer: {
-          id: collab.influencer.id,
-          firstName: collab.influencer.firstName,
-          lastName: collab.influencer.lastName,
-          email: collab.influencer.email,
-          profileImage: collab.influencer.influencerProfile?.image || null,
-          primaryPlatform: collab.influencer.influencerProfile?.primaryPlatform || null,
-          followersCount: collab.influencer.influencerProfile?.followersCount || null
-        },
-        campaign: {
-          id: collab.campaign.id,
-          title: collab.campaign.campaignName
-        }
-      }));
+      .map(collab => {
+        const tasks = Array.isArray(collab.tasks) ? collab.tasks.map(t => ({
+          id: t.id,
+          title: t.taskName,
+          status: t.status,
+          dueDate: t.dueDate || null,
+          description: t.description || null,
+          completed: ['approved', 'Approved'].includes(t.status)
+        })) : [];
+
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter(t => t.completed).length;
+        const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+        return {
+          collaborationId: collab.id,
+          status: collab.status,
+          startDate: collab.startDate,
+          endDate: collab.endDate,
+          influencer: {
+            id: collab.influencer.id,
+            firstName: collab.influencer.firstName,
+            lastName: collab.influencer.lastName,
+            email: collab.influencer.email,
+            profileImage: collab.influencer.influencerProfile?.image || null,
+            primaryPlatform: collab.influencer.influencerProfile?.primaryPlatform || null,
+            followersCount: collab.influencer.influencerProfile?.followersCount || null
+          },
+          campaign: {
+            id: collab.campaign.id,
+            title: collab.campaign.campaignName
+          },
+          tasks,
+          progress,
+          taskSummary: { total: totalTasks, completed: completedTasks }
+        };
+      });
 
     sendSuccess(res, 200, 'Active influencers retrieved successfully', {
       collaborations: formattedResults

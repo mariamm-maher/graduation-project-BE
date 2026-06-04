@@ -30,9 +30,20 @@ async function finalizeSignedContract({ contract, collaboration, transaction }) 
   contract.status = CONTRACT_STATUSES.SIGNED;
   await contract.save({ transaction });
 
-  collaboration.status    = COLLAB_STATUSES.LIVE;
+  const now = new Date();
+  const contractEnd = contract.endDate ? new Date(contract.endDate) : null;
+  const isAlreadyExpired = contractEnd && contractEnd < now;
+
   collaboration.startDate = contract.startDate || null;
   collaboration.endDate   = contract.endDate   || null;
+
+  if (isAlreadyExpired) {
+    collaboration.status      = COLLAB_STATUSES.COMPLETED;
+    collaboration.completedAt = now;
+  } else {
+    collaboration.status = COLLAB_STATUSES.LIVE;
+  }
+
   await collaboration.save({ transaction });
 
   let chatRoom = await ChatRoom.findOne({
@@ -181,7 +192,8 @@ async function createContract({ collaborationId, ownerId, startDate, endDate, de
 }
 
 async function getOwnerContracts(ownerId) {
-  return CollaborationContract.findAll({
+  // Get existing contracts
+  const existingContracts = await CollaborationContract.findAll({
     include: [
       {
         model: Collaboration,
@@ -204,6 +216,56 @@ async function getOwnerContracts(ownerId) {
     ],
     order: [['createdAt', 'DESC']],
   });
+
+  // Get collaborations in "pending_contract_sign" status (waiting for contract) and convert to draft contract format
+  const pendingCollaborations = await Collaboration.findAll({
+    where: { 
+      ownerId,
+      status: 'pending_contract_sign'
+    },
+    include: [
+      {
+        model: Campaign,
+        as: 'campaign',
+        attributes: ['id', 'campaignName']
+      },
+      {
+        model: User,
+        as: 'influencer',
+        attributes: ['id', 'firstName', 'lastName'],
+        include: [{ model: OwnerProfile, as: 'ownerProfile', attributes: ['brand_name'] }]
+      },
+      {
+        model: CollaborationContract,
+        as: 'contract',
+        required: false // Left join - collaborations without contracts
+      }
+    ],
+    order: [['createdAt', 'DESC']],
+  });
+
+  // Convert pending collaborations to draft contract format
+  const draftContracts = pendingCollaborations
+    .filter(collab => !collab.contract) // Only those without existing contracts
+    .map(collab => ({
+      id: `draft-${collab.id}`,
+      status: 'draft',
+      collaborationId: collab.id,
+      collaboration: collab,
+      // Derive contract values from collaboration
+      agreedPrice: collab.proposedBudget || collab.counterPrice || 0,
+      deliverables: [],
+      startDate: null,
+      endDate: null,
+      ownerSigned: false,
+      influencerSigned: false,
+      isDraft: true, // Flag to indicate this is a derived draft
+      createdAt: collab.createdAt,
+      updatedAt: collab.updatedAt,
+    }));
+
+  // Combine existing contracts with draft contracts
+  return [...existingContracts, ...draftContracts];
 }
 
 async function getInfluencerContracts(influencerId) {

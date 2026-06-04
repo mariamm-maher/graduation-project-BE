@@ -1,0 +1,47 @@
+════════════════════════════════════════════════════════════
+  SEED2 ACCOUNTS - All Data on Demo Owner & Influencer
+════════════════════════════════════════════════════════════
+
+DEMO OWNER (All brands, campaigns, and collaborations):
+────────────────────────────────────────────────────────────
+Name:                 Demo Owner
+Email:                demo.owner@example.com
+Role:                 Owner
+Password:             password123
+Phone:                +1 (555) 000-0001
+────────────────────────────────────────────────────────────
+Data Distribution:
+  - Brands: All brands created (normally distributed among owners)
+  - Campaigns: All campaigns created for demo owner
+  - Collaborations: All collaborations between demo owner and demo influencer
+  - Tasks: All tasks assigned to the influencer
+
+
+DEMO INFLUENCER (All social channels, collaborations, and tasks):
+────────────────────────────────────────────────────────────
+Name:                 Demo Influencer
+Email:                demo.influencer@example.com
+Role:                 Influencer
+Password:             password123
+Phone:                +1 (555) 000-0002
+────────────────────────────────────────────────────────────
+Data Distribution:
+  - Social Channels: All social media accounts
+  - Collaborations: All collaborations with demo owner
+  - Tasks: All tasks from all collaborations
+
+
+════════════════════════════════════════════════════════════
+  SUMMARY
+════════════════════════════════════════════════════════════
+Total Users Created:    2
+  - Owners:           1 (demo.owner)
+  - Influencers:      1 (demo.influencer)
+  - Admins:           0 (admins not created)
+
+All accounts use password: password123
+
+All seed data (brands, campaigns, collaborations, tasks, messages, etc.)
+is now distributed to these two demo accounts only.
+
+════════════════════════════════════════════════════════════

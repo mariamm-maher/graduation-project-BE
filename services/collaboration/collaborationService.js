@@ -74,9 +74,21 @@ async function getCollaborationById(id) {
 
   if (!collab) throw new AppError('Collaboration not found', 404);
 
+  const today = new Date();
+
+  // Auto-complete: if end date has passed and collaboration isn't already terminal
+  const liveStatuses = new Set([COLLAB_STATUSES.LIVE, COLLAB_STATUSES.IN_PROGRESS]);
+  if (liveStatuses.has(collab.status) && collab.endDate) {
+    const endDateRaw = new Date(collab.endDate);
+    if (!Number.isNaN(endDateRaw.getTime()) && endDateRaw < today) {
+      collab.status      = COLLAB_STATUSES.COMPLETED;
+      collab.completedAt = collab.completedAt || today;
+      await collab.save();
+    }
+  }
+
   const startDate = toDateOrNull(collab.startDate);
   const endDate = toDateOrNull(collab.endDate);
-  const today = new Date();
 
   const totalDays = diffDays(startDate, endDate);
   const elapsedDaysRaw = startDate ? diffDays(startDate, today) : 0;
@@ -282,22 +294,41 @@ async function listByInfluencer({ influencerId, status }) {
       {
         model: Campaign,
         as: 'campaign',
-        attributes: ['id', 'campaignName', 'campaign_goal', 'budget_amount', 'budget_currency', 'campaign_duration_weeks', 'lifecycleStage', 'createdAt']
+        attributes: ['id', 'campaignName', 'campaign_goal', 'budget_amount', 'budget_currency', 'campaign_duration_weeks', 'lifecycleStage', 'startDate', 'endDate', 'createdAt']
       },
       {
         model: User,
         as: 'owner',
-        attributes: ['id', 'firstName', 'lastName'],
+        attributes: ['id', 'firstName', 'lastName', 'email'],
         include: [{
           model: OwnerProfile,
           as: 'ownerProfile',
-          attributes: ['brand_name']
+          attributes: ['brand_name', 'website']
         }]
+      },
+      {
+        model: CollaborationRequest,
+        as: 'request',
+        attributes: ['id', 'proposedBudget', 'counterPrice', 'status', 'message', 'responseMessage']
+      },
+      {
+        model: CollaborationTask,
+        as: 'tasks',
+        attributes: ['id', 'taskName', 'status', 'dueDate', 'description'],
+        required: false
       }
     ]
   });
 
-  return collabs.map(formatCollabData);
+  return collabs.map(c => {
+    const data = formatCollabData(c);
+    const tasks = Array.isArray(c.tasks) ? c.tasks.map(t => t.toJSON ? t.toJSON() : t) : [];
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => ['approved', 'completed'].includes(String(t.status || '').toLowerCase())).length;
+    data.taskSummary = { total: totalTasks, completed: completedTasks };
+    data.tasks = tasks;
+    return data;
+  });
 }
 
 async function getCollaborationOverviewForUser(userId) {
