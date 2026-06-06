@@ -151,7 +151,7 @@ async function getPostsByUser(userId) {
   const posts = await ScheduledPost.findAll({
     include: [
       {
-        model: Channel,
+        model: channel,
         as: 'channel',
         where: { userId },
         attributes: ['id', 'platform', 'accountName', 'accountUsername', 'userId']
@@ -163,9 +163,9 @@ async function getPostsByUser(userId) {
   return {
     posts: posts.map((post) => ({
       id: post.id,
-      userId: post.Channel.userId,
+      userId: post.channel.userId,
       channelId: post.channelId,
-      platform: post.Channel.platform,
+      platform: post.channel.platform,
       content: post.content,
       mediaUrls: post.mediaUrls,
       status: post.status,
@@ -187,7 +187,7 @@ async function deletePost(postId, userId) {
   if (post.status === 'published' && post.platformPostId) {
     try {
       await axios.delete(`${GRAPH_BASE_URL}/${post.platformPostId}`, {
-        params: { access_token: post.Channel.accessToken }
+        params: { access_token: post.channel.accessToken }
       });
     } catch (error) {
       throw {
@@ -219,7 +219,7 @@ async function getPostAnalytics(postId, userId) {
     const postResponse = await axios.get(`${GRAPH_BASE_URL}/${post.platformPostId}`, {
       params: {
         fields: 'likes.summary(true),comments.summary(true)',
-        access_token: post.Channel.accessToken
+        access_token: post.channel.accessToken
       }
     });
 
@@ -228,7 +228,7 @@ async function getPostAnalytics(postId, userId) {
       const insightsResponse = await axios.get(`${GRAPH_BASE_URL}/${post.platformPostId}/insights`, {
         params: {
           metric: 'post_impressions',
-          access_token: post.Channel.accessToken
+          access_token: post.channel.accessToken
         }
       });
       reach = insightsResponse.data?.data?.[0]?.values?.[0]?.value || 0;
