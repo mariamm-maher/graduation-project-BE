@@ -1252,6 +1252,23 @@ exports.getActiveCampaigns = async (req, res, next) => {
     const { Op } = require('sequelize');
     const today = new Date();
 
+    console.log('[getActiveCampaigns] ownerId:', ownerId);
+    console.log('[getActiveCampaigns] today:', today);
+
+    // First, check all campaigns for this user
+    const allCampaigns = await Campaign.findAll({
+      where: { userId: ownerId },
+      attributes: ['id', 'campaignName', 'lifecycleStage', 'isPublished', 'startDate', 'endDate']
+    });
+    console.log('[getActiveCampaigns] All campaigns for user:', allCampaigns.map(c => ({
+      id: c.id,
+      name: c.campaignName,
+      lifecycleStage: c.lifecycleStage,
+      isPublished: c.isPublished,
+      startDate: c.startDate,
+      endDate: c.endDate
+    })));
+
     const activeCampaigns = await Campaign.findAll({
       where: {
         userId: ownerId,
