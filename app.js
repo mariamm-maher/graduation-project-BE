@@ -9,6 +9,7 @@ const cors = require('cors');
 const { startScheduler } = require('./jobs/postScheduler');
 const { startCampaignEngine } = require('./jobs/campaignEngine');
 const { startTokenRefresher } = require('./jobs/tokenRefresher');
+const { updateCampaignLifecycle } = require('./jobs/campaignLifecycleJob');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-bundled.json');
 const path = require('path');
@@ -62,8 +63,20 @@ app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 startScheduler();
-startCampaignEngine();
+//startCampaignEngine();
 startTokenRefresher();
+
+setInterval(async () => {
+  try {
+    await updateCampaignLifecycle();
+  } catch (error) {
+    console.error('Campaign lifecycle job failed:', error);
+  }
+}, 24 * 60 * 60 * 1000); 
+
+updateCampaignLifecycle().catch(error => {
+  console.error('Initial campaign lifecycle check failed:', error);
+});
 // Documentation Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

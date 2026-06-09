@@ -12,8 +12,6 @@ class PlatformFactory {
         return new InstagramService();
       case 'facebook':
         return new FacebookService();
-      case 'twitter':
-        return new TwitterService();
       case 'tiktok':
         // TikTok API access is very limited - would need special approval
         throw new Error('TikTok integration requires special API access approval');
@@ -23,7 +21,7 @@ class PlatformFactory {
   }
 
   static getSupportedPlatforms() {
-    return ['instagram', 'facebook', 'twitter', 'linkedin'];
+    return ['instagram', 'facebook'];
   }
 }
 
