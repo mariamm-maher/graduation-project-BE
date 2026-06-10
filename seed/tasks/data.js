@@ -144,6 +144,69 @@ const taskSeeds = [
       }
     ]
   }
+  ,
+  {
+    collaborationKey: 'pending-contract-sign',
+    tasks: [
+      {
+        taskName: 'Review draft contract',
+        description: 'Review the proposed contract terms and confirm the deliverables list with the team.',
+        status: 'todo',
+        sortOrder: 1,
+        platform: null,
+        contentType: null,
+        dueDate: '2026-05-29',
+        submissionNote: null,
+        submittedAt: null,
+        reviewNote: null,
+        completedAt: null
+      },
+      {
+        taskName: 'Send contract signature reminder',
+        description: 'Send a reminder to the influencer to sign the pending contract before the start date.',
+        status: 'todo',
+        sortOrder: 2,
+        platform: null,
+        contentType: null,
+        dueDate: '2026-05-30',
+        submissionNote: null,
+        submittedAt: null,
+        reviewNote: null,
+        completedAt: null
+      }
+    ]
+  },
+  {
+    collaborationKey: 'cancelled-collaboration',
+    tasks: [
+      {
+        taskName: 'Confirm cancellation reason',
+        description: 'Document the reason for cancellation and confirm next steps with internal stakeholders.',
+        status: 'approved',
+        sortOrder: 1,
+        platform: null,
+        contentType: null,
+        dueDate: '2026-04-06',
+        submissionNote: 'Cancellation confirmed and documented.',
+        submittedAt: '2026-04-05T14:00:00.000Z',
+        reviewNote: 'Reason documented; move to save lessons learned.',
+        completedAt: '2026-04-06T09:00:00.000Z'
+      },
+      {
+        taskName: 'Archive contract files',
+        description: 'Archive the cancelled contract and collaboration documents for compliance.',
+        status: 'todo',
+        sortOrder: 2,
+        platform: null,
+        contentType: null,
+        dueDate: '2026-04-08',
+        submissionNote: null,
+        submittedAt: null,
+        reviewNote: null,
+        completedAt: null
+      }
+    ]
+  }
 ];
 
 module.exports = taskSeeds;

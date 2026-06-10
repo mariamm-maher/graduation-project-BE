@@ -469,4 +469,104 @@ const influencerAccounts = [
   }
 ];
 
+// Extra influencer entries for extended testing
+influencerAccounts.push(
+  {
+    user: { firstName: 'Zara', lastName: 'Omar', email: 'influencer19@example.com', password: 'password123', status: 'SUSPENDED' },
+    profile: {
+      bio: 'Lifestyle content creator currently on hiatus.',
+      image: 'https://images.example.com/influencers/zara-omar.jpg',
+      location: 'Cairo, EG',
+      socialMediaLinks: {
+        instagram: 'https://instagram.com/zaraomar19'
+      },
+      primaryPlatform: 'Instagram',
+      followersCount: '42000',
+      engagementRate: '3.2',
+      categories: ['Lifestyle'],
+      contentTypes: ['post', 'story'],
+      collaborationTypes: ['sponsored_post'],
+      audienceAgeRange: '20-35',
+      audienceGender: 'female',
+      audienceLocation: 'EG',
+      interests: ['family', 'home'],
+      completionPercentage: 100,
+      isOnboarded: true,
+      isCompleted: true
+    }
+  },
+  {
+    user: { firstName: 'Marco', lastName: 'Rossi', email: 'influencer20@example.com', password: 'password123', status: 'ACTIVE' },
+    profile: {
+      bio: 'Micro-influencer focused on niche woodworking tutorials.',
+      image: 'https://images.example.com/influencers/marco-rossi.jpg',
+      location: 'Naples, IT',
+      socialMediaLinks: {},
+      primaryPlatform: 'YouTube',
+      followersCount: '4200',
+      engagementRate: '9.8',
+      categories: ['Crafts', 'DIY'],
+      contentTypes: ['video'],
+      collaborationTypes: ['product_review', 'tutorial'],
+      audienceAgeRange: '25-55',
+      audienceGender: 'male',
+      audienceLocation: 'Europe',
+      interests: ['woodworking', 'tools'],
+      completionPercentage: 80,
+      isOnboarded: true,
+      isCompleted: false
+    }
+  },
+  {
+    user: { firstName: 'Nadia', lastName: 'Rahman', email: 'influencer21@example.com', password: 'password123', status: 'ACTIVE' },
+    profile: {
+      bio: 'Emerging fashion stylist building a portfolio.',
+      image: 'https://images.example.com/influencers/nadia-rahman.jpg',
+      location: 'Amman, JO',
+      socialMediaLinks: {
+        instagram: 'https://instagram.com/nadiarahman21',
+        tiktok: 'https://tiktok.com/@nadiarahman21'
+      },
+      primaryPlatform: 'TikTok',
+      followersCount: '15000',
+      engagementRate: '7.0',
+      categories: ['Fashion'],
+      contentTypes: ['reel', 'post'],
+      collaborationTypes: ['sponsored_post'],
+      audienceAgeRange: '18-30',
+      audienceGender: 'female',
+      audienceLocation: 'MENA',
+      interests: ['style', 'sustainable fashion'],
+      completionPercentage: 45,
+      isOnboarded: false,
+      isCompleted: false
+    }
+  },
+  {
+    user: { firstName: 'Victor', lastName: 'Ng', email: 'influencer22@example.com', password: 'password123', status: 'ACTIVE' },
+    profile: {
+      bio: 'Tech journalist and long-form reviewer.',
+      image: 'https://images.example.com/influencers/victor-ng.jpg',
+      location: 'Singapore, SG',
+      socialMediaLinks: {
+        twitter: 'https://twitter.com/victorng22',
+        youtube: 'https://youtube.com/@victorng22'
+      },
+      primaryPlatform: 'YouTube',
+      followersCount: '950000',
+      engagementRate: '4.1',
+      categories: ['Technology', 'Review'],
+      contentTypes: ['video', 'article'],
+      collaborationTypes: ['sponsored_post', 'webinar'],
+      audienceAgeRange: '20-45',
+      audienceGender: 'all',
+      audienceLocation: 'Global',
+      interests: ['gadgets', 'reviews'],
+      completionPercentage: 100,
+      isOnboarded: true,
+      isCompleted: true
+    }
+  }
+);
+
 module.exports = influencerAccounts;

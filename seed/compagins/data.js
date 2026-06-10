@@ -5,7 +5,7 @@ const campaignSeeds = [
     campaign: {
       campaignName: "GlowUp Summer Launch",
       lifecycleStage: "ai_generated",
-      campaign_goal: "AWARENESS",
+      campaign_goal: "Awareness",
       budget_amount: 5000,
       budget_currency: "USD",
       campaign_duration_weeks: 4,
@@ -209,7 +209,7 @@ const campaignSeeds = [
 
   // ─── 3. Sales ─────────────────────────────────────────────────────────────
   {
-    ownerEmail: 'owner01@example.com',
+    ownerEmail: 'technochill353@gmail.com',
     campaign: {
       campaignName: 'Tech Haven Conversion Booster Q2',
       lifecycleStage: 'saved',
@@ -315,7 +315,7 @@ const campaignSeeds = [
 
   // ─── 4. Retention ─────────────────────────────────────────────────────────
   {
-    ownerEmail: 'owner01@example.com',
+    ownerEmail: 'technochill353@gmail.com',
     campaign: {
       campaignName: 'Tech Haven Customer Retention Loyalty Run',
       lifecycleStage: 'saved',
@@ -417,7 +417,7 @@ const campaignSeeds = [
 
   // ─── 5. Re-engagement ─────────────────────────────────────────────────────
   {
-    ownerEmail: 'owner01@example.com',
+    ownerEmail: 'technochill353@gmail.com',
     campaign: {
       campaignName: 'Tech Haven Dormant Users Re-engagement',
       lifecycleStage: 'saved',
@@ -517,6 +517,193 @@ const campaignSeeds = [
       isActive: true,
     },
   },
+  {
+    ownerEmail: 'ahmed.hassan@example.com',
+    campaign: {
+      campaignName: 'GreenBite Seasonal Launch',
+      lifecycleStage: 'active',
+      campaign_goal: 'Sales',
+      budget_amount: 2300,
+      budget_currency: 'USD',
+      campaign_duration_weeks: 4,
+      startDate: '2026-06-15T09:00:00.000Z',
+      endDate: '2026-07-13T09:00:00.000Z',
+      isPublished: true,
+    },
+    targetAudience: {
+      ageRange: '25-45',
+      gender: 'all',
+      interests: ['healthy eating', 'meal prep', 'convenience'],
+      platformsUsed: ['Instagram', 'Facebook', 'TikTok'],
+    },
+    kpis: [
+      { metric: 'orders',        targetValue: '320'     },
+      { metric: 'ROAS',          targetValue: '3.2x'    },
+      { metric: 'engagement',    targetValue: '6.0%'    },
+    ],
+    contentCalendar: [
+      {
+        day: 1,
+        date: '2026-06-15T14:00:00.000Z',
+        platform: 'instagram',
+        contentType: 'reel',
+        caption: 'Healthy meals delivered in minutes — meet the summer launch.',
+        mediaUrl: 'https://images.example.com/campaigns/greenbite-01/reel-1.mp4',
+        task: 'Publish launch reel',
+        status: 'scheduled',
+      },
+      {
+        day: 5,
+        date: '2026-06-19T16:00:00.000Z',
+        platform: 'facebook',
+        contentType: 'post',
+        caption: 'Why GreenBite meals are perfect for busy professionals.',
+        mediaUrl: 'https://images.example.com/campaigns/greenbite-01/post-1.jpg',
+        task: 'Publish brand benefit post',
+        status: 'scheduled',
+      },
+    ],
+    aiVersion: {
+      versionNumber: 1,
+      generatedAt: '2026-06-01T08:00:00.000Z',
+      strategy: {
+        campaignSummary: 'AI-driven launch campaign for GreenBite focused on conversion and healthy lifestyle positioning.',
+        platformSelection: [
+          { platform: 'Instagram', rationale: 'Strong engagement for food content', priority: 'primary', audienceMatchScore: 82 },
+          { platform: 'Facebook',  rationale: 'Broad reach among working professionals', priority: 'secondary', audienceMatchScore: 78 },
+          { platform: 'TikTok',    rationale: 'Short-form snackable videos for product discovery', priority: 'tertiary', audienceMatchScore: 70 },
+        ],
+        budgetAllocation: {
+          totalAllocated: 2300,
+          breakdown: [
+            { category: 'paid_ads', amount: 1150, percentage: 50 },
+            { category: 'content_creation', amount: 690, percentage: 30 },
+            { category: 'influencer_marketing', amount: 345, percentage: 15 },
+            { category: 'contingency', amount: 115, percentage: 5 },
+          ],
+        },
+      },
+      execution: {
+        contentCalendar: [
+          { day: 1,  date: '2026-06-15', platform: 'instagram', contentType: 'reel',    status: 'scheduled', caption: 'Summer launch: healthy meals that fit your busy week',  task: 'Publish launch reel' },
+          { day: 3,  date: '2026-06-17', platform: 'facebook',  contentType: 'post',    status: 'scheduled', caption: '5 reasons to switch to healthy ready-made meals now', task: 'Publish benefit post' },
+          { day: 7,  date: '2026-06-21', platform: 'tiktok',    contentType: 'video',   status: 'scheduled', caption: 'Meal prep made easy with GreenBite',               task: 'Publish TikTok meal hack video' },
+          { day: 14, date: '2026-06-28', platform: 'instagram', contentType: 'story',   status: 'scheduled', caption: 'Customer favorites from the new summer launch',   task: 'Publish story highlights' },
+        ],
+        adStrategy: {
+          campaigns: [
+            { platform: 'Instagram', campaignType: 'Conversion Campaign', objective: 'Sales', duration: '28 days', dailyBudget: 26, targeting: 'Health-conscious professionals' },
+            { platform: 'Facebook',  campaignType: 'Traffic Campaign',    objective: 'Website visits', duration: '28 days', dailyBudget: 18, targeting: 'Meal prep and fitness interests' },
+          ],
+        },
+      },
+      estimations: {
+        estimatedResults: {
+          scenario: 'moderate',
+          confidenceLevel: 75,
+          metrics: [
+            { metric: 'orders', estimatedRange: { min: 250, max: 390, mostLikely: 320 } },
+            { metric: 'ROAS',   estimatedRange: { min: '2.8x', max: '3.7x', mostLikely: '3.2x' } },
+            { metric: 'engagement', estimatedRange: { min: '4.2%', max: '6.8%', mostLikely: '6.0%' } },
+          ],
+        },
+      },
+      isActive: true,
+    },
+  },
+  {
+    ownerEmail: 'sara.ali@example.com',
+    campaign: {
+      campaignName: 'Luma Studios Creator Collaboration Push',
+      lifecycleStage: 'active',
+      campaign_goal: 'Awareness',
+      budget_amount: 1200,
+      budget_currency: 'USD',
+      campaign_duration_weeks: 3,
+      startDate: '2026-06-10T11:00:00.000Z',
+      endDate: '2026-07-01T11:00:00.000Z',
+      isPublished: true,
+    },
+    targetAudience: {
+      ageRange: '20-35',
+      gender: 'all',
+      interests: ['creative agencies', 'social media content', 'brand design'],
+      platformsUsed: ['Instagram', 'TikTok'],
+    },
+    kpis: [
+      { metric: 'impressions', targetValue: '120000' },
+      { metric: 'engagement',  targetValue: '7.5%'     },
+      { metric: 'brand_awareness', targetValue: '250 mentions' },
+    ],
+    contentCalendar: [
+      {
+        day: 2,
+        date: '2026-06-12T16:00:00.000Z',
+        platform: 'instagram',
+        contentType: 'carousel',
+        caption: 'See how we turn ideas into social-first campaigns.',
+        mediaUrl: 'https://images.example.com/campaigns/luma-01/carousel-1.jpg',
+        task: 'Publish portfolio carousel',
+        status: 'scheduled',
+      },
+      {
+        day: 6,
+        date: '2026-06-16T18:30:00.000Z',
+        platform: 'tiktok',
+        contentType: 'video',
+        caption: 'A day in the studio: behind-the-scenes creative work.',
+        mediaUrl: 'https://images.example.com/campaigns/luma-01/video-1.mp4',
+        task: 'Publish BTS TikTok',
+        status: 'scheduled',
+      },
+    ],
+    aiVersion: {
+      versionNumber: 1,
+      generatedAt: '2026-06-05T09:30:00.000Z',
+      strategy: {
+        campaignSummary: 'AI-generated awareness push for Luma Studios to grow creator and brand visibility with visual storytelling and behind-the-scenes content.',
+        platformSelection: [
+          { platform: 'Instagram', rationale: 'High visual discovery with creative audiences', priority: 'primary', audienceMatchScore: 83 },
+          { platform: 'TikTok',    rationale: 'Fast-growing reach for creator storytelling', priority: 'secondary', audienceMatchScore: 79 },
+        ],
+        budgetAllocation: {
+          totalAllocated: 1200,
+          breakdown: [
+            { category: 'paid_ads', amount: 600, percentage: 50 },
+            { category: 'content_creation', amount: 360, percentage: 30 },
+            { category: 'influencer_marketing', amount: 180, percentage: 15 },
+            { category: 'contingency', amount: 60, percentage: 5 },
+          ],
+        },
+      },
+      execution: {
+        contentCalendar: [
+          { day: 2,  date: '2026-06-12', platform: 'instagram', contentType: 'carousel', status: 'scheduled', caption: 'Portfolio showcase for modern brands', task: 'Publish portfolio carousel' },
+          { day: 4,  date: '2026-06-14', platform: 'tiktok',    contentType: 'video',    status: 'scheduled', caption: 'Studio day in 30 seconds', task: 'Publish behind-the-scenes video' },
+          { day: 9,  date: '2026-06-19', platform: 'instagram', contentType: 'story',    status: 'scheduled', caption: 'Client success highlights and testimonials', task: 'Publish testimonials story' },
+          { day: 15, date: '2026-06-25', platform: 'instagram', contentType: 'post',  status: 'scheduled', caption: 'How we transform a brief into viral creative', task: 'Publish process story post' },
+        ],
+        adStrategy: {
+          campaigns: [
+            { platform: 'Instagram', campaignType: 'Brand Awareness', objective: 'Awareness', duration: '21 days', dailyBudget: 18, targeting: 'Creative founders and startup marketers' },
+            { platform: 'TikTok',    campaignType: 'Reach',          objective: 'Awareness', duration: '21 days', dailyBudget: 12, targeting: 'Brand designers and content creators' },
+          ],
+        },
+      },
+      estimations: {
+        estimatedResults: {
+          scenario: 'moderate',
+          confidenceLevel: 77,
+          metrics: [
+            { metric: 'impressions', targetValue: '120000' },
+            { metric: 'engagement', targetValue: '7.5%' },
+            { metric: 'brand_mentions', targetValue: '250' },
+          ],
+        },
+      },
+      isActive: true,
+    },
+  }
 ];
 
 module.exports = campaignSeeds;
