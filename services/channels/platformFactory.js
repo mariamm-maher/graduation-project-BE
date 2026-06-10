@@ -1,7 +1,5 @@
 const InstagramService = require('./instagramService');
 const FacebookService = require('./facebookService');
-const TwitterService = require('./XService');
-const LinkedInService = require('./linkedinService');
 
 class PlatformFactory {
   static getService(platform) {
