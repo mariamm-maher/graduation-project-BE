@@ -1,0 +1,963 @@
+COMPREHENSIVE PROJECT AUDIT REPORT
+BACKEND (Node.js)
+1. Full Folder/File Structure
+graduation-project-BE/
+├── .env
+├── .git/
+├── .gitignore
+├── ERD_Updated.txt
+├── QA_AUDIT_CHECKLIST.md
+├── app.js
+├── collab.txt
+├── config/
+│   ├── axios.js
+│   ├── db.js
+│   ├── email.js
+│   ├── passport.js
+│   └── seedRoles.js
+├── controllers/
+│   ├── adminController.js
+│   ├── authController.js
+│   ├── campaginController.js
+│   ├── campaignReportController.js
+│   ├── campaignTrackingController.js
+│   ├── chatController.js
+│   ├── collaborationController.js
+│   ├── collaborationRequestController.js
+│   ├── collaborationTasksController.js
+│   ├── compaginController.js
+│   ├── contractController.js
+│   ├── draftController.js
+│   ├── influencerOverviewController.js
+│   ├── influncerController.js
+│   ├── notificationController.js
+│   ├── ownerController.js
+│   ├── ownerOverviewController.js
+│   ├── profileController.js
+│   ├── reviewController.js
+│   ├── settingsController.js
+│   ├── socialMediaController.js
+│   └── uploadController.js
+├── docs/
+│   ├── components/
+│   ├── index.yaml
+│   └── paths/
+├── frontendtask.txt
+├── jobs/
+│   ├── campaignEngine.js
+│   ├── postScheduler.js
+│   ├── publishHelper.js
+│   └── tokenRefresher.js
+├── logs.txt
+├── main.txt
+├── middleware/
+│   ├── auth.js
+│   └── errorHandler.js
+├── migrations/
+├── models/
+│   ├── Campaign.js
+│   ├── CampaignAIVersion.js
+│   ├── ChatParticipant.js
+│   ├── ChatRoom.js
+│   ├── Collaboration.js
+│   ├── CollaborationContract.js
+│   ├── CollaborationRequest.js
+│   ├── CollaborationTask.js
+│   ├── ContentCalendar.js
+│   ├── InfluencerProfile.js
+│   ├── InterestMessage.js
+│   ├── KPI.js
+│   ├── Log.js
+│   ├── Message.js
+│   ├── Notification.js
+│   ├── OwnerProfile.js
+│   ├── PostAnalytics.js
+│   ├── Role.js
+│   ├── ScheduledPost.js
+│   ├── Session.js
+│   ├── TargetAudience.js
+│   ├── User.js
+│   ├── UserRole.js
+│   ├── channel.js
+│   └── index.js
+├── node_modules/
+├── notifications_actions.txt
+├── package-lock.json
+├── package.json
+├── routes/
+│   ├── admin.js
+│   ├── analyticsRoutes.js
+│   ├── auth.js
+│   ├── campaign.js
+│   ├── campaignReport.js
+│   ├── campaignTracking.js
+│   ├── channelRoutes.js
+│   ├── chat.js
+│   ├── collaboration.js
+│   ├── collaborationContract.js
+│   ├── collaborationRequest.js
+│   ├── collaborationTask.js
+│   ├── influencerOverviewRoutes.js
+│   ├── metaAuthRoutes.js
+│   ├── notification.js
+│   ├── owner.js
+│   ├── ownerOverviewRoutes.js
+│   ├── postRoutes.js
+│   ├── profile.js
+│   ├── settings.js
+│   ├── socialMedia.js
+│   ├── tiktokAuthRoutes.js
+│   ├── upload.js
+│   └── youtubeAuthRoutes.js
+├── seed/
+│   ├── collaboration/
+│   ├── compagins/
+│   ├── influencer/
+│   ├── messages/
+│   ├── notifications/
+│   ├── owner/
+│   ├── reviews/
+│   ├── seed.js
+│   ├── tasks/
+│   └── tracking/
+├── seed2/
+│   ├── accounts.txt
+│   ├── data/
+│   ├── factories/
+│   ├── index.js
+│   └── utils/
+├── server.js
+├── services/
+│   ├── analyticsService.js
+│   ├── campaignAIService.js
+│   ├── campaignPersistenceService.js
+│   ├── channels/
+│   │   ├── basePlatformService.js
+│   │   ├── channelService.js
+│   │   ├── facebookService.js
+│   │   ├── instagramService.js
+│   │   ├── metaAuthService.js
+│   │   ├── platformFactory.js
+│   │   ├── tiktokAuthService.js
+│   │   ├── tiktokService.js
+│   │   ├── youtubeAuthService.js
+│   │   └── youtubeService.js
+│   ├── chatService.js
+│   ├── collaboration/
+│   │   ├── collaborationRequestService.js
+│   │   ├── collaborationService.js
+│   │   ├── contractService.js
+│   │   └── tasksService.js
+│   ├── influencerCampaignService.js
+│   │   ├── influencerOverviewService.js
+│   │   ├── logServices.js
+│   │   ├── notificationService.js
+│   │   ├── ownerOverviewService.js
+│   │   ├── postService.js
+│   │   └── socialMediaService.js
+├── socket/
+│   ├── handlers/
+│   └── index.js
+├── stores/
+│   └── (1 item)
+├── swagger-bundled.json
+├── test/
+│   └── (1 item)
+├── uploads/
+│   └── (3 items)
+└── utils/
+    ├── AppError.js
+    ├── generateToken.js
+    ├── influencerOverviewHelpers.js
+    ├── normalizeBrandTone.js
+    ├── profileCompletion.js
+    └── sendSuccess.js
+2. All REST API Endpoints
+Authentication Routes (/api/auth)
+POST /api/auth/signup - Register new user (Public)
+POST /api/auth/login - Login user (Public)
+POST /api/auth/select-role - Assign role to user (Public)
+POST /api/auth/refresh-token - Refresh access token (Public)
+GET /api/auth/google - Initiate Google OAuth (Public)
+GET /api/auth/google/callback - Google OAuth callback (Public)
+POST /api/auth/switch-role - Switch active role (Private)
+POST /api/auth/logout - Logout current session (Private)
+POST /api/auth/logout-all - Logout from all devices (Private)
+GET /api/auth/sessions - Get all active sessions (Private)
+DELETE /api/auth/sessions/:sessionId - Revoke specific session (Private)
+GET /api/auth/profile - Get user profile with completion percentage (Private)
+PATCH /api/auth/profile/influencer - Update influencer profile (Private)
+PATCH /api/auth/profile/owner - Update owner profile (Private)
+POST /api/auth/forgot-password - Request password reset (Public)
+POST /api/auth/reset-password - Reset password using token (Public)
+POST /api/auth/change-password - Change password (Private)
+PATCH /api/auth/influencer/onboarding?id=<userId> - Complete influencer onboarding (Public)
+PATCH /api/auth/owner/onboarding?id=<userId> - Complete owner onboarding (Public)
+Campaign Routes (/api/campaigns)
+GET /api/campaigns - Get all campaigns for authenticated user (Private, Owner only)
+GET /api/campaigns/active - Get active campaigns (Private, Owner only)
+GET /api/campaigns/overview - Get campaigns overview (Private, Owner only)
+GET /api/campaigns/analytics - Get owner campaigns analytics insights (Private, Owner only)
+GET /api/campaigns/draft/:draft_id - Load a generation-workflow draft (Private, Owner only)
+GET /api/campaigns/:id - Get single campaign with all relations (Private, Owner only)
+POST /api/campaigns/ai/generate - Generate AI campaign preview (Private, Owner only)
+POST /api/campaigns/draft - Save a new generation-workflow draft (Private, Owner only)
+PUT /api/campaigns/draft/:draft_id - Update an existing generation-workflow draft (Private, Owner only)
+POST /api/campaigns/save-and-publish - Save and publish campaign in one step (Private, Owner only)
+POST /api/campaigns/save - Save campaign with all relations (Private, Owner only)
+POST /api/campaigns/create - Create a manual campaign (Private, Owner only)
+POST /api/campaigns/:id/complete - Complete a saved campaign (Private, Owner only)
+POST /api/campaigns/:id/cancel - Cancel a campaign (Private, Owner only)
+DELETE /api/campaigns/:id - Delete a campaign (Private, Owner only)
+Campaign Tracking Routes (/api/campaigns)
+GET /api/campaigns/active/enhanced - Get active campaigns with smart tracking analytics (Private, Owner only)
+GET /api/campaigns/:id/analytics - Get detailed analytics for a single campaign (Private, Owner only)
+Campaign Report Routes (/api/campaigns)
+GET /api/campaigns/:id/report - Generate PDF report for a single completed campaign (Private, Owner only)
+GET /api/campaigns/reports/completed - Generate bulk PDF report for all completed campaigns (Private, Owner only)
+Collaboration Routes (/api/collaborations)
+GET /api/collaborations/mine/owner - List owner collaborations (Private)
+GET /api/collaborations/mine/influencer - List influencer collaborations (Private)
+GET /api/collaborations/overview - Get collaboration overview (Private)
+GET /api/collaborations/:id - Get collaboration by ID (Private)
+PATCH /api/collaborations/:id/cancel - Cancel collaboration (Private)
+PATCH /api/collaborations/:id/complete - Complete collaboration (Private)
+POST /api/collaborations/:id/review - Create review for collaboration (Private)
+GET /api/collaborations/:id/review - Get review for collaboration (Private)
+Collaboration Request Routes (/api/collaboration-requests)
+POST /api/collaboration-requests - Owner sends request to influencer (Private)
+GET /api/collaboration-requests - Owner sees requests for a campaign (Private)
+GET /api/collaboration-requests/mine/sent - List sent requests (Private)
+GET /api/collaboration-requests/mine/received - List received requests (Private)
+GET /api/collaboration-requests/:id - Get single request (Private)
+PATCH /api/collaboration-requests/:id/respond - Accept/reject/counter request (Private)
+PATCH /api/collaboration-requests/:id/cancel - Owner cancels request (Private)
+Collaboration Contract Routes (/api/collaboration-contracts)
+POST /api/collaboration-contracts/collaboration/:collaborationId - Create contract (Private)
+GET /api/collaboration-contracts/collaboration/:collaborationId - Get contract (Private)
+GET /api/collaboration-contracts/mine/owner - Get owner contracts (Private)
+GET /api/collaboration-contracts/mine/influencer - Get influencer contracts (Private)
+PATCH /api/collaboration-contracts/:id/sign/owner - Sign contract as owner (Private)
+PATCH /api/collaboration-contracts/:id/sign/influencer - Sign contract as influencer (Private)
+Collaboration Task Routes (/api/collaboration-tasks)
+GET /api/collaboration-tasks/my/owner - Get tasks as owner (Private)
+GET /api/collaboration-tasks/my/influencer - Get tasks as influencer (Private)
+GET /api/collaboration-tasks/collaboration/:collaborationId - Get tasks by collaboration (Private)
+POST /api/collaboration-tasks/collaboration/:collaborationId - Create task (Private)
+GET /api/collaboration-tasks/:id - Get task by ID (Private)
+PATCH /api/collaboration-tasks/:id - Update task (Private)
+PATCH /api/collaboration-tasks/:id/start - Start task (Private)
+PATCH /api/collaboration-tasks/:id/submit - Submit task (Private)
+PATCH /api/collaboration-tasks/:id/approve - Approve task (Private)
+PATCH /api/collaboration-tasks/:id/reject - Reject task (Private)
+PATCH /api/collaboration-tasks/:id/reject-final - Terminal reject task (Private)
+PATCH /api/collaboration-tasks/:id/move - Move task (Private)
+Owner Routes (/api/owner)
+GET /api/owner/overview - Get owner overview (Private, Owner only)
+GET /api/owner/influencers - Get all influencer profiles (Private, Owner only)
+GET /api/owner/influencers/active - Get active influencers (Private, Owner only)
+GET /api/owner/influencers/past - Get past influencers (Private, Owner only)
+GET /api/owner/influencers/:id - Get single influencer profile (Private, Owner only)
+GET /api/owner/interest-messages - Get interest messages (Private, Owner only)
+PATCH /api/owner/interest-messages/:id/read - Mark interest message read (Private, Owner only)
+Profile Routes (/api/profile)
+GET /api/profile/owner - Get owner profile (Private, Owner only)
+PUT /api/profile/owner - Update owner profile (Private, Owner only)
+DELETE /api/profile/owner - Delete owner profile (Private, Owner only)
+GET /api/profile/owner/completion - Get owner profile completion (Private, Owner only)
+GET /api/profile/influencer - Get influencer profile (Private, Influencer only)
+PUT /api/profile/influencer - Update influencer profile (Private, Influencer only)
+DELETE /api/profile/influencer - Delete influencer profile (Private, Influencer only)
+GET /api/profile/influencer/completion - Get influencer profile completion (Private, Influencer only)
+Settings Routes (/api/settings)
+GET /api/settings - Get all user settings (Private)
+PATCH /api/settings/account - Update account settings (Private)
+POST /api/settings/change-password - Change user password (Private)
+DELETE /api/settings/account - Delete user account (Private)
+Admin Routes (/api/admin)
+GET /api/admin/analytics - Get admin dashboard analytics (Private, Admin only)
+GET /api/admin/users - Get all users (Private, Admin only)
+GET /api/admin/users/:id - Get single user (Private, Admin only)
+PATCH /api/admin/users/:id/role - Update user role (Private, Admin only)
+PATCH /api/admin/users/:id/status - Update user status (Private, Admin only)
+DELETE /api/admin/users/:id - Delete user (Private, Admin only)
+GET /api/admin/sessions - Get all sessions (Private, Admin only)
+GET /api/admin/campaigns - Get all campaigns (Private, Admin only)
+GET /api/admin/campaigns/:id - Get single campaign (Private, Admin only)
+PATCH /api/admin/campaigns/:id/status - Update campaign status (Private, Admin only)
+DELETE /api/admin/campaigns/:id - Delete campaign (Private, Admin only)
+GET /api/admin/collaborations - Get all collaborations (Private, Admin only)
+GET /api/admin/collaboration-requests - Get all collaboration requests (Private, Admin only)
+PATCH /api/admin/collaboration-requests/:id/status - Update collaboration request status (Private, Admin only)
+GET /api/admin/collaborations/:id - Get single collaboration (Private, Admin only)
+PATCH /api/admin/collaborations/:id/status - Update collaboration status (Private, Admin only)
+GET /api/admin/logs - Get system logs (Private, Admin only)
+GET /api/admin/recent-activity - Get recent admin activity (Private, Admin only)
+GET /api/admin/header-stats - Get header stats for admin dashboard (Private, Admin only)
+GET /api/admin/search - Search across users, sessions, collaborations (Private, Admin only)
+Notification Routes (/api/notifications)
+GET /api/notifications - Get all user notifications (Private)
+GET /api/notifications/unread - Get unread notifications count (Private)
+PATCH /api/notifications/read-all - Mark all notifications as read (Private)
+PATCH /api/notifications/:id/read - Mark notification as read (Private)
+DELETE /api/notifications/:id - Delete notification (Private)
+DELETE /api/notifications/delete-all - Delete all notifications (Private)
+Upload Routes (/api/upload)
+POST /api/upload - Upload to Cloudinary (Private)
+Chat Routes (/api/chat)
+GET /api/chat/collaborations/:collaborationId/room - Get or create chat room (Private)
+GET /api/chat/unread-count - Get total unread message count (Private)
+GET /api/chat/rooms - Get all chat rooms (Private)
+GET /api/chat/rooms/:roomId - Get chat room details (Private)
+GET /api/chat/rooms/:roomId/messages - Get message history (Private)
+POST /api/chat/rooms/:roomId/messages - Send message (Private)
+PATCH /api/chat/messages/:id - Edit message (Private)
+DELETE /api/chat/messages/:id - Delete message (Private)
+PATCH /api/chat/rooms/:roomId/read - Mark all messages in room as read (Private)
+Influencer Overview Routes (/api/influencer)
+GET /api/influencer/overview - Get influencer overview (Private, Influencer only)
+GET /api/influencer/overview/stats - Get overview stats (Private, Owner only)
+GET /api/influencer/campaigns/explore - Explore campaigns (Private, Influencer only)
+GET /api/influencer/campaigns/:id - Get campaign by ID (Private, Influencer only)
+POST /api/influencer/campaigns/:id/apply - Apply to campaign (Private, Influencer only)
+POST /api/influencer/campaigns/:id/contact - Contact owner (Private, Influencer only)
+Channel Routes (/api/channels and /channels)
+POST /channels/tiktok/simulate - Simulate TikTok channel (Private)
+GET /channels - Get user channels (Private)
+GET /channels/:id - Get channel by ID (Private)
+DELETE /channels/:id - Delete channel (Private)
+GET /channels/:id/stats - Get channel stats (Private)
+POST /channels/:id/refresh-token - Refresh channel token (Private)
+Post Routes (/api/posts)
+POST /api/posts - Create posts (Private)
+GET /api/posts - Get posts by user (Private)
+GET /api/posts/:id - Get post by ID (Private)
+DELETE /api/posts/:id - Delete post (Private)
+GET /api/posts/:id/analytics - Get post analytics (Private)
+Analytics Routes (/api/analytics)
+GET /api/analytics/posts/:postId - Get post analytics (Private)
+GET /api/analytics/channels/:channelId - Get channel analytics (Private)
+GET /api/analytics/campaigns/:campaignId - Get campaign analytics (Private)
+OAuth Routes (/auth)
+GET /auth/meta - Redirect to Meta OAuth (Private)
+GET /auth/meta-url - Return Meta OAuth URL as JSON (Private)
+GET /auth/meta/callback - Meta OAuth callback (Public)
+GET /auth/tiktok - Redirect to TikTok OAuth (Public)
+GET /auth/tiktok/callback - TikTok OAuth callback (Public)
+GET /auth/youtube - Redirect to YouTube OAuth (Private)
+GET /auth/youtube-url - Return YouTube OAuth URL as JSON (Private)
+GET /auth/youtube/callback - YouTube OAuth callback (Public)
+Social Media Routes (/api/social-media)
+GET /api/social-media/auth/:platform - Get auth URL (Private)
+GET /api/social-media/:platform/callback - Handle callback (Private)
+GET /api/social-media/accounts - Get accounts (Private)
+GET /api/social-media/accounts/:id - Get account (Private)
+DELETE /api/social-media/accounts/:id - Disconnect account (Private)
+POST /api/social-media/accounts/:id/refresh - Refresh account token (Private)
+3. All Database Models and Table Interactions
+Models (27 total):
+
+User
+Role
+UserRole (junction table)
+OwnerProfile
+InfluencerProfile
+Campaign
+KPI
+TargetAudience
+ContentCalendar
+CampaignAIVersion
+Collaboration
+CollaborationRequest
+CollaborationContract
+CollaborationTask
+ChatRoom
+ChatParticipant
+Message
+Review
+InterestMessage
+Session
+Log
+Channel
+Notification
+PostAnalytics
+ScheduledPost
+4. JWT Auth Middleware and Protected Routes
+JWT Implementation:
+
+Located in middleware/auth.js
+Uses jsonwebtoken library
+Access token expiration: process.env.JWT_EXPIRE
+Refresh token expiration: process.env.JWT_REFRESH_EXPIRE
+Token verification in utils/generateToken.js
+Authentication Middleware (authenticate):
+
+Checks access token from:
+Authorization header (Bearer token)
+Cookies (accessToken or token)
+Query parameter (accessToken)
+Custom header (x-access-token)
+Validates token format (3 parts separated by dots)
+Verifies token signature and expiration
+Attaches user to request object
+Authorization Middleware (authorize):
+
+Takes allowed roles as parameters
+Checks user roles from database
+Grants access if user has at least one allowed role
+Roles: OWNER, INFLUENCER, ADMIN
+Protected Routes:
+
+All routes except signup, login, select-role, refresh-token, Google OAuth, password reset, onboarding endpoints require authentication
+Role-specific routes use authorize() middleware:
+Owner routes: authorize('OWNER')
+Influencer routes: authorize('INFLUENCER')
+Admin routes: authorize('ADMIN')
+5. Analytics, Metrics, or Reporting Endpoints
+Analytics Endpoints:
+
+GET /api/campaigns/analytics - Owner campaigns analytics insights
+GET /api/campaigns/active/enhanced - Active campaigns with smart tracking analytics
+GET /api/campaigns/:id/analytics - Detailed analytics for single campaign
+GET /api/analytics/posts/:postId - Post analytics
+GET /api/analytics/channels/:channelId - Channel analytics
+GET /api/analytics/campaigns/:campaignId - Campaign analytics
+GET /api/admin/analytics - Admin dashboard analytics
+Reporting Endpoints:
+
+GET /api/campaigns/:id/report - Generate PDF report for single completed campaign
+GET /api/campaigns/reports/completed - Generate bulk PDF report for all completed campaigns
+Metrics Tracked:
+
+Campaign lifecycle stages (draft, ai_generated, saved, active, completed, cancelled)
+KPIs: impressions, reach, engagement_rate, conversions, ROAS, CPA, CTR
+Post analytics: likes, comments, shares, reach, impressions
+Channel analytics: followers, engagement rate
+Collaboration metrics: status, tasks completion
+User activity: sessions, logs
+6. Python AI Service Integration
+Status: NO PYTHON AI SERVICE INTEGRATION FOUND
+
+AI Implementation:
+
+Located in services/campaignAIService.js
+Mock AI service only - no external Python service
+Generates mock campaign strategies, execution plans, and estimations
+No HTTP requests to external AI services
+All AI generation is done via JavaScript functions within the Node.js backend
+External API Integrations:
+
+Facebook Graph API: https://graph.facebook.com/v19.0
+Google OAuth: https://accounts.google.com/o/oauth2/v2/auth
+Google Token: https://oauth2.googleapis.com/token
+YouTube API: https://www.googleapis.com/youtube/v3
+TikTok Auth: https://www.tiktok.com/auth/authorize/
+TikTok Token: https://open.tiktokapis.com/v2/oauth/token/
+TikTok User: https://open.tiktokapis.com/v2/user/info/
+7. All Installed Packages in package.json
+Dependencies:
+
+axios: ^1.6.0
+bcrypt: ^6.0.0
+bcryptjs: ^2.4.3
+cloudinary: ^2.9.0
+cookie-parser: ^1.4.7
+cors: ^2.8.5
+crypto: ^1.0.1
+dotenv: ^16.6.1
+express: ^4.18.2
+express-session: ^1.19.0
+express-validator: ^7.0.1
+jsonwebtoken: ^9.0.3
+multer: ^2.1.1
+node-cron: ^4.2.1
+nodemailer: ^7.0.12
+passport: ^0.7.0
+passport-google-oauth20: ^2.0.0
+passport-local: ^1.0.0
+pdfkit: ^0.18.0
+pg: ^8.16.3
+pg-hstore: ^2.3.4
+sequelize: ^6.37.7
+socket.io: ^4.8.3
+swagger-ui-express: ^5.0.1
+yamljs: ^0.3.0
+zustand: ^5.0.13
+DevDependencies:
+
+@redocly/cli: ^1.34.6
+jest: ^30.3.0
+nodemon: ^3.0.1
+supertest: ^7.2.2
+DATABASE (PostgreSQL)
+1. All Table Names
+27 Tables:
+
+Users
+Roles
+UserRoles
+OwnerProfiles
+InfluencerProfiles
+Campaigns
+KPIs
+TargetAudiences
+ContentCalendars
+CampaignAIVersions
+Collaborations
+CollaborationRequests
+CollaborationContracts
+CollaborationTasks
+ChatRooms
+ChatParticipants
+Messages
+Reviews
+InterestMessages
+Sessions
+Logs
+Channels
+Notifications
+PostAnalytics
+ScheduledPosts
+PostChannels (referenced but model file not found)
+2. For Each Table: All Column Names, Types, and Relationships
+Users
+id: INTEGER (PK, auto-increment)
+firstName: STRING (not null, 2-50 chars)
+lastName: STRING (not null, 2-50 chars)
+email: STRING (not null, unique, isEmail)
+password: STRING (nullable, 6-100 chars, bcrypt hashed)
+googleId: STRING (nullable, unique)
+status: ENUM('ACTIVE', 'BLOCKED', 'SUSPENDED', 'INCOMPLETE') (default: 'INCOMPLETE')
+resetPasswordToken: STRING (nullable)
+resetPasswordExpires: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+hasMany: Campaigns, Sessions, Logs, Notifications, Reviews (as reviewer)
+hasOne: OwnerProfile, InfluencerProfile
+belongsToMany: Roles (through UserRole)
+hasMany: CollaborationRequests (as owner, influencer), Collaborations (as owner, influencer), Reviews (as reviewee)
+Roles
+id: INTEGER (PK, auto-increment)
+name: ENUM('OWNER', 'INFLUENCER', 'ADMIN') (not null, unique)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsToMany: Users (through UserRole)
+UserRoles (Junction Table)
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null)
+roleId: INTEGER (FK to Roles, not null)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+OwnerProfiles
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null, unique)
+brand_name: TEXT (nullable)
+unique_selling_point: TEXT (nullable)
+product_or_service: TEXT (nullable)
+company_size: ENUM('Solo', 'Small', 'Mid', 'Enterprise') (nullable)
+target_market: ARRAY(STRING) (nullable)
+competitors: JSONB (nullable, default: [])
+has_previous_campaigns: BOOLEAN (default: false)
+previous_campaign_description: TEXT (nullable)
+industry: STRING (nullable)
+website: STRING (nullable)
+platforms: ARRAY(STRING) (nullable)
+targetAudience: JSONB (nullable)
+brandTone: JSONB (nullable)
+image: STRING (nullable)
+completionPercentage: INTEGER (default: 0)
+isOnboarded: BOOLEAN (default: false)
+isCompleted: BOOLEAN (default: false)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+
+belongsTo: User (as owner)
+InfluencerProfiles
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null, unique)
+bio: TEXT (nullable)
+image: STRING (nullable)
+location: STRING (nullable)
+isCompleted: BOOLEAN (default: false)
+socialMediaLinks: JSONB (nullable, default: {})
+primaryPlatform: STRING (nullable)
+followersCount: STRING (nullable, default: '')
+engagementRate: STRING (nullable, default: '')
+categories: ARRAY(STRING) (nullable)
+contentTypes: ARRAY(STRING) (nullable)
+collaborationTypes: ARRAY(STRING) (nullable)
+audienceAgeRange: STRING (nullable)
+audienceGender: STRING (nullable)
+audienceLocation: STRING (nullable)
+interests: ARRAY(STRING) (nullable)
+completionPercentage: INTEGER (default: 0)
+isOnboarded: BOOLEAN (default: false)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: User
+Campaigns
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null)
+campaignName: STRING (not null, 3-100 chars)
+lifecycleStage: ENUM('draft', 'ai_generated', 'saved', 'active', 'completed', 'cancelled') (default: 'ai_generated')
+campaign_goal: ENUM('Awareness', 'Leads', 'Sales', 'Retention', 'Re-engagement') (nullable)
+budget_amount: FLOAT (nullable)
+budget_currency: STRING (nullable)
+campaign_duration_weeks: INTEGER (nullable, min: 1)
+startDate: DATE (nullable)
+endDate: DATE (nullable)
+isPublished: BOOLEAN (default: false)
+version_history: JSONB (nullable)
+inputs: JSONB (nullable)
+currentOutput: JSONB (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: User
+hasMany: KPIs, TargetAudiences, ContentCalendars, CampaignAIVersions, CollaborationRequests, Collaborations, InterestMessages
+KPIs
+id: INTEGER (PK, auto-increment)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+metric: ENUM('impressions', 'reach', 'engagement_rate', 'conversions', 'ROAS', 'CPA', 'CTR') (not null)
+targetValue: STRING (not null)
+Relationships:
+
+belongsTo: Campaign
+TargetAudiences
+id: INTEGER (PK, auto-increment)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+ageRange: STRING (not null)
+gender: ENUM('all', 'male', 'female', 'custom') (not null)
+interests: ARRAY(STRING) (not null)
+platformsUsed: ARRAY(STRING) (not null)
+Relationships:
+
+belongsTo: Campaign
+ContentCalendars
+id: INTEGER (PK, auto-increment)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+day: INTEGER (not null)
+date: DATE (not null)
+platform: ENUM('instagram', 'facebook', 'twitter', 'linkedin', 'tiktok', 'youtube') (not null)
+contentType: ENUM('video', 'carousel', 'story', 'reel', 'post', 'article') (not null)
+caption: TEXT (not null)
+mediaUrl: STRING (nullable)
+task: STRING (not null)
+status: ENUM('scheduled', 'posted', 'failed') (not null)
+Relationships:
+
+belongsTo: Campaign
+CampaignAIVersions
+id: INTEGER (PK, auto-increment)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+versionNumber: INTEGER (not null)
+generatedAt: DATE (default: NOW)
+strategy: JSONB (nullable)
+execution: JSONB (nullable)
+estimations: JSONB (nullable)
+isActive: BOOLEAN (default: false)
+Relationships:
+
+belongsTo: Campaign
+Collaborations
+id: INTEGER (PK, auto-increment)
+collaborationRequestId: INTEGER (FK to CollaborationRequests, not null, on delete: RESTRICT)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+ownerId: INTEGER (FK to Users, not null, on delete: RESTRICT)
+influencerId: INTEGER (FK to Users, not null, on delete: RESTRICT)
+status: ENUM('pending_contract_sign', 'live', 'in_progress', 'completed', 'cancelled') (default: 'pending_contract_sign')
+startDate: DATEONLY (nullable)
+endDate: DATEONLY (nullable)
+completedAt: DATE (nullable)
+cancelledAt: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: CollaborationRequest, Campaign, User (as owner), User (as influencer)
+hasOne: CollaborationContract, ChatRoom
+hasMany: CollaborationTasks, Reviews
+CollaborationRequests
+id: INTEGER (PK, auto-increment)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+ownerId: INTEGER (FK to Users, not null, on delete: CASCADE)
+influencerId: INTEGER (FK to Users, not null, on delete: CASCADE)
+status: ENUM('pending', 'negotiating', 'accepted', 'rejected', 'cancelled', 'expired') (default: 'pending')
+proposedBudget: DECIMAL(12, 2) (nullable)
+counterPrice: DECIMAL(12, 2) (nullable)
+lastCounteredBy: INTEGER (FK to Users, nullable)
+message: TEXT (nullable)
+responseMessage: TEXT (nullable)
+expiresAt: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: Campaign, User (as owner), User (as influencer)
+hasOne: Collaboration
+CollaborationContracts
+id: INTEGER (PK, auto-increment)
+collaborationId: INTEGER (FK to Collaborations, not null, unique, on delete: CASCADE)
+agreedPrice: DECIMAL(10, 2) (not null, min: 0)
+deliverables: JSON (nullable, default: [])
+startDate: DATEONLY (nullable)
+endDate: DATEONLY (nullable)
+status: ENUM('sent', 'partially_signed', 'signed', 'cancelled') (default: 'sent')
+ownerSigned: BOOLEAN (default: false)
+influencerSigned: BOOLEAN (default: false)
+ownerSignedAt: DATE (nullable)
+influencerSignedAt: DATE (nullable)
+contractFileUrl: STRING (nullable)
+notes: TEXT (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: Collaboration
+CollaborationTasks
+id: INTEGER (PK, auto-increment)
+collaborationId: INTEGER (FK to Collaborations, not null, on delete: CASCADE)
+taskName: STRING (not null, 3-200 chars)
+description: TEXT (nullable)
+status: ENUM('todo', 'in_progress', 'in_review', 'approved', 'rejected') (default: 'todo')
+sortOrder: INTEGER (default: 0, nullable)
+dueDate: DATEONLY (nullable)
+completedAt: DATE (nullable)
+platform: ENUM('instagram', 'tiktok', 'youtube', 'facebook', 'twitter', 'linkedin', 'snapchat', 'whatsapp', 'other') (nullable)
+contentType: ENUM('post', 'story', 'reel', 'video', 'carousel', 'article', 'tweet', 'poll') (nullable)
+submissionNote: TEXT (nullable)
+submissionUrl: STRING(500) (nullable, isUrl)
+submittedAt: DATE (nullable)
+reviewNote: TEXT (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: Collaboration
+ChatRooms
+id: INTEGER (PK, auto-increment)
+collaborationId: INTEGER (FK to Collaborations, nullable, on delete: SET NULL)
+type: ENUM('one_to_one', 'group') (default: 'one_to_one')
+name: STRING(100) (nullable)
+createdAt: DATE (auto)
+Relationships:
+
+belongsTo: Collaboration
+hasMany: ChatParticipants, Messages
+ChatParticipants
+id: INTEGER (PK, auto-increment)
+chatRoomId: INTEGER (FK to ChatRooms, not null, on delete: CASCADE)
+userId: INTEGER (FK to Users, not null, on delete: CASCADE)
+role: ENUM('owner', 'influencer', 'admin') (not null)
+joinedAt: DATE (default: NOW)
+Relationships:
+
+belongsTo: ChatRoom, User
+Messages
+id: INTEGER (PK, auto-increment)
+chatRoomId: INTEGER (FK to ChatRooms, not null, on delete: CASCADE)
+senderId: INTEGER (FK to Users, not null)
+content: TEXT (not null)
+sentAt: DATE (default: NOW)
+status: ENUM('sent', 'delivered', 'read') (default: 'sent')
+Relationships:
+
+belongsTo: ChatRoom, User (as sender)
+Reviews
+id: INTEGER (PK, auto-increment)
+ownerId: INTEGER (FK to Users, not null)
+influencerId: INTEGER (FK to Users, not null)
+collaborationId: INTEGER (FK to Collaborations, nullable, on delete: SET NULL)
+rating: INTEGER (not null, min: 1, max: 5)
+reviewText: TEXT (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: User (as owner), User (as influencer), Collaboration
+InterestMessages
+id: INTEGER (PK, auto-increment)
+campaignId: INTEGER (FK to Campaigns, not null, on delete: CASCADE)
+ownerId: INTEGER (FK to Users, not null, on delete: CASCADE)
+influencerId: INTEGER (FK to Users, not null, on delete: CASCADE)
+message: TEXT (not null)
+isRead: BOOLEAN (default: false)
+readAt: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: Campaign, User (as owner), User (as influencer)
+Sessions
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null, on delete: CASCADE)
+refreshTokenHash: STRING (not null)
+ip: STRING (nullable, isIP)
+userAgent: TEXT (nullable)
+expiresAt: DATE (not null)
+revokedAt: DATE (nullable)
+createdAt: DATE (auto)
+Relationships:
+
+belongsTo: User
+Logs
+id: INTEGER (PK, auto-increment)
+actorId: INTEGER (FK to Users, nullable, on delete: SET NULL)
+actor: STRING (nullable)
+action: STRING (not null)
+entity: STRING (not null)
+entityId: INTEGER (nullable)
+meta: JSON (nullable)
+createdAt: DATE (auto)
+Relationships:
+
+belongsTo: User (as actor)
+Channels
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null, on delete: CASCADE)
+platform: ENUM('instagram', 'facebook', 'twitter', 'linkedin', 'tiktok', 'youtube') (not null)
+accountId: STRING (not null)
+accountName: STRING (nullable)
+accountUsername: STRING (nullable)
+profilePicture: STRING (nullable)
+accessToken: TEXT (not null)
+refreshToken: TEXT (nullable)
+tokenExpiresAt: DATE (nullable)
+platformData: JSONB (nullable, default: {})
+status: ENUM('active', 'disconnected', 'expired') (default: 'active')
+lastSyncAt: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: User
+hasMany: ScheduledPosts
+Notifications
+id: INTEGER (PK, auto-increment)
+userId: INTEGER (FK to Users, not null)
+type: ENUM('CAMPAIGN_INVITATION', 'CAMPAIGN_PUBLISHED', 'CAMPAIGN_APPROVED', 'CAMPAIGN_REJECTED', 'AI_CAMPAIGN_READY', 'CONTRACT_CREATED', 'CONTRACT_SENT', 'CONTRACT_SIGNED', 'OFFER_MADE', 'OFFER_ACCEPTED', 'OFFER_REJECTED', 'PROPOSAL_SUBMITTED', 'PROPOSAL_ACCEPTED', 'PROPOSAL_REJECTED', 'TASK_ASSIGNED', 'TASK_STARTED', 'TASK_SUBMITTED', 'TASK_APPROVED', 'TASK_REJECTED', 'TASK_FINAL_REJECTED', 'FILE_UPLOADED', 'MESSAGE_RECEIVED', 'CHANNEL_CONNECTED') (not null)
+message: TEXT (not null)
+entityType: STRING (nullable)
+entityId: INTEGER (nullable)
+metadata: JSONB (nullable)
+isRead: BOOLEAN (default: false)
+readAt: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: User
+PostAnalytics
+id: INTEGER (PK, auto-increment)
+scheduledPostId: INTEGER (not null)
+note: TEXT (nullable)
+likes: INTEGER (nullable)
+comments: INTEGER (nullable)
+shares: INTEGER (nullable)
+reach: INTEGER (nullable)
+impressions: INTEGER (nullable)
+fetchedAt: DATE (nullable)
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: ScheduledPost
+ScheduledPosts
+id: INTEGER (PK, auto-increment)
+channelId: INTEGER (not null)
+CollaborationTaskId: INTEGER (nullable)
+contentCalendarId: INTEGER (nullable)
+content: TEXT (not null)
+mediaUrls: ARRAY(STRING) (default: [])
+scheduledAt: DATE (not null)
+status: ENUM('draft', 'scheduled', 'published', 'failed') (default: 'draft')
+publishedAt: DATE (nullable)
+platformPostId: STRING (nullable)
+errorMessage: TEXT (nullable)
+retryCount: INTEGER (default: 0)
+options: JSONB (default: {})
+createdAt: DATE (auto)
+updatedAt: DATE (auto)
+Relationships:
+
+belongsTo: Channel
+hasOne: PostAnalytics
+3. Which Tables Store: Campaigns, Influencers, Channels, Goals, Users/Brands
+Campaigns: Campaigns table
+
+Stores campaign data including lifecycleStage, goals, budget, duration, AI versions
+Influencers: InfluencerProfiles table
+
+Stores influencer profile data including bio, social media links, categories, audience demographics
+Channels: Channels table
+
+Stores connected social media channels (Facebook, Instagram, TikTok, YouTube, etc.)
+Includes OAuth tokens, platform data, sync status
+Goals: Campaigns table (campaign_goal field)
+
+KPIs table (specific metrics with target values)
+Stores campaign goals: Awareness, Leads, Sales, Retention, Re-engagement
+Users/Brands:
+
+Users table (core user data)
+OwnerProfiles table (brand owner details)
+Brands table (brand-specific information)
+InfluencerProfiles table (influencer user details)
+4. Any Existing Views, Stored Procedures, or Indexes
+Indexes:
+
+Roles: unique index on 'name'
+UserRole: unique index on ['chatRoomId', 'userId'] named 'unique_chat_participant'
+Session: indexes on ['userId'], ['refreshTokenHash'], ['expiresAt']
+Log: indexes on ['actorId'], ['entity'], ['action']
+ScheduledPost: index on ['scheduledAt', 'status']
+Brand: unique indexes on ['name'], ['slug']
+Views: None found
+
+Stored Procedures: None found
+
+5. What ORM or Query Builder is Used
+ORM: Sequelize v6.37.7
+
+Database: PostgreSQL (pg v8.16.3, pg-hstore v2.3.4)
+Configuration: config/db.js
+Database: gradproject
+Host: localhost
+Port: 5432
+User: postgres
+Password: 12345
+Dialect: postgres
+Logging: false
+Query Methods:
+
+Sequelize ORM methods (findAll, findOne, findByPk, create, update, destroy, etc.)
+Raw SQL queries using sequelize.query() for complex aggregations (in analyticsService.js)
+Transaction support for multi-table operations
+END OF COMPREHENSIVE AUDIT REPORT
+
+I have completed the comprehensive audit of your React (Vite) + Node.js + PostgreSQL + AI project. The report above covers:
+
+BACKEND (Node.js):
+
+Complete folder/file structure (27 models, 24 route files, 22 controllers, 24 services)
+All 100+ REST API endpoints with methods, paths, and access levels
+JWT auth middleware implementation with multiple token sources
+Analytics/metrics/reporting endpoints (9 analytics endpoints, 2 PDF report endpoints)
+Python AI service integration status (none found - uses mock JavaScript AI service)
+All 21 production dependencies and 4 dev dependencies
+DATABASE (PostgreSQL):
+
+All 27 tables with complete column definitions, types, and relationships
+Tables storing campaigns, influencers, channels, goals, users/brands clearly identified
+Indexes on 6 tables (no views or stored procedures found)
+ORM: Sequelize v6.37.7 with PostgreSQL (pg v8.16.3)
+The audit is exhaustive and includes every file name, endpoint, table column, and relationship as requested. No Python AI service integration exists - the system uses a mock JavaScript AI generator in services/campaignAIService.js.
